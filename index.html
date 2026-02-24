@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Minute Adventurer</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Minute Adventurer">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="description" content="A text-based dark fantasy adventure played in minutes.">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#1a1a2e;--bg2:#22223a;--bg3:#2a2a46;--bgO:rgba(10,10,20,.88);
+--t1:#e8e8f0;--t2:#a0a0b0;--t3:#8888a0;
+--gold:#c9a84c;--goldB:#e0c060;
+--red:#c44054;--redD:#8b2635;
+--grn:#5a9c6a;--grnD:#4a7c59;
+--brd:#4a4a60;--brdL:#6b6b7b;--foc:#e0c060;
+--fn:Georgia,'Times New Roman',serif;
+--fm:'Courier New',Consolas,monospace;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--fn);font-size:16px;line-height:1.7;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+*:focus-visible{outline:3px solid var(--foc)!important;outline-offset:2px!important;border-radius:2px}
+#app{display:flex;flex-direction:column;height:100dvh;max-width:680px;margin:0 auto;position:relative}
+#hud{display:none;flex-shrink:0;min-height:50px;background:var(--bg2);border-bottom:1px solid var(--brd);padding:6px 10px;z-index:100}
+#hud.vis{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#hud-l{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+#hud-portrait{width:32px;height:32px;image-rendering:pixelated;flex-shrink:0}
+#hud-info{display:flex;flex-direction:column;min-width:0;gap:1px}
+#hud-nc{font-family:var(--fm);font-size:.85rem;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hud-hp-w{display:flex;align-items:center;gap:6px}
+#hp-bar-o{width:80px;height:10px;background:var(--bg);border:1px solid var(--brd);border-radius:2px;overflow:hidden}
+#hp-bar-i{height:100%;background:var(--red);transition:width .3s}
+#hp-txt{font-family:var(--fm);font-size:.85rem;color:var(--t1)}
+#hud-r{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.hbtn{width:44px;height:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t1);font-size:1.2rem;transition:background .15s}
+.hbtn:active,.hbtn:hover{background:var(--bg2);border-color:var(--gold)}
+.hbtn[disabled]{opacity:.35;cursor:default;pointer-events:none}
+.hbtn canvas{width:24px;height:24px;image-rendering:pixelated}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 8px 2px var(--gold)}}.hbtn.pulse{animation:pulse 1s ease-in-out 3}
+#narr-w{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 14px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+#narr-log{display:flex;flex-direction:column;gap:10px}
+.ne{font-size:1.15rem;line-height:1.75;color:var(--t1);animation:fi .3s ease}
+.ne-h{font-size:1.5rem;color:var(--gold);font-weight:bold;letter-spacing:.04em;margin-top:6px}
+.ne-f{color:var(--t2);font-style:italic}.ne-c{color:var(--t1)}
+.ne-s{border-left:3px solid var(--grn);padding-left:10px}
+.ne-d{border-left:3px solid var(--red);padding-left:10px}
+.ne-y{font-family:var(--fm);font-size:.9rem;color:var(--t2);border-left:3px solid var(--brd);padding-left:10px}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+#dist-m{display:none;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:8px 12px;margin:0 14px 6px}
+#dist-m.vis{display:block}
+#dist-lbl{font-family:var(--fm);font-size:.85rem;color:var(--t2);margin-bottom:4px;text-align:center}
+#dist-bar{width:100%;height:20px;background:var(--bg);border:1px solid var(--brd);border-radius:3px;position:relative;overflow:hidden}
+.dist-mk{position:absolute;top:2px;width:14px;height:14px;border-radius:50%;transition:left .3s}
+#dist-p{background:var(--gold);border:1px solid #fff}
+#dist-e{background:var(--red);border:1px solid #fff}
+#dist-rd{font-family:var(--fm);font-size:.9rem;color:var(--t1);text-align:center;margin-top:4px}
+#bbar{display:none;flex-shrink:0;background:var(--bg2);border-top:1px solid var(--brd);padding:8px 10px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));gap:6px;flex-direction:column}
+#bbar.vis{display:flex}
+#act-row{display:flex;gap:8px}
+.abtn{flex:1;min-height:48px;min-width:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t1);font-family:var(--fm);font-size:1rem;cursor:pointer;padding:8px 4px;transition:background .15s,border-color .15s}
+.abtn:active,.abtn:hover{background:var(--bg2);border-color:var(--gold)}
+#inp-row{display:flex;gap:8px}
+#tinp{flex:1;min-height:44px;background:var(--bg);border:1px solid var(--brd);border-radius:6px;color:var(--t1);font-family:var(--fn);font-size:1rem;padding:8px 12px}
+#tinp::placeholder{color:var(--t3)}#tinp:focus{border-color:var(--gold)}
+#sbtn{min-width:48px;min-height:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--gold);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#sbtn:active{background:var(--bg2)}
+.mo{display:none;position:fixed;inset:0;background:var(--bgO);z-index:500;justify-content:center;align-items:center;padding:0}
+.mo.open{display:flex}
+.mc{background:var(--bg2);border:1px solid var(--brd);width:100%;height:100%;overflow-y:auto;padding:16px;display:flex;flex-direction:column}
+@media(min-width:600px){.mc{max-width:560px;max-height:85vh;height:auto;border-radius:8px;margin:20px}}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0}
+.mt{font-size:1.5rem;color:var(--gold);font-weight:bold;letter-spacing:.04em}
+.mx{width:44px;height:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;color:var(--t1);font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mx:active{background:var(--bg)}
+.mb{flex:1;overflow-y:auto}
+.mbtn{display:block;width:100%;min-height:52px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t1);font-family:var(--fn);font-size:1.05rem;cursor:pointer;padding:10px 14px;text-align:left;margin-bottom:8px;transition:border-color .15s,background .15s}
+.mbtn:active,.mbtn:hover{border-color:var(--gold);background:var(--bg2)}
+.mbtn.sel{border-color:var(--gold);background:var(--bg);box-shadow:0 0 0 2px var(--gold)}
+#cc{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;align-items:center}
+#cc h1{font-size:2rem;color:var(--gold);letter-spacing:.06em;text-align:center;margin-bottom:6px}
+#cc .sub{color:var(--t2);font-size:1rem;text-align:center;margin-bottom:20px}
+.ccs{display:none;width:100%;max-width:480px}.ccs.act{display:block}
+.ccs h2{font-size:1.4rem;color:var(--gold);margin-bottom:14px;text-align:center;letter-spacing:.03em}
+#ninp{width:100%;min-height:52px;background:var(--bg);border:2px solid var(--brd);border-radius:8px;color:var(--t1);font-family:var(--fn);font-size:1.3rem;padding:10px 16px;text-align:center}
+#ninp:focus{border-color:var(--gold)}
+.ccds{display:flex;flex-direction:column;gap:10px}
+@media(min-width:480px){.ccds{display:grid;grid-template-columns:1fr 1fr}}
+.ccd{background:var(--bg3);border:2px solid var(--brd);border-radius:8px;padding:14px;cursor:pointer;display:flex;gap:12px;align-items:center;min-height:80px;transition:border-color .15s,background .15s}
+.ccd:active,.ccd:hover{border-color:var(--gold)}
+.ccd.sel,.ccd[aria-checked="true"]{border-color:var(--gold);background:var(--bg);box-shadow:0 0 0 2px var(--gold)}
+.ccd canvas{width:64px;height:64px;image-rendering:pixelated;flex-shrink:0}
+.ccd-i{flex:1;min-width:0}
+.ccd-n{font-size:1.15rem;color:var(--gold);font-weight:bold}
+.ccd-d{font-size:.95rem;color:var(--t2);margin-top:2px}
+.ccd-s{font-family:var(--fm);font-size:.85rem;color:var(--t3);margin-top:4px}
+.ccnv{display:flex;gap:10px;margin-top:18px;width:100%;max-width:480px}
+.ccnb{flex:1;min-height:52px;background:var(--bg3);border:2px solid var(--brd);border-radius:8px;color:var(--t1);font-family:var(--fn);font-size:1.1rem;cursor:pointer}
+.ccnb.pri{border-color:var(--gold);color:var(--gold)}.ccnb:active{background:var(--bg2)}.ccnb[disabled]{opacity:.35;cursor:default}
+.csum{background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:16px;width:100%}
+.csr{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd);font-family:var(--fm);font-size:.95rem}
+.csl{color:var(--t2)}.csv{color:var(--t1)}
+.ist{font-size:1.1rem;color:var(--gold);margin:12px 0 6px;letter-spacing:.03em}
+.isl{display:flex;align-items:center;justify-content:space-between;min-height:48px;background:var(--bg);border:1px solid var(--brd);border-radius:4px;padding:8px 12px;margin-bottom:6px;flex-wrap:wrap;gap:4px}
+.isl-l{font-family:var(--fm);font-size:.85rem;color:var(--t3);min-width:70px}
+.isl-i{font-size:1rem;color:var(--t1);flex:1}.isl-e{font-size:.95rem;color:var(--t3);font-style:italic;flex:1}
+.isl-a{display:flex;gap:4px}
+.iab{min-width:44px;min-height:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;color:var(--t1);font-family:var(--fm);font-size:.85rem;cursor:pointer}
+.iab:active{background:var(--bg2);border-color:var(--gold)}
+.jtabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;flex-shrink:0;-webkit-overflow-scrolling:touch}
+.jtab{min-width:44px;min-height:44px;padding:8px 14px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;color:var(--t2);font-family:var(--fm);font-size:.85rem;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.jtab.act{background:var(--bg);border-color:var(--gold);color:var(--gold)}.jtab:active{border-color:var(--gold)}
+.jp{display:none}.jp.act{display:block}
+.jp h3{font-size:1.2rem;color:var(--gold);margin:14px 0 8px}
+.jp p{font-size:1rem;line-height:1.7;color:var(--t1);margin-bottom:6px}
+.be{background:var(--bg);border:1px solid var(--brd);border-radius:6px;padding:12px;margin-bottom:10px}
+.be-n{font-size:1.1rem;color:var(--gold);font-weight:bold}
+.be-l{font-style:italic;color:var(--t2);margin:4px 0}
+.be-s{font-family:var(--fm);font-size:.85rem;color:var(--t1)}
+.ssl{background:var(--bg);border:1px solid var(--brd);border-radius:6px;padding:12px;margin-bottom:10px}
+.ssl-h{font-size:1rem;color:var(--gold);font-weight:bold;margin-bottom:4px}
+.ssl-i{font-family:var(--fm);font-size:.85rem;color:var(--t2)}
+.ssl-a{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.slb{min-height:44px;min-width:44px;padding:8px 16px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;color:var(--t1);font-family:var(--fm);font-size:.9rem;cursor:pointer}
+.slb:active{border-color:var(--gold);background:var(--bg2)}
+.slb.dng{border-color:var(--red);color:var(--red)}.slb.dng:active{background:rgba(196,64,84,.15)}
+.snotice{font-family:var(--fm);font-size:.85rem;color:var(--t3);margin-top:12px;padding:8px;background:var(--bg);border-radius:4px;border:1px solid var(--brd)}
+.dsp{font-size:1.2rem;color:var(--gold);font-weight:bold;margin-bottom:8px}
+.dtx{font-size:1.1rem;line-height:1.7;color:var(--t1);margin-bottom:16px}
+.dopts{display:flex;flex-direction:column;gap:8px}
+.rc{text-align:center;padding:20px 0}
+.rc h2{font-size:1.8rem;color:var(--gold);margin-bottom:12px}
+.rc .xp{font-family:var(--fm);font-size:1.2rem;color:var(--grn);margin-bottom:8px}
+.rc .lu{font-size:1.3rem;color:var(--goldB);margin-bottom:16px}
+@media(max-width:480px){.ne{font-size:1.2rem}#hud{padding:4px 8px}}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+<div id="app" role="application" aria-label="The Muddy Trail text adventure game">
+<header id="hud" role="banner" aria-label="Character status">
+<div id="hud-l">
+<canvas id="hud-portrait" width="32" height="32" aria-label="Character portrait"></canvas>
+<div id="hud-info"><div id="hud-nc" aria-live="polite"></div>
+<div id="hud-hp-w"><div id="hp-bar-o" role="progressbar" aria-label="Hit points" aria-valuemin="0" aria-valuemax="30" aria-valuenow="30"><div id="hp-bar-i" style="width:100%"></div></div><span id="hp-txt" aria-live="polite">30/30 HP</span></div></div></div>
+<div id="hud-r">
+<button class="hbtn" id="b-inv" aria-label="Open inventory" title="Inventory"><canvas width="24" height="24" aria-hidden="true"></canvas></button>
+<button class="hbtn" id="b-jrn" aria-label="Journal locked" title="Journal" disabled><canvas width="24" height="24" aria-hidden="true"></canvas></button>
+<button class="hbtn" id="b-qs" aria-label="Quick save" title="Quick Save (Q)"><canvas width="24" height="24" aria-hidden="true"></canvas></button>
+<button class="hbtn" id="b-menu" aria-label="Open menu" title="Menu"><canvas width="24" height="24" aria-hidden="true"></canvas></button>
+</div></header>
+<main id="cc" role="main" aria-label="Character creation">
+<h1>The Muddy Trail</h1><p class="sub">A Text Adventure</p>
+<div class="ccs act" id="ccs1" aria-label="Step 1: Name"><h2>What is your name, traveler?</h2><input type="text" id="ninp" maxlength="20" placeholder="Enter name..." aria-label="Character name" autocomplete="off"></div>
+<div class="ccs" id="ccs2" aria-label="Step 2: Species"><h2>Choose Your Heritage</h2><div class="ccds" id="sp-cards" role="radiogroup" aria-label="Species"></div></div>
+<div class="ccs" id="ccs3" aria-label="Step 3: Class"><h2>Choose Your Path</h2><div class="ccds" id="cl-cards" role="radiogroup" aria-label="Class"></div></div>
+<div class="ccs" id="ccs4" aria-label="Step 4: Confirm"><h2>Your Character</h2><div class="csum" id="cc-sum"></div></div>
+<div class="ccnv" id="cc-nav"><button class="ccnb" id="cc-bk" aria-label="Go back" style="display:none">Back</button><button class="ccnb pri" id="cc-nx" aria-label="Continue">Continue</button></div>
+</main>
+<div id="game" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+<div id="narr-w" role="log" aria-label="Story narrative" aria-live="polite"><div id="narr-log"></div></div>
+<div id="dist-m" aria-label="Combat distance"><div id="dist-lbl">Distance</div><div id="dist-bar"><div class="dist-mk" id="dist-p" aria-label="You"></div><div class="dist-mk" id="dist-e" aria-label="Enemy"></div></div><div id="dist-rd">15m</div></div>
+</div>
+<div id="bbar" aria-label="Actions and input">
+<div id="act-row"><button class="abtn" id="b-act" aria-label="Open actions">Actions</button><button class="abtn" id="b-inv2" aria-label="Open inventory">Inventory</button></div>
+<div id="inp-row"><input type="text" id="tinp" placeholder="Type a command..." aria-label="Type command" autocomplete="off"><button id="sbtn" aria-label="Send command">&#9654;</button></div>
+</div></div>
+<div class="mo" id="m-act" role="dialog" aria-label="Actions" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Actions</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-act-b"></div></div></div>
+<div class="mo" id="m-inv" role="dialog" aria-label="Inventory" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Inventory</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-inv-b"></div></div></div>
+<div class="mo" id="m-jrn" role="dialog" aria-label="Journal" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Player's Handbook</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-jrn-b"></div></div></div>
+<div class="mo" id="m-sl" role="dialog" aria-label="Save Load" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Save &amp; Load</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-sl-b"></div></div></div>
+<div class="mo" id="m-dlg" role="dialog" aria-label="Dialogue" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt" id="dlg-t">NPC</h2><span></span></div><div class="mb" id="m-dlg-b"></div></div></div>
+<script>
+/* =====================================================================
+   THE MUDDY TRAIL — Complete Game Engine
+   ===================================================================== */
+
+// === PIXEL ART SYSTEM ===
+const PA={
+draw(ctx,d,sz){const p=sz/d.length;for(let y=0;y<d.length;y++)for(let x=0;x<d[y].length;x++)if(d[y][x]){ctx.fillStyle=d[y][x];ctx.fillRect(Math.floor(x*p),Math.floor(y*p),Math.ceil(p),Math.ceil(p))}},
+C:{sk:’#e0b088’,skD:’#c89868’,skG:’#a0c890’,hr:’#4a3520’,hrL:’#c8a060’,
+ey:’#446688’,eyD:’#223344’,mt:’#a0a0b0’,mtD:’#707080’,mtL:’#c8c8d8’,
+lt:’#8b6840’,ltD:’#6b4820’,cl:’#404060’,clL:’#606080’,
+gd:’#c9a84c’,gn:’#4a7c59’,gnD:’#385c44’,rd:’#8b2635’,
+wh:’#e8e8f0’,bk:’#1a1a2e’,gy:’#6b6b7b’,tk:’#d8d0c0’},
+species:{
+human(){const c=PA.C,*=null;return[
+[*,*,*,*,*,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,*,*,*,*,*],
+[*,*,*,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,*,*,*,*],
+[*,*,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,*,*,*],
+[*,*,c.hr,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.hr,*,*,*],
+[*,c.hr,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,*,*,*],
+[*,*,c.sk,c.sk,c.ey,c.ey,c.sk,c.sk,c.sk,c.ey,c.ey,c.sk,c.sk,*,*,*],
+[*,*,c.sk,c.sk,c.eyD,c.wh,c.sk,c.sk,c.sk,c.eyD,c.wh,c.sk,c.sk,*,*,*],
+[*,*,c.sk,c.sk,c.sk,c.sk,c.sk,c.skD,c.sk,c.sk,c.sk,c.sk,c.sk,*,*,*],
+[*,*,c.sk,c.sk,c.sk,c.sk,c.sk,c.skD,c.sk,c.sk,c.sk,c.sk,c.sk,*,*,*],
+[*,*,*,c.sk,c.sk,c.sk,c.skD,c.skD,c.skD,c.sk,c.sk,c.sk,*,*,*,*],
+[*,*,*,c.sk,c.sk,c.skD,c.rd,c.rd,c.rd,c.skD,c.sk,c.sk,*,*,*,*],
+[*,*,*,*,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,*,*,*,*,*],
+[*,*,*,*,*,c.sk,c.skD,c.skD,c.skD,c.sk,*,*,*,*,*,*],
+[*,*,*,*,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,*,*,*,*,*],
+[*,*,*,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,*,*,*,*],
+[*,*,*,c.cl,c.cl,c.clL,c.cl,c.cl,c.cl,c.clL,c.cl,c.cl,*,*,*,*]]},
+elf(){const c=PA.C,*=null;return[
+[*,*,*,*,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,*,*,*,*,*],
+[*,*,*,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,*,*,*,*],
+[*,*,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,*,*,*],
+[*,c.hrL,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.hrL,*,*],
+[c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,*],
+[*,*,c.sk,c.sk,c.ey,c.ey,c.sk,c.sk,c.sk,c.ey,c.ey,c.sk,c.sk,*,*,*],
+[*,*,c.sk,c.sk,c.gn,c.wh,c.sk,c.sk,c.sk,c.gn,c.wh,c.sk,c.sk,*,*,*],
+[*,*,c.sk,c.sk,c.sk,c.sk,c.sk,c.skD,c.sk,c.sk,c.sk,c.sk,c.sk,*,*,*],
+[*,*,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,*,*,*],
+[*,*,*,c.sk,c.sk,c.sk,c.skD,c.skD,c.skD,c.sk,c.sk,c.sk,*,*,*,*],
+[*,*,*,c.sk,c.sk,c.skD,c.skD,c.skD,c.skD,c.skD,c.sk,c.sk,*,*,*,*],
+[*,*,*,*,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,*,*,*,*,*],
+[*,*,*,*,*,c.sk,c.skD,c.skD,c.skD,c.sk,*,*,*,*,*,*],
+[*,*,*,*,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,*,*,*,*,*],
+[*,*,*,c.gnD,c.gnD,c.gn,c.gnD,c.gnD,c.gnD,c.gn,c.gnD,c.gnD,*,*,*,*],
+[*,*,*,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,*,*,*,*]]},
+orc(){const c=PA.C,*=null;return[
+[*,*,*,*,*,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,*,*,*,*,*],
+[*,*,*,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,*,*,*,*],
+[*,*,c.hr,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.hr,*,*,*],
+[*,c.hr,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,*,*,*],
+[*,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,*,*],
+[*,*,c.skG,c.skG,c.rd,c.rd,c.skG,c.skG,c.skG,c.rd,c.rd,c.skG,c.skG,*,*,*],
+[*,*,c.skG,c.skG,c.rd,c.gd,c.skG,c.skG,c.skG,c.rd,c.gd,c.skG,c.skG,*,*,*],
+[*,*,c.skG,c.skG,c.skG,c.skG,c.skG,c.gnD,c.skG,c.skG,c.skG,c.skG,c.skG,*,*,*],
+[*,*,c.skG,c.skG,c.skG,c.skG,c.gnD,c.gnD,c.gnD,c.skG,c.skG,c.skG,c.skG,*,*,*],
+[*,*,*,c.skG,c.skG,c.tk,c.skG,c.skG,c.skG,c.tk,c.skG,c.skG,*,*,*,*],
+[*,*,*,c.skG,c.tk,c.skG,c.gnD,c.gnD,c.gnD,c.skG,c.tk,c.skG,*,*,*,*],
+[*,*,*,*,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,*,*,*,*,*],
+[*,*,*,*,*,c.skG,c.skG,c.skG,c.skG,c.skG,*,*,*,*,*,*],
+[*,*,*,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,*,*,*,*],
+[*,*,c.lt,c.lt,c.ltD,c.lt,c.lt,c.lt,c.lt,c.ltD,c.lt,c.lt,*,*,*,*],
+[*,*,c.lt,c.lt,c.lt,c.lt,c.mt,c.mt,c.lt,c.lt,c.lt,c.lt,*,*,*,*]]}
+},
+icons:{
+pack(){const c=PA.C,*=null;return[[*,*,c.lt,c.lt,c.lt,c.lt,*,*],[*,c.lt,c.ltD,c.ltD,c.ltD,c.ltD,c.lt,*],[c.lt,c.ltD,c.lt,c.lt,c.lt,c.lt,c.ltD,c.lt],[c.lt,c.ltD,c.lt,c.gd,c.gd,c.lt,c.ltD,c.lt],[c.lt,c.ltD,c.lt,c.lt,c.lt,c.lt,c.ltD,c.lt],[c.lt,c.ltD,c.ltD,c.ltD,c.ltD,c.ltD,c.ltD,c.lt],[*,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,*],[*,*,c.lt,c.lt,c.lt,c.lt,*,*]]},
+book(){const c=PA.C,*=null;return[[*,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,*],[c.lt,c.gd,c.wh,c.wh,c.wh,c.wh,c.gd,c.lt],[c.lt,c.wh,c.lt,c.lt,c.lt,c.wh,c.wh,c.lt],[c.lt,c.wh,c.lt,c.gd,c.lt,c.wh,c.wh,c.lt],[c.lt,c.wh,c.lt,c.lt,c.lt,c.wh,c.wh,c.lt],[c.lt,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.lt],[c.lt,c.gd,c.wh,c.wh,c.wh,c.wh,c.gd,c.lt],[*,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,*]]},
+save(){const c=PA.C;return[[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt],[c.mt,c.mtD,c.mtD,c.mtD,c.mtD,c.mtD,c.mt,c.mt],[c.mt,c.mtD,c.mtD,c.mtD,c.mtD,c.mtD,c.mt,c.mt],[c.mt,c.mtD,c.mtD,c.mtD,c.mtD,c.mtD,c.mt,c.mt],[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt],[c.mt,c.mtL,c.mt,c.mtL,c.mtL,c.mt,c.mtL,c.mt],[c.mt,c.mtL,c.mt,c.mtL,c.mtL,c.mt,c.mtL,c.mt],[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt]]},
+menu(){const c=PA.C,*=null;return[[*,*,*,*,*,*,*,*],[c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh],[*,*,*,*,*,*,*,*],[c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh],[*,*,*,*,*,*,*,*],[c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh],[*,*,*,*,*,*,*,*],[*,*,*,*,*,*,*,*]]}
+},
+renderIcon(cv,fn){const x=cv.getContext(‘2d’);x.clearRect(0,0,cv.width,cv.height);this.draw(x,fn(),cv.width)},
+renderPortrait(cv,k){const x=cv.getContext(‘2d’);x.clearRect(0,0,cv.width,cv.height);const fn=this.species[k];if(fn)this.draw(x,fn(),cv.width)}
+};
+
+// === DATA ===
+const SP={
+human:{name:‘Human’,desc:‘Adaptable and resilient, with an unmatched drive to explore.’,stats:‘Balanced stats, +10% XP gain’,hpM:0,atkM:0,defM:0,flM:0,rnM:0,xpX:1.1},
+elf:{name:‘Elf’,desc:‘Graceful and keen-eyed, attuned to the rhythms of the wild.’,stats:’-5 max HP, +2 ranged, +1 flee’,hpM:-5,atkM:0,defM:0,flM:1,rnM:2,xpX:1.0},
+orc:{name:‘Orc’,desc:‘Massive and fearless, forged in the crucible of battle.’,stats:’+10 max HP, +2 melee dmg, -1 def’,hpM:10,atkM:0,defM:-1,flM:0,rnM:0,mlM:2,xpX:1.0}
+};
+const CL={
+fighter:{name:‘Fighter’,desc:‘A seasoned warrior, strong in arms and armor.’,stats:‘30 HP | Sword, Chainmail’,bHP:30,atk:1,def:1,
+wpn:{name:‘Sword’,t:‘melee’,rng:5,dD:8,dB:0,desc:‘Melee 5m, 1d8’},oh:null,
+arm:{name:‘Chainmail’,dB:2,desc:’+2 defense’},bp:[]},
+paladin:{name:‘Paladin’,desc:‘A holy knight, shielded by faith and steel.’,stats:‘28 HP | Sword, Shield, Chainmail’,bHP:28,atk:1,def:1,
+wpn:{name:‘Sword’,t:‘melee’,rng:5,dD:8,dB:0,desc:‘Melee 5m, 1d8’},
+oh:{name:‘Wooden Shield’,t:‘shield’,blk:2,desc:’+2 block’},
+arm:{name:‘Chainmail’,dB:2,desc:’+2 defense’},bp:[]},
+ranger:{name:‘Ranger’,desc:‘A far-sighted hunter, deadly from any distance.’,stats:‘24 HP | Shortbow, Quiver, Leather, Dagger’,bHP:24,atk:1,def:0,
+wpn:{name:‘Shortbow’,t:‘ranged’,rng:30,minR:10,dD:6,dB:0,desc:‘Ranged 10-30m, 1d6’,ammo:10},
+oh:{name:‘Quiver’,t:‘quiver’,desc:‘10 arrows’,arrows:10},
+arm:{name:‘Leather Armor’,dB:1,desc:’+1 defense’},bp:[{name:‘Dagger’,t:‘melee’,rng:5,dD:4,dB:2,desc:‘Melee 5m, 1d4+2’}]},
+rogue:{name:‘Rogue’,desc:‘A shadow in the dark, quick with blade and cunning.’,stats:‘20 HP | Dagger, Lantern, Leather’,bHP:20,atk:2,def:0,
+wpn:{name:‘Dagger’,t:‘melee’,rng:5,dD:4,dB:2,desc:‘Melee 5m, 1d4+2’},
+oh:{name:‘Lantern’,t:‘light’,desc:‘Illuminates dark areas’},
+arm:{name:‘Leather Armor’,dB:1,desc:’+1 defense’},bp:[]}
+};
+const ENEMIES={gray_ooze:{name:‘Gray Ooze’,id:‘gray_ooze’,lore:‘A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.’,hp:15,mHP:15,atk:0,def:0,dD:4,dB:1,spd:5,aRng:5,sDist:10,xp:50}};
+const ITEMS={hpot:{name:‘Health Potion’,t:‘consumable’,heal:10,desc:‘Restores 10 HP’},handbook:{name:“Player’s Handbook”,t:‘key’,desc:‘A weathered guide to combat, creatures, and the world.’,undrop:true}};
+const LVL=[0,100,250];
+
+// === GAME STATE ===
+const GS={
+run:null,
+newRun(nm,sp,cl){
+const s=SP[sp],c=CL[cl],mHP=c.bHP+s.hpM;
+this.run={name:nm,species:sp,class:cl,level:1,xp:0,hp:mHP,mHP,
+atk:c.atk+s.atkM,def:c.def+s.defM,
+wpn:c.wpn?{…c.wpn}:null,oh:c.oh?{…c.oh}:null,arm:c.arm?{…c.arm}:null,
+bp:c.bp.map(i=>({…i})),scene:‘trailhead’,ss:{},cs:null,
+nlog:[],hbFound:false,jrnUnlk:false,bSeen:{},bDef:{},srch:{}};
+this.saveA();return this.run;
+},
+saveA(){if(this.run)try{localStorage.setItem(‘activeRun’,JSON.stringify(this.run))}catch(e){}},
+loadA(){try{const d=localStorage.getItem(‘activeRun’);if(d){this.run=JSON.parse(d);return true}}catch(e){}return false},
+clearA(){this.run=null;try{localStorage.removeItem(‘activeRun’)}catch(e){}},
+mSave(s){if(!this.run)return;try{let sv=JSON.parse(localStorage.getItem(‘manualSaves’)||’[””,””,””]’);sv[s]=JSON.stringify({…this.run,savedAt:new Date().toISOString()});localStorage.setItem(‘manualSaves’,JSON.stringify(sv))}catch(e){}},
+mLoad(s){try{let sv=JSON.parse(localStorage.getItem(‘manualSaves’)||’[””,””,””]’);if(sv[s]){this.run=JSON.parse(sv[s]);this.saveA();return true}}catch(e){}return false},
+getMSaves(){try{let sv=JSON.parse(localStorage.getItem(‘manualSaves’)||’[””,””,””]’);return sv.map(s=>s?JSON.parse(s):null)}catch(e){return[null,null,null]}},
+qSave(){if(!this.run)return;try{localStorage.setItem(‘quickSave’,JSON.stringify({…this.run,savedAt:new Date().toISOString()}))}catch(e){}},
+qLoad(){try{const d=localStorage.getItem(‘quickSave’);if(d){this.run=JSON.parse(d);this.saveA();return true}}catch(e){}return false},
+getQS(){try{const d=localStorage.getItem(‘quickSave’);return d?JSON.parse(d):null}catch(e){return null}},
+getJM(){try{return JSON.parse(localStorage.getItem(‘journalMeta’)||’{}’)}catch(e){return{}}},
+setJM(u){const m=this.getJM();Object.assign(m,u);try{localStorage.setItem(‘journalMeta’,JSON.stringify(m))}catch(e){}},
+recEnc(id){if(!this.run)return;this.run.bSeen[id]=(this.run.bSeen[id]||0)+1;
+const m=this.getJM();if(!m.bestiary)m.bestiary={};
+if(!m.bestiary[id]){const e=ENEMIES[id];m.bestiary[id]={name:e.name,lore:e.lore,hp:e.mHP,atk:e.atk,def:e.def,dmg:`1d${e.dD}+${e.dB}`,spd:e.spd,rng:e.aRng}}
+try{localStorage.setItem(‘journalMeta’,JSON.stringify(m))}catch(e){}this.saveA()},
+recDef(id){if(!this.run)return;this.run.bDef[id]=(this.run.bDef[id]||0)+1;this.saveA()},
+addXP(amt){if(!this.run)return{};const s=SP[this.run.species],g=Math.floor(amt*(s.xpX||1));this.run.xp+=g;let lv=false;
+while(this.run.level<3&&this.run.xp>=LVL[this.run.level]){this.run.level++;this.run.mHP+=5;this.run.hp=this.run.mHP;this.run.atk+=1;this.run.def+=1;lv=true}
+this.saveA();return{gained:g,leveled:lv,level:this.run.level}}
+};
+
+// === DICE & COMBAT ===
+function rD(s){return Math.floor(Math.random()*s)+1}
+function rDmg(d,b){return rD(d)+(b||0)}
+
+const CMB={
+start(ek){const t=ENEMIES[ek],e={…t,hp:t.mHP};
+GS.run.cs={enemy:e,dist:e.sDist,pTurn:true,turns:0,fled:false,over:false,won:false};
+GS.recEnc(ek);GS.saveA();return GS.run.cs},
+gs(){return GS.run?GS.run.cs:null},
+pAct(act){
+const cs=this.gs();if(!cs||cs.over)return[];const r=GS.run,ms=[];let eActs=true;
+switch(act){
+case’attack’:{
+const w=r.wpn;if(!w){ms.push({t:‘You have no weapon equipped!’,c:‘d’});return ms}
+let can=false,pen=0;
+if(w.t===‘melee’){if(cs.dist<=w.rng)can=true;else{ms.push({t:`Too far for ${w.name}. Need ${w.rng}m, you're at ${cs.dist}m.`,c:‘y’});return ms}}
+else if(w.t===‘ranged’){
+if(w.ammo!==undefined&&w.ammo<=0){ms.push({t:‘No arrows remain!’,c:‘d’});return ms}
+if(cs.dist>=(w.minR||10)&&cs.dist<=w.rng)can=true;
+else if(cs.dist<(w.minR||10)){can=true;pen=-2;ms.push({t:‘Too close for a clean shot! (-2 penalty)’,c:‘y’})}
+else{ms.push({t:`Out of range (${w.rng}m max). Distance: ${cs.dist}m.`,c:‘y’});return ms}
+if(w.ammo!==undefined)w.ammo–;
+}
+if(can){
+const sp=SP[r.species];let aR=rD(20),aM=r.atk+pen;
+if(w.t===‘ranged’&&sp.rnM)aM+=sp.rnM;
+if(aR+aM>=14-cs.enemy.def){
+let d=rDmg(w.dD,w.dB);if(w.t===‘melee’&&sp.mlM)d+=sp.mlM;if(d<1)d=1;
+cs.enemy.hp-=d;ms.push({t:`You strike the ${cs.enemy.name} with your ${w.name} for ${d} damage!`,c:‘c’});
+if(w.t===‘ranged’&&w.ammo!==undefined)ms.push({t:`(${w.ammo} arrows left)`,c:‘y’})
+}else ms.push({t:`Your ${w.name} misses the ${cs.enemy.name}!`,c:‘f’})
+}break}
+case’block’:{
+const oh=r.oh;if(!oh||oh.t!==‘shield’){ms.push({t:‘You brace yourself, but the block is weak without a shield.’,c:‘f’});cs.pBlk=1}
+else{ms.push({t:`You raise your ${oh.name}, ready to deflect.`,c:‘c’});cs.pBlk=oh.blk||2}break}
+case’move_closer’:if(cs.dist<=5){ms.push({t:“Already at close range!”,c:‘y’});return ms}
+cs.dist=Math.max(5,cs.dist-5);ms.push({t:`You advance to ${cs.dist}m.`,c:‘c’});break;
+case’move_back’:if(cs.dist>=30){ms.push({t:“Can’t retreat further!”,c:‘y’});return ms}
+cs.dist=Math.min(30,cs.dist+5);ms.push({t:`You back away to ${cs.dist}m.`,c:‘c’});break;
+case’flee’:{const sp=SP[r.species];let fc=40+(cs.dist*2)+(sp.flM||0)*10;if(r.class===‘rogue’)fc+=15;
+if(rD(100)<=fc){ms.push({t:`You turn and run! The ${cs.enemy.name} cannot keep pace.`,c:‘s’});cs.fled=true;cs.over=true;eActs=false}
+else ms.push({t:`You try to flee but the ${cs.enemy.name} blocks your path!`,c:‘d’});break}
+case’use_potion’:{const idx=r.bp.findIndex(i=>i.t===‘consumable’&&i.heal);
+if(idx===-1){ms.push({t:‘No healing items!’,c:‘y’});return ms}
+const pot=r.bp.splice(idx,1)[0],h=Math.min(pot.heal,r.mHP-r.hp);r.hp+=h;
+ms.push({t:`You drink a ${pot.name} and recover ${h} HP! (${r.hp}/${r.mHP} HP)`,c:‘s’});break}
+default:ms.push({t:‘You hesitate, unsure what to do.’,c:‘f’})}
+if(cs.enemy.hp<=0){cs.over=true;cs.won=true;eActs=false;
+ms.push({t:`The ${cs.enemy.name} dissolves into a bubbling puddle. Victory!`,c:‘s’});GS.recDef(cs.enemy.id)}
+if(eActs&&!cs.over){cs.turns++;ms.push(…this.eTurn())}
+if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:‘Everything fades to black…’,c:‘d’})}
+cs.pBlk=0;GS.saveA();return ms},
+eTurn(){const cs=this.gs(),r=GS.run,e=cs.enemy,ms=[];
+if(cs.dist>e.aRng){const mv=Math.min(e.spd,cs.dist-e.aRng);cs.dist-=mv;ms.push({t:`The ${e.name} oozes ${mv}m closer. (${cs.dist}m)`,c:‘f’})}
+if(cs.dist<=e.aRng){let aR=rD(20)+e.atk,tD=r.def+(r.arm?r.arm.dB:0)+(cs.pBlk||0);
+if(aR>=14-tD){let d=rDmg(e.dD,e.dB);
+if(cs.pBlk){const bl=Math.min(d-1,cs.pBlk);d-=bl;if(d<1)d=1;ms.push({t:`The ${e.name} strikes! Your block absorbs some. ${d} damage!`,c:‘d’})}
+else ms.push({t:`The ${e.name} lashes out for ${d} damage!`,c:‘d’});
+r.hp-=d;if(r.hp<0)r.hp=0}
+else ms.push({t:`The ${e.name} lunges but misses!`,c:‘f’})}
+return ms}
+};
+
+// === UI CONTROLLER ===
+const UI={
+el:{},
+init(){
+this.el={app:$(‘app’),hud:$(‘hud’),hp:$(‘hud-portrait’),hnc:$(‘hud-nc’),hbi:$(‘hp-bar-i’),hbo:$(‘hp-bar-o’),htx:$(‘hp-txt’),
+bi:$(‘b-inv’),bj:$(‘b-jrn’),bq:$(‘b-qs’),bm:$(‘b-menu’),
+cc:$(‘cc’),gm:$(‘game’),nw:$(‘narr-w’),nl:$(‘narr-log’),
+dm:$(‘dist-m’),dr:$(‘dist-rd’),dp:$(‘dist-p’),de:$(‘dist-e’),
+bb:$(‘bbar’),ba:$(‘b-act’),bi2:$(‘b-inv2’),ti:$(‘tinp’),sb:$(‘sbtn’),
+ni:$(‘ninp’),cbk:$(‘cc-bk’),cnx:$(‘cc-nx’)};
+this.renderIcons();this.bind();this.vvp();
+},
+renderIcons(){
+[[this.el.bi,PA.icons.pack],[this.el.bj,PA.icons.book],[this.el.bq,PA.icons.save],[this.el.bm,PA.icons.menu]].forEach(([b,fn])=>{const c=b.querySelector(‘canvas’);if(c)PA.renderIcon(c,fn)});
+},
+bind(){
+this.el.cnx.onclick=()=>CC.next();this.el.cbk.onclick=()=>CC.back();
+this.el.ni.onkeydown=e=>{if(e.key===‘Enter’)CC.next()};
+this.el.bi.onclick=()=>ML.openInv();this.el.bj.onclick=()=>ML.openJrn();
+this.el.bq.onclick=()=>{GS.qSave();this.addN(‘Game quick saved.’,‘y’)};
+this.el.bm.onclick=()=>ML.openSL();
+this.el.ba.onclick=()=>ML.openAct();this.el.bi2.onclick=()=>ML.openInv();
+this.el.sb.onclick=()=>this.submit();this.el.ti.onkeydown=e=>{if(e.key===‘Enter’)this.submit()};
+document.onkeydown=e=>{
+if((e.key===‘q’||e.key===‘Q’)&&document.activeElement.tagName!==‘INPUT’&&GS.run){GS.qSave();this.addN(‘Game quick saved.’,‘y’)}
+if(e.key===‘Escape’)ML.closeAll();
+};
+},
+vvp(){if(window.visualViewport){const a=()=>{$(‘app’).style.height=window.visualViewport.height+‘px’};window.visualViewport.addEventListener(‘resize’,a);window.visualViewport.addEventListener(‘scroll’,a)}},
+showGame(){this.el.cc.style.display=‘none’;const g=this.el.gm;g.style.display=‘flex’;g.style.flexDirection=‘column’;g.style.flex=‘1’;g.style.overflow=‘hidden’;this.el.hud.classList.add(‘vis’);this.el.bb.classList.add(‘vis’);this.updateHUD()},
+showCC(){this.el.cc.style.display=‘flex’;this.el.gm.style.display=‘none’;this.el.hud.classList.remove(‘vis’);this.el.bb.classList.remove(‘vis’);CC.reset()},
+updateHUD(){const r=GS.run;if(!r)return;
+PA.renderPortrait(this.el.hp,r.species);this.el.hp.setAttribute(‘aria-label’,SP[r.species].name+’ portrait’);
+this.el.hnc.textContent=`${r.name} \u00b7 ${CL[r.class].name} Lv${r.level}`;
+const p=Math.max(0,(r.hp/r.mHP)*100);this.el.hbi.style.width=p+’%’;
+this.el.hbo.setAttribute(‘aria-valuenow’,r.hp);this.el.hbo.setAttribute(‘aria-valuemax’,r.mHP);
+this.el.htx.textContent=`${r.hp}/${r.mHP} HP`;
+const m=GS.getJM();
+if(r.jrnUnlk||m.handbookFound){this.el.bj.disabled=false;this.el.bj.setAttribute(‘aria-label’,‘Open journal’)}
+else{this.el.bj.disabled=true;this.el.bj.setAttribute(‘aria-label’,‘Journal locked’)}
+},
+addN(text,type=’’){const e=document.createElement(‘div’);e.className=‘ne’;
+const cls={h:‘ne-h’,f:‘ne-f’,c:‘ne-c’,s:‘ne-s’,d:‘ne-d’,y:‘ne-y’};
+if(cls[type])e.classList.add(cls[type]);e.textContent=text;
+this.el.nl.appendChild(e);
+if(GS.run){GS.run.nlog.push({t:text,c:type});GS.saveA()}this.scroll()},
+clearN(){this.el.nl.innerHTML=’’},
+restoreN(){this.clearN();if(GS.run&&GS.run.nlog)GS.run.nlog.forEach(n=>{const e=document.createElement(‘div’);e.className=‘ne’;const cls={h:‘ne-h’,f:‘ne-f’,c:‘ne-c’,s:‘ne-s’,d:‘ne-d’,y:‘ne-y’};if(cls[n.c])e.classList.add(cls[n.c]);e.textContent=n.t;this.el.nl.appendChild(e)});this.scroll()},
+scroll(){requestAnimationFrame(()=>{this.el.nw.scrollTop=this.el.nw.scrollHeight})},
+updateDist(d,show){if(show){this.el.dm.classList.add(‘vis’);this.el.de.style.left=`calc(${Math.min(90,Math.max(10,10+(d-5)*(80/25)))}% - 7px)`;this.el.dp.style.left=‘5%’;this.el.dr.textContent=d+‘m’}else this.el.dm.classList.remove(‘vis’)},
+submit(){const raw=this.el.ti.value.trim();this.el.ti.value=’’;if(!raw)return;CP.parse(raw)},
+pulseJ(){this.el.bj.classList.add(‘pulse’);setTimeout(()=>this.el.bj.classList.remove(‘pulse’),3100)}
+};
+function $(id){return document.getElementById(id)}
+
+// === MODAL SYSTEM ===
+const ML={
+active:null,prev:null,
+open(id){this.closeAll();const o=$(id);if(!o)return;this.prev=document.activeElement;o.classList.add(‘open’);this.active=o;
+const cl=o.querySelector(’.mx’);if(cl)cl.onclick=()=>this.closeAll();
+o.onclick=e=>{if(e.target===o)this.closeAll()};
+requestAnimationFrame(()=>{const f=o.querySelector(’.mc’).querySelectorAll(‘button,input,[tabindex]:not([tabindex=”-1”])’);if(f.length)f[0].focus()});
+o.onkeydown=this._trap},
+_trap(e){if(e.key!==‘Tab’)return;const o=ML.active;if(!o)return;const f=o.querySelector(’.mc’).querySelectorAll(‘button,input,[tabindex]:not([tabindex=”-1”])’);if(!f.length)return;const fi=f[0],la=f[f.length-1];if(e.shiftKey&&document.activeElement===fi){e.preventDefault();la.focus()}else if(!e.shiftKey&&document.activeElement===la){e.preventDefault();fi.focus()}},
+closeAll(){document.querySelectorAll(’.mo.open’).forEach(m=>m.classList.remove(‘open’));if(this.prev){this.prev.focus();this.prev=null}this.active=null},
+
+openAct(){
+const b=$(‘m-act-b’);b.innerHTML=’’;const cs=CMB.gs();let acts;
+if(cs&&!cs.over){acts=[
+{l:‘Attack’,cmd:‘attack’,d:GS.run.wpn?`${GS.run.wpn.name} (${GS.run.wpn.desc})`:‘No weapon’},
+{l:‘Block’,cmd:‘block’,d:‘Reduce incoming damage’},
+{l:‘Move Closer (-5m)’,cmd:‘move_closer’},{l:‘Move Back (+5m)’,cmd:‘move_back’},
+{l:‘Use Potion’,cmd:‘use_potion’,d:‘Drink a health potion’},
+{l:‘Flee’,cmd:‘flee’,d:‘Attempt to escape’}]}
+else acts=SE.getActions();
+acts.forEach(a=>{const btn=document.createElement(‘button’);btn.className=‘mbtn’;
+btn.setAttribute(‘aria-label’,a.l+(a.d?’, ‘+a.d:’’));
+btn.innerHTML=`<strong>${a.l}</strong>${a.d?`<br><span style="color:var(--t2);font-size:.9rem">${a.d}</span>`:''}`;
+btn.onclick=()=>{ML.closeAll();
+if(cs&&!cs.over){const ms=CMB.pAct(a.cmd);ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();
+const ca=CMB.gs();if(ca){UI.updateDist(ca.dist,!ca.over);if(ca.over){if(ca.won)SE.onWin();else SE.onDeath()}}}
+else SE.handleAction(a.cmd)};
+b.appendChild(btn)});
+this.open(‘m-act’)},
+
+openInv(){
+const b=$(‘m-inv-b’);b.innerHTML=’’;const r=GS.run;if(!r)return;
+b.innerHTML=’<div class="ist">Equipment</div>’;
+[{l:‘Weapon’,k:‘wpn’,i:r.wpn},{l:‘Offhand’,k:‘oh’,i:r.oh},{l:‘Armor’,k:‘arm’,i:r.arm}].forEach(s=>{
+const row=document.createElement(‘div’);row.className=‘isl’;
+row.innerHTML=`<span class="isl-l">${s.l}</span>`;
+if(s.i){row.innerHTML+=`<span class="isl-i">${s.i.name} <small style="color:var(--t3)">${s.i.desc||''}</small></span>`;
+if(s.k!==‘arm’){const ub=document.createElement(‘button’);ub.className=‘iab’;ub.textContent=‘Unequip’;ub.setAttribute(‘aria-label’,‘Unequip ‘+s.i.name);
+ub.onclick=()=>{if(r.bp.length>=6){alert(‘Backpack full!’);return}r.bp.push(r[s.k]);r[s.k]=null;GS.saveA();ML.openInv();UI.updateHUD()};
+const a=document.createElement(‘div’);a.className=‘isl-a’;a.appendChild(ub);row.appendChild(a)}}
+else row.innerHTML+=`<span class="isl-e">Empty</span>`;b.appendChild(row)});
+const bpT=document.createElement(‘div’);bpT.className=‘ist’;bpT.textContent=`Backpack (${r.bp.length}/6)`;b.appendChild(bpT);
+if(!r.bp.length){const e=document.createElement(‘div’);e.className=‘isl’;e.innerHTML=’<span class="isl-e">Empty</span>’;b.appendChild(e)}
+r.bp.forEach((it,i)=>{const row=document.createElement(‘div’);row.className=‘isl’;
+row.innerHTML=`<span class="isl-i">${it.name} <small style="color:var(--t3)">${it.desc||''}</small></span>`;
+const a=document.createElement(‘div’);a.className=‘isl-a’;
+if(it.t===‘melee’||it.t===‘ranged’){const eb=document.createElement(‘button’);eb.className=‘iab’;eb.textContent=‘Equip’;eb.setAttribute(‘aria-label’,’Equip ’+it.name);
+eb.onclick=()=>{if(r.wpn)r.bp.push(r.wpn);r.wpn=it;r.bp.splice(i,1);GS.saveA();ML.openInv();UI.updateHUD()};a.appendChild(eb)}
+if(it.t===‘consumable’){const ub=document.createElement(‘button’);ub.className=‘iab’;ub.textContent=‘Use’;ub.setAttribute(‘aria-label’,’Use ’+it.name);
+ub.onclick=()=>{if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;r.bp.splice(i,1);GS.saveA();UI.addN(`Used ${it.name}, recovered ${h} HP. (${r.hp}/${r.mHP})`,  ‘s’);UI.updateHUD();ML.openInv()}};a.appendChild(ub)}
+if(!it.undrop){const db=document.createElement(‘button’);db.className=‘iab’;db.textContent=‘Drop’;db.setAttribute(‘aria-label’,’Drop ’+it.name);
+db.onclick=()=>{r.bp.splice(i,1);GS.saveA();UI.addN(`Dropped ${it.name}.`,‘y’);ML.openInv()};a.appendChild(db)}
+row.appendChild(a);b.appendChild(row)});
+this.open(‘m-inv’)},
+
+openJrn(){
+const b=$(‘m-jrn-b’);b.innerHTML=’’;const r=GS.run,m=GS.getJM();
+const tabs=document.createElement(‘div’);tabs.className=‘jtabs’;tabs.setAttribute(‘role’,‘tablist’);
+const pgs={},names=[‘Combat’,‘Classes’,‘Species’,‘Bestiary’,‘World’];
+names.forEach((n,i)=>{const t=document.createElement(‘button’);t.className=‘jtab’+(i===0?’ act’:’’);t.textContent=n;t.setAttribute(‘role’,‘tab’);t.setAttribute(‘aria-selected’,i===0?‘true’:‘false’);t.setAttribute(‘aria-label’,n+’ tab’);
+t.onclick=()=>{tabs.querySelectorAll(’.jtab’).forEach(x=>{x.classList.remove(‘act’);x.setAttribute(‘aria-selected’,‘false’)});t.classList.add(‘act’);t.setAttribute(‘aria-selected’,‘true’);Object.values(pgs).forEach(p=>p.classList.remove(‘act’));pgs[n].classList.add(‘act’)};
+tabs.appendChild(t);const pg=document.createElement(‘div’);pg.className=‘jp’+(i===0?’ act’:’’);pg.setAttribute(‘role’,‘tabpanel’);pgs[n]=pg});
+b.appendChild(tabs);
+pgs.Combat.innerHTML=’<h3>Combat System</h3><p>Combat unfolds in turns. You act first, then the enemy. Distance determines available actions.</p><h3>Distance</h3><p>Battlefield spans 5m\u201330m. Melee weapons strike at 5m. Ranged: 10\u201330m; inside 10m suffers -2 penalty.</p><h3>Actions</h3><p><strong style="color:var(--gold)">Attack</strong> \u2014 Strike if in range. ~70% hit chance modified by bonuses.</p><p><strong style="color:var(--gold)">Block</strong> \u2014 Raise shield to reduce damage.</p><p><strong style="color:var(--gold)">Move</strong> \u2014 Shift 5m closer or back.</p><p><strong style="color:var(--gold)">Use Item</strong> \u2014 Consume potions mid-combat.</p><p><strong style="color:var(--gold)">Flee</strong> \u2014 Escape attempt. Better at range, Rogues get bonus.</p><h3>Damage</h3><p>Weapons use dice rolls (e.g. 1d8 = 1\u20138 damage). Armor and blocking reduce incoming hits.</p>’;
+let clH=’<h3>Classes</h3>’;Object.values(CL).forEach(c=>{clH+=`<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">${c.name}</strong></p><p style="font-style:italic;color:var(--t2)">${c.desc}</p><p style="font-family:var(--fm);font-size:.9rem">${c.stats}</p></div>`});pgs.Classes.innerHTML=clH;
+let spH=’<h3>Species</h3>’;Object.values(SP).forEach(s=>{spH+=`<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">${s.name}</strong></p><p style="font-style:italic;color:var(--t2)">${s.desc}</p><p style="font-family:var(--fm);font-size:.9rem">${s.stats}</p></div>`});pgs.Species.innerHTML=spH;
+const bst=m.bestiary||{};if(!Object.keys(bst).length)pgs.Bestiary.innerHTML=’<h3>Bestiary</h3><p style="color:var(--t3);font-style:italic">No creatures encountered yet.</p>’;
+else{let bH=’<h3>Bestiary</h3>’;Object.entries(bst).forEach(([id,b])=>{const se=r?(r.bSeen[id]||0):0,de=r?(r.bDef[id]||0):0;bH+=`<div class="be"><div class="be-n">${b.name}</div><div class="be-l">${b.lore}</div><div class="be-s">HP:${b.hp} ATK:${b.atk} DEF:${b.def} DMG:${b.dmg} Move:${b.spd}m Range:${b.rng}m</div><div class="be-s" style="margin-top:4px">Encountered: ${se} | Defeated: ${de}</div></div>`});pgs.Bestiary.innerHTML=bH}
+pgs.World.innerHTML=’<h3>The World</h3><p>The realm lies under an ashen sky. Once-great kingdoms crumbled into scattered settlements, connected by muddy trails winding through forests thick with ancient magic and creeping dangers. Travelers arm themselves not from paranoia but necessity \u2014 the wilds teem with oozes, beasts, and worse. Yet good folk remain on the roads: gatekeepers, healers, and wanderers who trade stories by firelight. The trail is dangerous, but it is the only way forward.</p>’;
+Object.values(pgs).forEach(p=>b.appendChild(p));this.open(‘m-jrn’)},
+
+openSL(){
+const b=$(‘m-sl-b’);b.innerHTML=’’;
+const qs=GS.getQS(),mkSlot=(title,data,loadFn)=>{
+const d=document.createElement(‘div’);d.className=‘ssl’;d.innerHTML=`<div class="ssl-h">${title}</div>`;
+if(data){d.innerHTML+=`<div class="ssl-i">${data.name} \u00b7 ${CL[data.class].name} Lv${data.level} \u00b7 ${data.scene}<br>${new Date(data.savedAt).toLocaleString()}</div>`;
+const a=document.createElement(‘div’);a.className=‘ssl-a’;
+const lb=document.createElement(‘button’);lb.className=‘slb’;lb.textContent=‘Load’;lb.setAttribute(‘aria-label’,’Load ’+title);lb.onclick=()=>{if(loadFn()){ML.closeAll();UI.clearN();UI.restoreN();UI.updateHUD();SE.resume()}};a.appendChild(lb);d.appendChild(a)}
+else d.innerHTML+=`<div class="ssl-i" style="color:var(--t3)">Empty</div>`;return d};
+b.appendChild(mkSlot(‘Quick Save’,qs,()=>GS.qLoad()));
+const sv=GS.getMSaves();
+for(let i=0;i<3;i++){const sl=document.createElement(‘div’);sl.className=‘ssl’;sl.innerHTML=`<div class="ssl-h">Slot ${i+1}</div>`;
+if(sv[i])sl.innerHTML+=`<div class="ssl-i">${sv[i].name} \u00b7 ${CL[sv[i].class].name} Lv${sv[i].level} \u00b7 ${sv[i].scene}<br>${new Date(sv[i].savedAt).toLocaleString()}</div>`;
+else sl.innerHTML+=`<div class="ssl-i" style="color:var(--t3)">Empty</div>`;
+const a=document.createElement(‘div’);a.className=‘ssl-a’;
+if(GS.run){const sb=document.createElement(‘button’);sb.className=‘slb’;sb.textContent=‘Save’;sb.setAttribute(‘aria-label’,`Save slot ${i+1}`);const ii=i;sb.onclick=()=>{GS.mSave(ii);UI.addN(`Saved to slot ${ii+1}.`,‘y’);ML.openSL()};a.appendChild(sb)}
+if(sv[i]){const lb=document.createElement(‘button’);lb.className=‘slb’;lb.textContent=‘Load’;lb.setAttribute(‘aria-label’,`Load slot ${i+1}`);const ii=i;lb.onclick=()=>{if(GS.mLoad(ii)){ML.closeAll();UI.clearN();UI.restoreN();UI.updateHUD();SE.resume()}};a.appendChild(lb)}
+sl.appendChild(a);b.appendChild(sl)}
+const nr=document.createElement(‘button’);nr.className=‘slb dng’;nr.textContent=‘New Run’;nr.setAttribute(‘aria-label’,‘Start new run’);nr.style.cssText=‘margin-top:12px;width:100%’;
+nr.onclick=()=>{if(GS.run&&!confirm(‘Start new run? Unsaved progress lost.’))return;GS.clearA();ML.closeAll();UI.clearN();UI.showCC()};b.appendChild(nr);
+const nt=document.createElement(‘div’);nt.className=‘snotice’;nt.textContent=‘Saves are stored in this browser and tied to this file location. Keep the file in a consistent place.’;b.appendChild(nt);
+this.open(‘m-sl’)},
+
+openDlg(speaker,text,opts,cb){
+$(‘dlg-t’).textContent=speaker;const b=$(‘m-dlg-b’);b.innerHTML=’’;
+b.innerHTML+=`<div class="dsp">${speaker}</div><div class="dtx">${text}</div>`;
+if(opts&&opts.length){const od=document.createElement(‘div’);od.className=‘dopts’;
+opts.forEach((o,i)=>{const btn=document.createElement(‘button’);btn.className=‘mbtn’;btn.textContent=o.text;btn.setAttribute(‘aria-label’,o.text);btn.onclick=()=>{ML.closeAll();if(cb)cb(i,o)};od.appendChild(btn)});b.appendChild(od)}
+this.open(‘m-dlg’)}
+};
+
+// === CHARACTER CREATION ===
+const CC={
+step:1,sp:null,cl:null,
+reset(){this.step=1;this.sp=null;this.cl=null;this.showStep(1);UI.el.ni.value=’’;UI.el.cbk.style.display=‘none’;UI.el.cnx.textContent=‘Continue’;this.buildSP();this.buildCL()},
+showStep(n){document.querySelectorAll(’.ccs’).forEach(s=>s.classList.remove(‘act’));const s=$(‘ccs’+n);if(s)s.classList.add(‘act’);
+UI.el.cbk.style.display=n>1?‘block’:‘none’;UI.el.cnx.textContent=n===4?‘Begin Adventure’:‘Continue’;
+if(n===1)requestAnimationFrame(()=>UI.el.ni.focus());if(n===4)this.buildSum()},
+next(){
+if(this.step===1&&!UI.el.ni.value.trim()){UI.el.ni.focus();return}
+if(this.step===2&&!this.sp)return;if(this.step===3&&!this.cl)return;
+if(this.step===4){const nm=UI.el.ni.value.trim();GS.newRun(nm,this.sp,this.cl);const m=GS.getJM();if(m.handbookFound){GS.run.jrnUnlk=true;GS.saveA()}UI.showGame();SE.enter(‘trailhead’);return}
+this.step++;this.showStep(this.step)},
+back(){if(this.step>1){this.step–;this.showStep(this.step)}},
+mkCard(cont,key,data,portraits,sel,setSel){
+const c=document.createElement(‘div’);c.className=‘ccd’;c.setAttribute(‘role’,‘radio’);c.setAttribute(‘aria-checked’,‘false’);c.setAttribute(‘tabindex’,‘0’);
+c.setAttribute(‘aria-label’,`${data.name}: ${data.desc}. ${data.stats}`);
+const cv=document.createElement(‘canvas’);cv.width=64;cv.height=64;cv.setAttribute(‘aria-hidden’,‘true’);
+if(portraits)PA.renderPortrait(cv,key);
+const info=document.createElement(‘div’);info.className=‘ccd-i’;info.innerHTML=`<div class="ccd-n">${data.name}</div><div class="ccd-d">${data.desc}</div><div class="ccd-s">${data.stats}</div>`;
+c.appendChild(cv);c.appendChild(info);
+const pick=()=>{cont.querySelectorAll(’.ccd’).forEach(x=>{x.classList.remove(‘sel’);x.setAttribute(‘aria-checked’,‘false’)});c.classList.add(‘sel’);c.setAttribute(‘aria-checked’,‘true’);setSel(key)};
+c.onclick=pick;c.onkeydown=e=>{if(e.key===‘Enter’||e.key===’ ‘){e.preventDefault();pick()}};cont.appendChild(c)},
+buildSP(){const c=$(‘sp-cards’);c.innerHTML=’’;Object.entries(SP).forEach(([k,s])=>this.mkCard(c,k,s,true,this.sp,v=>{this.sp=v}))},
+buildCL(){const c=$(‘cl-cards’);c.innerHTML=’’;Object.entries(CL).forEach(([k,cl])=>this.mkCard(c,k,cl,false,this.cl,v=>{this.cl=v}))},
+buildSum(){const c=$(‘cc-sum’);const nm=UI.el.ni.value.trim(),sp=SP[this.sp],cl=CL[this.cl],mHP=cl.bHP+sp.hpM;
+c.innerHTML=[[‘Name’,nm],[‘Species’,sp.name],[‘Class’,cl.name],[‘Max HP’,mHP],[‘Weapon’,cl.wpn?cl.wpn.name:‘None’],[‘Armor’,cl.arm?cl.arm.name:‘None’],[‘Trait’,sp.stats]].map(([l,v],i,a)=>`<div class="csr"${i===a.length-1?' style="border:none"':''}><span class="csl">${l}</span><span class="csv">${v}</span></div>`).join(’’)}
+};
+
+// === COMMAND PARSER ===
+const CP={
+parse(raw){
+const w=raw.toLowerCase().replace(/[^a-z0-9\s]/g,’’).split(/\s+/).filter(x=>![‘the’,‘a’,‘an’,‘to’,‘on’,‘at’,‘with’,‘my’,‘i’].includes(x));
+if(!w.length){UI.addN(‘You mutter something unintelligible.’,‘f’);return}
+const v=w[0],n=w.slice(1).join(’ ‘);const cs=CMB.gs();
+// Combat commands
+if(cs&&!cs.over){
+let cmd=null;
+if([‘attack’,‘hit’,‘strike’,‘slash’,‘shoot’,‘stab’].includes(v))cmd=‘attack’;
+else if([‘block’,‘defend’,‘shield’,‘guard’].includes(v))cmd=‘block’;
+else if(v===‘move’&&(n.includes(‘close’)||n.includes(‘forward’)||n.includes(‘advance’)))cmd=‘move_closer’;
+else if(v===‘move’&&(n.includes(‘back’)||n.includes(‘away’)||n.includes(‘retreat’)))cmd=‘move_back’;
+else if([‘flee’,‘run’,‘escape’].includes(v))cmd=‘flee’;
+else if([‘use’,‘drink’,‘potion’].includes(v))cmd=‘use_potion’;
+else if([‘inventory’,‘backpack’,‘bag’,‘check’].includes(v)&&(n.includes(‘inv’)||n.includes(‘back’)||n.includes(‘bag’)||!n)){ML.openInv();return}
+if(cmd){const ms=CMB.pAct(cmd);ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();const ca=CMB.gs();if(ca){UI.updateDist(ca.dist,!ca.over);if(ca.over){if(ca.won)SE.onWin();else SE.onDeath()}}return}
+UI.addN(“Not a valid combat action. Try: attack, block, move closer, move back, flee, use potion.”,‘y’);return}
+// Exploration commands
+if([‘go’,‘move’,‘walk’,‘head’,‘travel’].includes(v)){
+if(n.includes(‘north’)||n.includes(‘forward’)||n.includes(‘ahead’))SE.handleAction(‘go_north’);
+else if(n.includes(‘south’)||n.includes(‘back’))SE.handleAction(‘go_south’);
+else UI.addN(‘Go where? Try: north, south.’,‘y’);return}
+if([‘search’,‘look’,‘examine’,‘inspect’,‘check’].includes(v)){
+if(n.includes(‘inv’)||n.includes(‘back’)||n.includes(‘bag’)){ML.openInv();return}
+SE.handleAction(‘search’);return}
+if([‘equip’,‘wear’,‘wield’].includes(v)){const it=GS.run.bp.find(i=>i.name.toLowerCase().includes(n));
+if(it&&(it.t===‘melee’||it.t===‘ranged’)){const idx=GS.run.bp.indexOf(it);if(GS.run.wpn)GS.run.bp.push(GS.run.wpn);GS.run.wpn=it;GS.run.bp.splice(idx,1);GS.saveA();UI.addN(`Equipped ${it.name}.`,‘s’);UI.updateHUD()}
+else UI.addN(“Can’t equip that.”,‘y’);return}
+if([‘use’,‘drink’].includes(v)){const it=GS.run.bp.find(i=>i.t===‘consumable’&&i.name.toLowerCase().includes(n||‘potion’));
+if(it){const idx=GS.run.bp.indexOf(it);if(it.heal){const h=Math.min(it.heal,GS.run.mHP-GS.run.hp);GS.run.hp+=h;GS.run.bp.splice(idx,1);GS.saveA();UI.addN(`Used ${it.name}, recovered ${h} HP. (${GS.run.hp}/${GS.run.mHP})`,  ‘s’);UI.updateHUD()}}
+else UI.addN(“Nothing to use.”,‘y’);return}
+if([‘talk’,‘speak’].includes(v)){SE.handleAction(‘talk’);return}
+if([‘inventory’,‘backpack’,‘bag’].includes(v)){ML.openInv();return}
+if([‘save’].includes(v)){GS.qSave();UI.addN(‘Quick saved.’,‘y’);return}
+if([‘flee’,‘run’].includes(v)){SE.handleAction(‘flee’);return}
+// Fallback
+const flavor=[‘The wind whispers through the trees, offering no answers.’,‘You ponder the meaning of those words, but find none.’,‘A crow regards you with mild interest before flying away.’,‘The mud squelches underfoot. Nothing happens.’,‘You scratch your chin thoughtfully. Perhaps try something else.’];
+UI.addN(flavor[Math.floor(Math.random()*flavor.length)],‘f’);
+}
+};
+
+// === SCENE ENGINE ===
+const SE={
+scenes:{
+trailhead:{
+enter(){UI.addN(’\u2014 The Trailhead \u2014’,‘h’);
+UI.addN(‘The muddy trail stretches northward into a dense, fog-choked forest. The air is thick with wet earth and decay. A half-rotted sign reads: “Beware \u2014 creatures ahead.”’);
+UI.addN(‘A weathered guardsman stands beside the trail gate, watching with tired but alert eyes.’,‘f’);
+if(!GS.run.ss.aldric)setTimeout(()=>SE.aldric(),600)},
+getActions(){const a=[];if(!GS.run.ss.aldric)a.push({l:‘Talk to Aldric’,cmd:‘talk_aldric’,d:‘The gatekeeper awaits’});a.push({l:‘Go North’,cmd:‘go_north’,d:‘Head deeper into the trail’});return a},
+handle(cmd){if(cmd===‘talk_aldric’||cmd===‘talk’)SE.aldric();else if(cmd===‘go_north’)SE.enter(‘midway’)}
+},
+midway:{
+enter(){UI.addN(’\u2014 Midway on the Trail \u2014’,‘h’);
+UI.addN(‘The trail narrows between gnarled trees whose branches interlock overhead. Mud sucks at your boots with every step.’);
+if(!GS.run.ss.pouch)UI.addN(‘Something glints in the mud \u2014 a leather pouch, half-buried and forgotten.’,‘f’)},
+getActions(){const a=[];if(!GS.run.ss.pouch)a.push({l:‘Search Pouch’,cmd:‘search’,d:‘The leather pouch in the mud’});a.push({l:‘Go North’,cmd:‘go_north’,d:‘Continue deeper’});a.push({l:‘Go South’,cmd:‘go_south’,d:‘Back to trailhead’});return a},
+handle(cmd){if(cmd===‘search’){if(!GS.run.ss.pouch){GS.run.ss.pouch=true;
+if(GS.run.bp.length<6){GS.run.bp.push({…ITEMS.hpot});UI.addN(‘You pry the pouch from the mud. Inside: a small vial of glowing red liquid \u2014 a Health Potion! Stowed in your backpack.’,‘s’)}
+else{UI.addN(‘The pouch holds a Health Potion but your backpack is full!’,‘d’);GS.run.ss.pouch=false}GS.saveA()}
+else UI.addN(‘The empty pouch lies in the mud. Nothing else here.’,‘f’)}
+else if(cmd===‘go_north’)SE.enter(‘ooze’);else if(cmd===‘go_south’)SE.enter(‘trailhead’)}
+},
+ooze:{
+enter(){UI.addN(’\u2014 Ambush! \u2014’,‘h’);
+UI.addN(‘The trail opens into a clearing. The mud bubbles unnaturally. A mass of glistening gray slime rises from the earth, quivering with malevolent intent.’);
+UI.addN(‘A Gray Ooze blocks your path!’,‘d’);
+const cs=CMB.start(‘gray_ooze’);UI.updateDist(cs.dist,true);
+UI.addN(`Combat begins! Distance: ${cs.dist}m. The ooze quivers, preparing to advance.`,‘y’)},
+getActions(){return[]},handle(){}
+},
+post_ooze:{
+enter(){UI.addN(’\u2014 After the Battle \u2014’,‘h’);
+UI.addN(‘The remains of the Gray Ooze spread across the trail in a steaming, acrid puddle. The forest is quiet.’);
+if(!GS.run.ss.oozeSearch1)UI.addN(‘Something solid rests within the dissolving remains.’,‘f’);
+else if(!GS.run.ss.oozeSearch2)UI.addN(‘The remains still glisten. Perhaps there is more to find.’,‘f’)},
+getActions(){const a=[];
+if(!GS.run.ss.oozeSearch1)a.push({l:‘Search Remains’,cmd:‘search’,d:‘Something solid in the ooze’});
+else if(!GS.run.ss.oozeSearch2)a.push({l:‘Search Again’,cmd:‘search’,d:‘Look more carefully’});
+a.push({l:‘Go North’,cmd:‘go_north’,d:‘Continue to trail end’});a.push({l:‘Go South’,cmd:‘go_south’,d:‘Back toward midway’});return a},
+handle(cmd){if(cmd===‘search’){
+if(!GS.run.ss.oozeSearch1){GS.run.ss.oozeSearch1=true;
+if(GS.run.bp.length<6){GS.run.bp.push({…ITEMS.handbook});GS.run.hbFound=true;GS.run.jrnUnlk=true;
+GS.setJM({handbookFound:true});GS.saveA();
+UI.addN(“You reach into the dissolving slime and pull out a weathered leather-bound book. Its pages are miraculously dry. The cover reads: "Player’s Handbook."”,‘s’);
+UI.addN(“The handbook has been added to your backpack. You feel its knowledge flowing through you \u2014 your journal is now available!”,‘s’);
+UI.updateHUD();UI.pulseJ()}
+else{UI.addN(‘Something solid, but your backpack is full! Make room and search again.’,‘d’);GS.run.ss.oozeSearch1=false;GS.saveA()}}
+else if(!GS.run.ss.oozeSearch2){GS.run.ss.oozeSearch2=true;GS.saveA();
+UI.addN(‘You sift through the remains more carefully, but find only dissolving slime and a faint acidic smell.’,‘f’)}
+else UI.addN(‘Nothing more to find in the remains.’,‘f’)}
+else if(cmd===‘go_north’)SE.enter(‘trail_end’);
+else if(cmd===‘go_south’)SE.enter(‘midway’)}
+},
+trail_end:{
+enter(){UI.addN(’\u2014 Trail\u2019s End \u2014’,‘h’);
+UI.addN(‘The forest thins and the trail widens to a mossy clearing lit by dappled sunlight. A small stone shrine stands at the center, covered in climbing ivy.’);
+UI.addN(‘A woman in green robes tends herbs near the shrine. She looks up and smiles warmly.’,‘f’);
+if(!GS.run.ss.mira)setTimeout(()=>SE.mira(),600)},
+getActions(){const a=[];if(!GS.run.ss.mira)a.push({l:‘Talk to Mira’,cmd:‘talk’,d:‘The healer by the shrine’});if(GS.run.ss.mira)a.push({l:‘Rest Here’,cmd:‘rest’,d:‘Your journey is complete’});return a},
+handle(cmd){if(cmd===‘talk’)SE.mira();else if(cmd===‘rest’)SE.runComplete()}
+}
+},
+
+enter(id){GS.run.scene=id;GS.run.cs=null;GS.saveA();UI.updateDist(0,false);const s=this.scenes[id];if(s&&s.enter)s.enter()},
+resume(){const s=this.scenes[GS.run.scene];if(!s)return;
+const cs=CMB.gs();if(cs&&!cs.over)UI.updateDist(cs.dist,true);else UI.updateDist(0,false);UI.updateHUD()},
+getActions(){const s=this.scenes[GS.run.scene];return s&&s.getActions?s.getActions():[]},
+handleAction(cmd){const s=this.scenes[GS.run.scene];if(s&&s.handle)s.handle(cmd)},
+
+onWin(){UI.updateDist(0,false);const cs=GS.run.cs;if(cs&&cs.enemy.id===‘gray_ooze’)SE.enter(‘post_ooze’)},
+onDeath(){UI.updateDist(0,false);
+setTimeout(()=>{UI.addN(‘You have fallen. The darkness is complete.’,‘d’);
+setTimeout(()=>{if(GS.qLoad()){UI.addN(’…but fate grants you another chance. You awaken from what felt like a terrible dream.’,‘f’);UI.clearN();UI.restoreN();UI.updateHUD();SE.resume()}
+else if(GS.mLoad(0)||GS.mLoad(1)||GS.mLoad(2)){UI.addN(’…memory stirs. You recall a moment of safety.’,‘f’);UI.clearN();UI.restoreN();UI.updateHUD();SE.resume()}
+else{UI.addN(‘With no saved memories to return to, a new traveler must take your place…’,‘f’);setTimeout(()=>{GS.clearA();UI.clearN();UI.showCC()},2000)}
+},1500)},800)},
+
+aldric(){if(GS.run.ss.aldric)return;
+const nm=GS.run.name;
+ML.openDlg(‘Aldric the Gatekeeper’,
+`"Well met, ${nm}. You look like you can handle yourself, but the trail ahead is no place for carelessness. Let me share what I know."`,
+[{text:’“What dangers lie ahead?”’},{text:’“I can handle myself.”’},{text:’“Any advice for a traveler?”’}],
+(i)=>{GS.run.ss.aldric=true;GS.saveA();
+if(i===0)ML.openDlg(‘Aldric’,’“Gray Oozes have been spotted on the trail. Slow creatures, but they\u2019ll close the distance if you let them. Keep your weapon ready and strike when in range. If you have a shield, blocking can save your hide.”’,
+[{text:’“Thank you, Aldric.”’}],()=>{UI.addN(‘Aldric nods and steps aside, opening the gate.’,‘f’)});
+else if(i===1)ML.openDlg(‘Aldric’,’“Ha! Confidence is good, but listen \u2014 when something attacks, you can block with a shield to reduce the blow. And if things go badly, there\u2019s no shame in running. Distance is your friend.”’,
+[{text:’“I'll keep that in mind.”’}],()=>{UI.addN(‘Aldric grins and opens the gate.’,‘f’)});
+else ML.openDlg(‘Aldric’,’“Mind the distance between you and whatever you\u2019re fighting. Melee weapons need you close \u2014 5 meters or less. If you\u2019re using a bow, stay back at 10 meters or more. And keep a potion handy. You\u2019ll thank me later.”’,
+[{text:’“Wise words. Farewell.”’}],()=>{UI.addN(‘Aldric steps aside and opens the gate.’,‘f’)})})},
+
+mira(){if(GS.run.ss.mira)return;
+const r=GS.run;
+ML.openDlg(‘Mira the Healer’,
+‘“Welcome, traveler. You bear the marks of battle \u2014 that acidic stench can only mean you faced an Ooze on the trail. Let me tend your wounds.”’,
+[{text:’“Please, I could use the help.”’},{text:’“What can you tell me about this place?”’}],
+(i)=>{r.hp=r.mHP;GS.run.ss.mira=true;UI.updateHUD();
+if(i===0){if(r.bp.length<6)r.bp.push({…ITEMS.hpot});GS.saveA();
+ML.openDlg(‘Mira’,`"There. Good as new. Take this potion as well \u2014 the road beyond here grows darker still. You\u2019ve done well to make it this far, ${r.name}. Perhaps we\u2019ll meet again."`,
+[{text:’“Until next time, Mira.”’}],()=>{UI.addN(‘Mira smiles and returns to her herbs. You feel restored.’,‘s’);UI.addN(`HP fully restored to ${r.mHP}. Health Potion added to backpack.`,‘y’);SE.runComplete()})}
+else{if(r.bp.length<6)r.bp.push({…ITEMS.hpot});GS.saveA();
+ML.openDlg(‘Mira’,’“This shrine has stood since before the kingdoms fell. It\u2019s a place of healing \u2014 the forest seems to respect it. Beyond here, the trails lead to darker places: the Whispering Bog, the Iron Hollows… but those are journeys for another day.”’,
+[{text:’“I look forward to it. Thank you.”’}],()=>{UI.addN(‘Mira heals your wounds and gives you a Health Potion.’,‘s’);UI.addN(`HP fully restored to ${r.mHP}.`,‘y’);SE.runComplete()})}})},
+
+runComplete(){
+const r=GS.run;const xpRes=GS.addXP(75);// 50 ooze + 25 trail
+UI.addN(’\u2014 Trail Complete! \u2014’,‘h’);
+UI.addN(`XP earned: ${xpRes.gained} (50 from combat, 25 for completing the trail)`,‘s’);
+if(xpRes.leveled)UI.addN(`Level up! You are now level ${xpRes.level}! Max HP increased, attack and defense improved.`,‘s’);
+UI.addN(`Total XP: ${r.xp}/${r.level<3?LVL[r.level]:'MAX'}`,‘y’);
+UI.addN(‘Your journey along the Muddy Trail is complete. Save your progress from the menu, or begin anew.’,‘f’);
+UI.updateHUD();GS.saveA();
+}
+};
+
+// === INIT ===
+document.addEventListener(‘DOMContentLoaded’,()=>{
+UI.init();
+// Check for existing run
+if(GS.loadA()){UI.showGame();UI.restoreN();SE.resume()}
+else{CC.reset()}
+});
+// === PWA SERVICE WORKER REGISTRATION ===
+if(‘serviceWorker’ in navigator){navigator.serviceWorker.register(’./sw.js’).catch(()=>{})}
+</script>
+
+</body>
+</html>
