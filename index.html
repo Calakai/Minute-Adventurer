@@ -158,6 +158,72 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 .wt-0{color:var(--grn);border:1px solid var(--grn)}.wt-1{color:var(--gold);border:1px solid var(--gold)}.wt-2{color:var(--red);border:1px solid var(--red)}
 @media(max-width:480px){.ne{font-size:1.2rem}#hud{padding:4px 8px}}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+#title-card{display:none;position:fixed;inset:0;background:var(--bg);z-index:600;justify-content:center;align-items:center;flex-direction:column;opacity:0;transition:opacity .3s ease}
+#title-card.vis{display:flex}
+#title-card.show{opacity:1}
+#tc-name{font-size:1.75rem;color:var(--gold);text-transform:uppercase;letter-spacing:.12em;font-weight:700;text-align:center}
+#tc-sub{font-size:.85rem;color:var(--t3);margin-top:8px;text-align:center}
+#death-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:700;justify-content:center;align-items:center;flex-direction:column;gap:16px;opacity:0;transition:opacity .5s ease}
+#death-screen.vis{display:flex}
+#death-screen.show{opacity:1}
+#death-screen h2{font-size:1.5rem;color:var(--red);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+#death-screen .dq{color:var(--t3);font-style:italic;font-size:.9rem;margin-bottom:12px;text-align:center}
+.ds-btn{min-width:200px;min-height:52px;background:var(--bg3);border:2px solid var(--brd);border-radius:8px;color:var(--t1);font-family:var(--fn);font-size:1.1rem;cursor:pointer;padding:10px 20px;transition:border-color .15s,background .15s}
+.ds-btn:hover,.ds-btn:active{border-color:var(--gold);background:var(--bg2)}
+.fade-out{opacity:0!important;transition:opacity .3s ease!important}
+.fade-in{opacity:1!important;transition:opacity .3s ease!important}
+.cc-fade{transition:opacity .2s ease}
+.nav-exits{margin-top:12px;padding-top:8px;border-top:1px solid var(--brd)}
+.nav-exits-lbl{font-family:var(--fm);font-size:.7rem;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.nav-btns{display:flex;flex-wrap:wrap;gap:8px}
+.nav-btn{background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:10px 16px;color:var(--t1);font-family:var(--fn);font-size:.9rem;cursor:pointer;transition:border-color .15s,background .15s;min-height:44px}
+.nav-btn:hover,.nav-btn:active{border-color:var(--gold);background:var(--bg2)}
+.nav-tag{color:var(--t3);font-size:.8rem;margin-left:4px}
+.npc-btns{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px}
+.npc-btn{background:var(--bg3);border:1px solid var(--gold);border-radius:6px;padding:10px 16px;color:var(--gold);font-family:var(--fn);font-size:.9rem;cursor:pointer;transition:background .15s;min-height:44px}
+.npc-btn:hover,.npc-btn:active{background:var(--bg2)}
+.vic-card{background:var(--bg3);border:1px solid var(--gold);border-radius:8px;padding:16px;margin-top:10px;animation:fi .3s ease}
+.vic-h{color:var(--gold);font-size:1.1rem;font-weight:600;margin-bottom:8px}
+.vic-stat{font-family:var(--fm);font-size:.9rem;color:var(--t1);padding:2px 0}
+.vic-loot-h{color:var(--t3);font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;margin:10px 0 6px;padding-top:8px;border-top:1px solid var(--brd)}
+.vic-loot-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;gap:8px}
+.vic-loot-name{font-size:.95rem;color:var(--t1);flex:1}
+.vic-loot-desc{font-size:.8rem;color:var(--t3)}
+.vic-take-btn{min-width:60px;min-height:36px;background:var(--bg);border:1px solid var(--gold);border-radius:4px;color:var(--gold);font-family:var(--fm);font-size:.85rem;cursor:pointer;padding:4px 10px}
+.vic-take-btn:hover{background:var(--bg2)}
+.vic-take-btn[disabled]{opacity:.4;cursor:default;border-color:var(--red);color:var(--red)}
+.vic-leave{background:none;border:none;color:var(--t3);font-family:var(--fm);font-size:.85rem;cursor:pointer;padding:8px 0;margin-top:4px}
+.vic-leave:hover{color:var(--t1)}
+.vic-lvl-h{color:var(--goldB);font-size:1rem;font-weight:600;margin:12px 0 8px;padding-top:8px;border-top:1px solid var(--brd)}
+.vic-lvl-info{font-size:.9rem;color:var(--grn);margin-bottom:10px}
+.vic-stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+.vic-stat-btn{min-height:44px;background:var(--bg);border:1px solid var(--brd);border-radius:4px;color:var(--t1);font-family:var(--fm);font-size:.85rem;cursor:pointer;padding:6px 4px;text-align:center;transition:border-color .15s}
+.vic-stat-btn:hover{border-color:var(--gold)}
+.vic-stat-btn span{display:block;font-size:.7rem;color:var(--t3)}
+#action-sheet{display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;max-height:60vh;background:var(--bg2);border-top:1px solid var(--gold);border-radius:12px 12px 0 0;padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));overflow-y:auto;transform:translateY(100%);transition:transform .25s ease}
+#action-sheet.vis{display:block;transform:translateY(0)}
+#as-backdrop{display:none;position:fixed;inset:0;z-index:399;background:rgba(0,0,0,.4)}
+#as-backdrop.vis{display:block}
+.as-h{font-size:.85rem;color:var(--gold);font-weight:600;margin-bottom:8px}
+.as-btn{display:block;width:100%;min-height:48px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t1);font-family:var(--fn);font-size:1rem;cursor:pointer;padding:10px 14px;text-align:left;margin-bottom:6px;transition:border-color .15s,background .15s}
+.as-btn:hover,.as-btn:active{border-color:var(--gold);background:var(--bg2)}
+.as-btn-sub{display:block;font-size:.85rem;color:var(--t2);margin-top:2px}
+.cmb-btns{display:flex;gap:6px;flex-wrap:wrap}
+.cmb-btn{flex:1;min-height:48px;min-width:70px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t1);font-family:var(--fm);font-size:.9rem;cursor:pointer;padding:6px 8px;transition:border-color .15s,background .15s}
+.cmb-btn:hover,.cmb-btn:active{border-color:var(--gold);background:var(--bg2)}
+.cmb-btn[disabled]{opacity:.35;cursor:default;pointer-events:none}
+.cmb-btn-sub{display:block;font-size:.7rem;color:var(--t2);margin-top:2px}
+#cmb-act-row{display:none;gap:6px;flex-wrap:wrap}
+#cmb-act-row.vis{display:flex}
+#cmb-move-row{display:none;gap:6px;margin-bottom:6px}
+#cmb-move-row.vis{display:flex}
+@media(prefers-reduced-motion:reduce){
+*,*::before,*::after{animation-duration:0s!important;transition-duration:0s!important}
+.ne{animation:none!important}
+#title-card,#death-screen{transition:none!important}
+.fade-out,.fade-in,.cc-fade{transition:none!important}
+#action-sheet{transition:none!important}
+}
 </style>
 </head>
 <body>
@@ -192,6 +258,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 <div id="dist-m" aria-label="Combat distance"><div id="dist-lbl">Distance</div><div id="dist-bar"><div class="dist-mk" id="dist-p" aria-label="You"></div><div class="dist-mk" id="dist-e" aria-label="Enemy"></div></div><div id="dist-rd">15m</div></div>
 </div>
 <div id="bbar" aria-label="Actions and input">
+<div id="cmb-move-row"></div>
+<div id="cmb-act-row"></div>
 <div id="act-row"><button class="abtn" id="b-act" aria-label="Open actions">Actions</button><button class="abtn" id="b-inv2" aria-label="Open inventory">Inventory</button></div>
 <div id="inp-row"><input type="text" id="tinp" placeholder="Type a command..." aria-label="Type command" autocomplete="off"><button id="sbtn" aria-label="Send command">&#9654;</button></div>
 </div></div>
@@ -202,6 +270,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 <div class="mo" id="m-dlg" role="dialog" aria-label="Dialogue" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt" id="dlg-t">NPC</h2><span></span></div><div class="mb" id="m-dlg-b"></div></div></div>
 <div class="mo" id="m-stats" role="dialog" aria-label="Character Stats" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Character</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-stats-b"></div></div></div>
 <div class="mo" id="m-lvl" role="dialog" aria-label="Level Up" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Level Up!</h2><span></span></div><div class="mb" id="m-lvl-b"></div></div></div>
+<div id="title-card" aria-live="assertive"><h2 id="tc-name"></h2><p id="tc-sub"></p></div>
+<div id="death-screen" aria-live="assertive"><h2>YOU HAVE FALLEN</h2><p class="dq" id="death-quote"></p><button class="ds-btn" id="ds-load">Load Last Save</button><button class="ds-btn" id="ds-new">New Adventure</button><button class="ds-btn" id="ds-title">Return to Title</button></div>
+<div id="as-backdrop"></div>
+<div id="action-sheet" role="dialog" aria-label="Actions"><div class="as-h">Actions</div><div id="as-list"></div></div>
 <script>
 /* =====================================================================
    THE MUDDY TRAIL — Complete Game Engine v2
@@ -374,8 +446,53 @@ rogue:{name:'Rogue',desc:'A shadow in the dark, quick with blade and cunning.',
   oh:{name:'Lantern',t:'light',wt:0,desc:'Illuminates dark areas'},
   arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[]}
 };
-const ENEMIES={gray_ooze:{name:'Gray Ooze',id:'gray_ooze',lore:'A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.',hp:15,mHP:15,atk:5,def:0,dD:4,dB:1,spd:5,aRng:5,sDist:10,xp:50}};
+const ENEMIES={gray_ooze:{name:'Gray Ooze',id:'gray_ooze',lore:'A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.',hp:15,mHP:15,atk:5,def:0,dD:4,dB:1,spd:5,aRng:5,sDist:10,xp:50,loot:[{item:'hpot',chance:60},{item:'gold',amount:5,chance:100}]}};
 const ITEMS={hpot:{name:'Health Potion',t:'consumable',wt:0,heal:10,desc:'Restores 10 HP'},guide:{name:"Player's Guide",t:'key',wt:0,desc:'A weathered guide to combat, creatures, and the world.',undrop:true}};
+const NPCS={
+aldric:{name:'Aldric',title:'Aldric the Gatekeeper',desc:'A weathered guardsman stands beside the trail gate, watching with tired but alert eyes.'},
+mira:{name:'Mira',title:'Mira the Healer',desc:'A woman in green robes tends herbs near the shrine. She looks up and smiles warmly.'}
+};
+const SCENE_DATA={
+trailhead:{name:'The Trailhead',subtitle:'Where the road ends and the wild begins',
+  description:'The muddy trail stretches northward into a dense, fog-choked forest. The air is thick with wet earth and decay. A half-rotted sign reads: "Beware \u2014 creatures ahead."',
+  npcs:['aldric'],
+  exits:{forward:{scene:'midway',label:'Midway on the Trail',discovered:true}},
+  events:{onFirstVisit:null,onEnter:null,combat:null}},
+midway:{name:'Midway on the Trail',subtitle:'Where the trees close in',
+  description:'The trail narrows between gnarled trees whose branches interlock overhead. Mud sucks at your boots with every step.',
+  npcs:[],
+  exits:{forward:{scene:'ooze',label:'Deeper Trail',discovered:true},back:{scene:'trailhead',label:'The Trailhead',discovered:true}},
+  events:{onFirstVisit:null,onEnter(r){if(!r.ss.pouch)UI.addN('Something glints in the mud \u2014 a leather pouch, half-buried and forgotten.','f')},combat:null},
+  actions:[{id:'search',label:'Search Pouch',desc:'The leather pouch in the mud',condition(r){return!r.ss.pouch}}]},
+ooze:{name:'Ambush!',subtitle:null,
+  description:'The trail opens into a clearing. The mud bubbles unnaturally.',
+  npcs:[],exits:{},
+  events:{onFirstVisit:null,onEnter:null,combat:'gray_ooze'}},
+post_ooze:{name:'After the Battle',subtitle:'The silence of victory',
+  description:'The remains of the Gray Ooze spread across the trail in a steaming, acrid puddle. The forest is quiet.',
+  npcs:[],
+  exits:{forward:{scene:'trail_end',label:"Trail's End",discovered:true},back:{scene:'midway',label:'Midway on the Trail',discovered:true}},
+  events:{onFirstVisit:null,onEnter(r){
+    if(!r.ss.oozeSearch1)UI.addN('Something solid rests within the dissolving remains.','f');
+    else if(!r.ss.oozeSearch2)UI.addN('The remains still glisten. Perhaps there is more to find.','f')},combat:null},
+  actions:[
+    {id:'search',label:'Search Remains',desc:'Something solid in the ooze',condition(r){return!r.ss.oozeSearch1}},
+    {id:'search',label:'Search Again',desc:'Look more carefully',condition(r){return r.ss.oozeSearch1&&!r.ss.oozeSearch2}}]},
+trail_end:{name:"Trail's End",subtitle:'Where the forest breathes again',
+  description:'The forest thins and the trail widens to a mossy clearing lit by dappled sunlight. A small stone shrine stands at the center, covered in climbing ivy.',
+  npcs:['mira'],
+  exits:{},
+  events:{onFirstVisit:null,onEnter:null,combat:null},
+  actions:[{id:'rest',label:'Rest Here',desc:'Your journey is complete',condition(r){return!!r.ss.mira}}]}
+};
+const DEATH_QUOTES=[
+'"Not every path leads home."',
+'"The trail remembers those who fall."',
+'"Even the bravest meet their end in the mud."',
+'"The forest takes what it is owed."',
+'"Rest now. The trail goes on without you."'
+];
+const REDUCED_MOTION=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // === CALC MODULE ===
 const CALC={
@@ -525,7 +642,7 @@ eTurn(){const cs=this.gs(),r=GS.run,e=cs.enemy,ms=[];
 
 // === UI CONTROLLER ===
 const UI={
-el:{},
+el:{},_combatMode:false,_busy:false,
 init(){
   this.el={app:$('app'),hud:$('hud'),hp:$('hud-portrait'),hnc:$('hud-nc'),
     hbi:$('hp-bar-i'),hbo:$('hp-bar-o'),htx:$('hp-txt'),
@@ -534,7 +651,11 @@ init(){
     cc:$('cc'),gm:$('game'),nw:$('narr-w'),nl:$('narr-log'),
     dm:$('dist-m'),dr:$('dist-rd'),dp:$('dist-p'),de:$('dist-e'),
     bb:$('bbar'),ba:$('b-act'),bi2:$('b-inv2'),ti:$('tinp'),sb:$('sbtn'),
-    ni:$('ninp'),cbk:$('cc-bk'),cnx:$('cc-nx')};
+    ni:$('ninp'),cbk:$('cc-bk'),cnx:$('cc-nx'),
+    tc:$('title-card'),tcn:$('tc-name'),tcs:$('tc-sub'),
+    ds:$('death-screen'),dsq:$('death-quote'),dsl:$('ds-load'),dsn:$('ds-new'),dst:$('ds-title'),
+    ash:$('action-sheet'),asl:$('as-list'),asb:$('as-backdrop'),
+    cmr:$('cmb-move-row'),car:$('cmb-act-row'),ar:$('act-row'),ir:$('inp-row')};
   this.renderIcons();this.bind();this.vvp();
 },
 renderIcons(){
@@ -547,16 +668,35 @@ bind(){
   this.el.bi.onclick=()=>ML.openInv();this.el.bj.onclick=()=>ML.openJrn();
   this.el.bq.onclick=()=>{if(GS.qSave())this.addN('Game quick saved.','y');else this.addN('Quick save failed \u2014 storage may be full.','d')};
   this.el.bm.onclick=()=>ML.openSL();
-  this.el.ba.onclick=()=>ML.openAct();this.el.bi2.onclick=()=>ML.openInv();
+  this.el.ba.onclick=()=>this.openActionSheet();this.el.bi2.onclick=()=>ML.openInv();
   this.el.sb.onclick=()=>this.submit();this.el.ti.onkeydown=e=>{if(e.key==='Enter')this.submit()};
+  this.el.asb.onclick=()=>this.closeActionSheet();
+  this.el.dsl.onclick=()=>SE.deathLoad();
+  this.el.dsn.onclick=()=>SE.deathNewRun();
+  this.el.dst.onclick=()=>SE.deathTitle();
   document.onkeydown=e=>{
-    if((e.key==='q'||e.key==='Q')&&document.activeElement.tagName!=='INPUT'&&GS.run){if(GS.qSave())this.addN('Game quick saved.','y');else this.addN('Quick save failed \u2014 storage may be full.','d')}
-    if(e.key==='Escape')ML.closeAll();
+    if((e.key==='q'||e.key==='Q')&&document.activeElement.tagName!=='INPUT'&&GS.run&&!this._combatMode){if(GS.qSave())this.addN('Game quick saved.','y');else this.addN('Quick save failed \u2014 storage may be full.','d')}
+    if(e.key==='Escape'){ML.closeAll();this.closeActionSheet()}
   };
 },
 vvp(){if(window.visualViewport){const a=()=>{$('app').style.height=window.visualViewport.height+'px'};window.visualViewport.addEventListener('resize',a);window.visualViewport.addEventListener('scroll',a)}},
 showGame(){this.el.cc.style.display='none';const g=this.el.gm;g.style.display='flex';g.style.flexDirection='column';g.style.flex='1';g.style.overflow='hidden';this.el.hud.classList.add('vis');this.el.bb.classList.add('vis');this.updateHUD()},
 showCC(){this.el.cc.style.display='flex';this.el.gm.style.display='none';this.el.hud.classList.remove('vis');this.el.bb.classList.remove('vis');CC.reset()},
+async fadeCC(){
+  const d=REDUCED_MOTION?0:300;
+  this.el.cc.style.transition=`opacity ${d}ms ease`;
+  this.el.cc.style.opacity='0';
+  await this._wait(d+50);
+},
+async showGameWithFade(){
+  await this.fadeCC();
+  this.showGame();
+  this.el.gm.style.opacity='0';
+  const d=REDUCED_MOTION?0:300;
+  await this._wait(50);
+  this.el.gm.style.transition=`opacity ${d}ms ease`;
+  this.el.gm.style.opacity='1';
+},
 updateHUD(){const r=GS.run;if(!r)return;
   PA.renderPortrait(this.el.hp,r.species);this.el.hp.setAttribute('aria-label',SP[r.species].name+' portrait');
   const clName=CL[r.classes[0]]?CL[r.classes[0]].name:r.classes[0];
@@ -576,12 +716,177 @@ addN(text,type=''){const e=document.createElement('div');e.className='ne';
   if(cls[type])e.classList.add(cls[type]);e.textContent=text;
   this.el.nl.appendChild(e);
   if(GS.run){GS.run.nlog.push({t:text,c:type});if(GS.run.nlog.length>200)GS.run.nlog=GS.run.nlog.slice(-200);GS.saveA()}this.scroll()},
+addEl(el){this.el.nl.appendChild(el);this.scroll()},
 clearN(){this.el.nl.innerHTML=''},
 restoreN(){this.clearN();if(GS.run&&GS.run.nlog)GS.run.nlog.forEach(n=>{const e=document.createElement('div');e.className='ne';const cls={h:'ne-h',f:'ne-f',c:'ne-c',s:'ne-s',d:'ne-d',y:'ne-y'};if(cls[n.c])e.classList.add(cls[n.c]);e.textContent=n.t;this.el.nl.appendChild(e)});this.scroll()},
 scroll(){requestAnimationFrame(()=>{this.el.nw.scrollTop=this.el.nw.scrollHeight})},
 updateDist(d,show){if(show){this.el.dm.classList.add('vis');this.el.de.style.left=`calc(${Math.min(90,Math.max(10,10+(d-5)*(80/25)))}% - 7px)`;this.el.dp.style.left='5%';this.el.dr.textContent=d+'m'}else this.el.dm.classList.remove('vis')},
 submit(){const raw=this.el.ti.value.trim();this.el.ti.value='';if(!raw)return;CP.parse(raw)},
-pulseJ(){this.el.bj.classList.add('pulse');setTimeout(()=>this.el.bj.classList.remove('pulse'),3100)}
+pulseJ(){this.el.bj.classList.add('pulse');setTimeout(()=>this.el.bj.classList.remove('pulse'),3100)},
+_wait(ms){return new Promise(r=>setTimeout(r,REDUCED_MOTION?0:ms))},
+
+enterCombatMode(){
+  this._combatMode=true;
+  this.el.ar.style.display='none';
+  this.el.ir.style.display='none';
+  this.el.cmr.classList.add('vis');
+  this.el.car.classList.add('vis');
+  this.refreshCombatBtns();
+},
+exitCombatMode(){
+  this._combatMode=false;
+  this.el.cmr.classList.remove('vis');
+  this.el.car.classList.remove('vis');
+  this.el.cmr.innerHTML='';
+  this.el.car.innerHTML='';
+  this.el.ar.style.display='';
+  this.el.ir.style.display='';
+},
+refreshCombatBtns(){
+  const cs=CMB.gs(),r=GS.run;if(!cs||cs.over)return;
+  const moveAmt=CALC.combatMove(r);
+  this.el.cmr.innerHTML='';
+  const mkM=(label,dir,disabled)=>{const b=document.createElement('button');b.className='cmb-btn';b.textContent=label;
+    if(disabled||cs.movedThisTurn)b.disabled=true;
+    b.onclick=()=>{if(this._busy)return;const ms=CMB.pMove(dir);ms.forEach(m=>this.addN(m.t,m.c));this.updateHUD();
+      const ca=CMB.gs();if(ca)this.updateDist(ca.dist,!ca.over);this.refreshCombatBtns()};
+    this.el.cmr.appendChild(b)};
+  mkM(`\u25C4 Closer ${moveAmt}m`,'closer',cs.dist<=5);
+  mkM(`Further ${moveAmt}m \u25BA`,'back',cs.dist>=30);
+
+  this.el.car.innerHTML='';
+  const w=r.wpn;let atkSub='No weapon';
+  if(w){const isMelee=w.t==='melee';
+    const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
+    atkSub=`${hitPct}%`}
+  const acts=[
+    {l:'Atk',sub:atkSub,cmd:'attack'},
+    {l:'Block',sub:'Def',cmd:'block'},
+    {l:'Flee',sub:CALC.flee(r,cs.dist)+'%',cmd:'flee'},
+    {l:'Item',sub:'Use',cmd:'use_potion'}];
+  if(r.subspecies==='shadowstep'&&!r.traitState.vanishUsed&&!r.traitState.hidden)
+    acts.push({l:'Vanish',sub:'2 MP',cmd:'vanish'});
+  acts.forEach(a=>{const b=document.createElement('button');b.className='cmb-btn';
+    b.innerHTML=`${a.l}<span class="cmb-btn-sub">${a.sub}</span>`;
+    if(this._busy)b.disabled=true;
+    b.onclick=()=>{if(this._busy)return;SE.doCombatAction(a.cmd)};
+    this.el.car.appendChild(b)});
+},
+setCombatBusy(busy){
+  this._busy=busy;
+  this.el.cmr.querySelectorAll('.cmb-btn').forEach(b=>b.disabled=busy);
+  this.el.car.querySelectorAll('.cmb-btn').forEach(b=>b.disabled=busy);
+},
+
+openActionSheet(){
+  const cs=CMB.gs(),r=GS.run;
+  this.el.asl.innerHTML='';
+  if(cs&&!cs.over){
+    const w=r.wpn;let atkDesc='No weapon';
+    if(w){const isMelee=w.t==='melee';
+      const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
+      atkDesc=`${w.name} \u2014 ${hitPct}% to hit`}
+    const acts=[
+      {l:`Attack \u2014 ${atkDesc}`,cmd:'attack'},
+      {l:'Block',sub:'Reduce incoming damage',cmd:'block'},
+      {l:`Flee \u2014 ${CALC.flee(r,cs.dist)}%`,cmd:'flee'},
+      {l:'Use Health Potion',cmd:'use_potion'}];
+    if(r.subspecies==='shadowstep'&&!r.traitState.vanishUsed&&!r.traitState.hidden)
+      acts.push({l:'Vanish \u2014 2 MP',sub:'Hide, next attack deals double',cmd:'vanish'});
+    acts.forEach(a=>{const b=document.createElement('button');b.className='as-btn';
+      b.innerHTML=a.l+(a.sub?`<span class="as-btn-sub">${a.sub}</span>`:'');
+      b.onclick=()=>{this.closeActionSheet();SE.doCombatAction(a.cmd)};
+      this.el.asl.appendChild(b)})
+  } else {
+    const scene=SCENE_DATA[r.scene];
+    const mkA=(label,fn)=>{const b=document.createElement('button');b.className='as-btn';b.textContent=label;
+      b.onclick=()=>{this.closeActionSheet();fn()};this.el.asl.appendChild(b)};
+    mkA('Look around',()=>SE.handleAction('search'));
+    mkA('Search area',()=>SE.handleAction('search'));
+    if(scene&&scene.npcs)scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)mkA(`Talk to ${n.name}`,()=>SE.handleAction('talk_'+nid))});
+    mkA('Check inventory',()=>ML.openInv());
+    r.bp.forEach(it=>{if(it.t==='consumable')mkA(`Use ${it.name}`,()=>{
+      if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;const idx=r.bp.indexOf(it);r.bp.splice(idx,1);GS.saveA();UI.addN(`Used ${it.name}, recovered ${h} HP. (${r.hp}/${r.mHP})`,'s');UI.updateHUD()}})});
+    mkA('Save game',()=>{if(GS.qSave())UI.addN('Game quick saved.','y');else UI.addN('Quick save failed.','d')});
+  }
+  this.el.asb.classList.add('vis');
+  this.el.ash.classList.add('vis');
+},
+closeActionSheet(){this.el.ash.classList.remove('vis');this.el.asb.classList.remove('vis')},
+
+showDeathScreen(){
+  const qs=GS.getQS(),sv=GS.getMSaves(),hasSave=qs||sv.some(s=>s);
+  this.el.dsl.style.display=hasSave?'':'none';
+  this.el.dsq.textContent=DEATH_QUOTES[Math.floor(Math.random()*DEATH_QUOTES.length)];
+  this.el.ds.classList.add('vis');
+  requestAnimationFrame(()=>this.el.ds.classList.add('show'));
+},
+hideDeathScreen(){this.el.ds.classList.remove('show','vis')},
+
+async showTitleCard(name,subtitle,holdMs){
+  const tc=this.el.tc,tcn=this.el.tcn,tcs=this.el.tcs;
+  tcn.textContent=name;
+  tcs.textContent=subtitle||'';
+  tcs.style.display=subtitle?'':'none';
+  tc.classList.add('vis');
+  if(REDUCED_MOTION){
+    tc.classList.add('show');
+    await this._wait(holdMs);
+    tc.classList.remove('show','vis');
+    return;
+  }
+  await this._wait(50);
+  tc.classList.add('show');
+  await this._wait(300+holdMs);
+  tc.classList.remove('show');
+  await this._wait(300);
+  tc.classList.remove('vis');
+},
+
+renderNPCButtons(sceneId){
+  const scene=SCENE_DATA[sceneId];if(!scene||!scene.npcs||!scene.npcs.length)return;
+  const r=GS.run,wrap=document.createElement('div');wrap.className='npc-btns';
+  scene.npcs.forEach(nid=>{
+    const n=NPCS[nid];if(!n)return;
+    const b=document.createElement('button');b.className='npc-btn';b.textContent=`Talk to ${n.name}`;
+    b.onclick=()=>SE.handleAction('talk_'+nid);
+    wrap.appendChild(b)});
+  this.addEl(wrap);
+},
+renderExits(sceneId){
+  const scene=SCENE_DATA[sceneId];if(!scene||!scene.exits)return;
+  const r=GS.run,exits=scene.exits,keys=Object.keys(exits).filter(k=>{
+    const ex=exits[k];
+    if(!ex.discovered){const dk=`exit_${sceneId}_${k}`;return!!r.ss[dk]}
+    return true});
+  if(!keys.length)return;
+  const wrap=document.createElement('div');wrap.className='nav-exits';
+  wrap.innerHTML='<div class="nav-exits-lbl">Exits</div>';
+  const bwrap=document.createElement('div');bwrap.className='nav-btns';
+  keys.forEach(k=>{
+    const ex=exits[k];const b=document.createElement('button');b.className='nav-btn';
+    const isBack=k==='back';
+    const visited=r.ss['visited_'+ex.scene];
+    const dk=`exit_${sceneId}_${k}`;const isHidden=!ex.discovered&&r.ss[dk];
+    let label=(isBack?'\u2190 ':'')+ex.label+(!isBack?' \u2192':'');
+    if(!visited)label+='<span class="nav-tag"> (unexplored)</span>';
+    if(isHidden)label+='<span class="nav-tag"> (hidden path)</span>';
+    b.innerHTML=label;
+    b.onclick=()=>SE.enter(ex.scene);
+    bwrap.appendChild(b)});
+  wrap.appendChild(bwrap);
+  this.addEl(wrap);
+},
+renderSceneActions(sceneId){
+  const scene=SCENE_DATA[sceneId];if(!scene||!scene.actions)return;
+  const r=GS.run;
+  scene.actions.forEach(act=>{
+    if(act.condition&&!act.condition(r))return;
+    const b=document.createElement('button');b.className='npc-btn';
+    b.textContent=act.label;
+    b.onclick=()=>SE.handleAction(act.id);
+    this.addEl(b)});
+}
 };
 function $(id){return document.getElementById(id)}
 function statBar(label,val,max){max=max||25;return`<div class="sbar"><span class="sbar-l">${label}</span><div class="sbar-o"><div class="sbar-i" style="width:${Math.min(100,(val/max)*100)}%"></div></div><span class="sbar-v">${val}</span></div>`}
@@ -598,44 +903,7 @@ open(id){this.closeAll();const o=$(id);if(!o)return;this.prev=document.activeEle
 _trap(e){if(e.key!=='Tab')return;const o=ML.active;if(!o)return;const f=o.querySelector('.mc').querySelectorAll('button,input,[tabindex]:not([tabindex="-1"])');if(!f.length)return;const fi=f[0],la=f[f.length-1];if(e.shiftKey&&document.activeElement===fi){e.preventDefault();la.focus()}else if(!e.shiftKey&&document.activeElement===la){e.preventDefault();fi.focus()}},
 closeAll(){document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));if(this.prev){this.prev.focus();this.prev=null}this.active=null},
 
-openAct(){
-  const b=$('m-act-b');b.innerHTML='';const cs=CMB.gs(),r=GS.run;
-  if(cs&&!cs.over){
-    const moveAmt=CALC.combatMove(r);
-    b.innerHTML+='<div class="ist">Movement (free)</div>';
-    const mkMove=(label,dir)=>{const btn=document.createElement('button');btn.className='mbtn';
-      btn.innerHTML=`<strong>${label}</strong>`;
-      if(cs.movedThisTurn)btn.disabled=true;
-      if(dir==='closer'&&cs.dist<=5)btn.disabled=true;
-      if(dir==='back'&&cs.dist>=30)btn.disabled=true;
-      btn.onclick=()=>{const ms=CMB.pMove(dir);ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();
-        const ca=CMB.gs();if(ca)UI.updateDist(ca.dist,!ca.over);ML.openAct()};
-      b.appendChild(btn)};
-    mkMove(`Move Closer (\u2212${moveAmt}m)`,'closer');
-    mkMove(`Move Back (+${moveAmt}m)`,'back');
-    b.innerHTML+='<hr class="msep"><div class="ist">Actions</div>';
-    const w=r.wpn;let atkDesc='No weapon';
-    if(w){const isMelee=w.t==='melee';
-      const inRange=isMelee?cs.dist<=w.rng:(cs.dist<=w.rng);
-      const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
-      atkDesc=`${w.name} \u2014 ${hitPct}% to hit`+(inRange?'':' (out of range)')}
-    const acts=[
-      {l:'Attack',cmd:'attack',d:atkDesc},
-      {l:'Block',cmd:'block',d:'Reduce incoming damage'},
-      {l:'Use Potion',cmd:'use_potion',d:'Drink a health potion'},
-      {l:`Flee (${CALC.flee(r,cs.dist)}%)`,cmd:'flee',d:'Attempt to escape'}];
-    if(r.subspecies==='shadowstep'&&!r.traitState.vanishUsed&&!r.traitState.hidden)
-      acts.push({l:'Vanish (2 MP)',cmd:'vanish',d:'Hide and deal double damage next attack'});
-    acts.forEach(a=>{const btn=document.createElement('button');btn.className='mbtn';
-      btn.innerHTML=`<strong>${a.l}</strong>${a.d?`<br><span style="color:var(--t2);font-size:.9rem">${a.d}</span>`:''}`;
-      btn.onclick=()=>{ML.closeAll();const ms=CMB.pAct(a.cmd);ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();
-        const ca=CMB.gs();if(ca){UI.updateDist(ca.dist,!ca.over);if(ca.over){if(ca.won)SE.onWin();else SE.onDeath()}}};
-      b.appendChild(btn)})}
-  else{const acts=SE.getActions();
-    acts.forEach(a=>{const btn=document.createElement('button');btn.className='mbtn';
-      btn.innerHTML=`<strong>${a.l}</strong>${a.d?`<br><span style="color:var(--t2);font-size:.9rem">${a.d}</span>`:''}`;
-      btn.onclick=()=>{ML.closeAll();SE.handleAction(a.cmd)};b.appendChild(btn)})}
-  this.open('m-act')},
+openAct(){UI.openActionSheet()},
 
 openInv(){
   const b=$('m-inv-b');b.innerHTML='';const r=GS.run;if(!r)return;
@@ -746,11 +1014,22 @@ openDlg(speaker,text,opts,cb){
 // === CHARACTER CREATION ===
 const CC={
 step:1,sp:null,subsp:null,cl:null,humanBonus:[],
-reset(){this.step=1;this.sp=null;this.subsp=null;this.cl=null;this.humanBonus=[];this.showStep(1);UI.el.ni.value='';UI.el.cbk.style.display='none';UI.el.cnx.textContent='Continue';this.buildSP();this.buildCL()},
-showStep(n){document.querySelectorAll('.ccs').forEach(s=>s.classList.remove('act'));const s=$('ccs'+n);if(s)s.classList.add('act');
+reset(){this.step=1;this.sp=null;this.subsp=null;this.cl=null;this.humanBonus=[];this.showStep(1);UI.el.ni.value='';UI.el.cbk.style.display='none';UI.el.cnx.textContent='Continue';UI.el.cc.style.opacity='1';this.buildSP();this.buildCL()},
+showStep(n){
+  const prev=document.querySelector('.ccs.act');
+  const next=$('ccs'+n);
+  if(prev&&next&&prev!==next&&!REDUCED_MOTION){
+    prev.style.transition='opacity .2s ease';prev.style.opacity='0';
+    setTimeout(()=>{prev.classList.remove('act');prev.style.opacity='';
+      next.classList.add('act');next.style.opacity='0';next.style.transition='opacity .2s ease';
+      requestAnimationFrame(()=>{next.style.opacity='1'})},200);
+  } else {
+    document.querySelectorAll('.ccs').forEach(s=>s.classList.remove('act'));
+    if(next)next.classList.add('act');
+  }
   UI.el.cbk.style.display=n>1?'block':'none';UI.el.cnx.textContent=n===6?'Begin Adventure':'Continue';
   if(n===1)requestAnimationFrame(()=>UI.el.ni.focus());if(n===6)this.buildSum()},
-next(){
+async next(){
   if(this.step===1&&!UI.el.ni.value.trim()){UI.el.ni.focus();return}
   if(this.step===2&&!this.sp)return;
   if(this.step===3&&!this.subsp)return;
@@ -760,7 +1039,8 @@ next(){
     const nm=UI.el.ni.value.trim();
     GS.newRun(nm,this.sp,this.subsp,this.cl,this.sp==='human'?this.humanBonus:null);
     const m=GS.getJM();if(m.guideFound||m.handbookFound){GS.run.jrnUnlk=true;GS.saveA()}
-    UI.showGame();SE.enter('trailhead');return}
+    await UI.showGameWithFade();
+    SE.enter('trailhead');return}
   this.step++;
   if(this.step===3&&this.sp==='human'){this.step=4;this.buildHumanBonus()}
   else if(this.step===3)this.buildSubSP();
@@ -819,135 +1099,384 @@ buildSum(){const c=$('cc-sum');const nm=UI.el.ni.value.trim(),sp=SP[this.sp],cl=
 
 // === COMMAND PARSER ===
 const CP={
+_levenshtein(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const c=a[i-1]===b[j-1]?0:1;d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c)}return d[m][n]},
+_knownVerbs:['attack','hit','strike','block','defend','flee','run','escape','go','move','walk','head','travel','enter','search','look','examine','inspect','read','open','take','grab','pick','use','drink','equip','wear','wield','unequip','drop','talk','speak','inventory','backpack','bag','stats','character','save','load','help','journal','guide','vanish','hide'],
+_fuzzyMatch(input){
+  let best=null,bestDist=3;
+  for(const v of this._knownVerbs){
+    if(v.startsWith(input)&&input.length>=2)return v;
+    const d=this._levenshtein(input,v);
+    if(d<bestDist){bestDist=d;best=v}}
+  return bestDist<=2?best:null},
+_contextSuggestions(){
+  const r=GS.run,hints=[];const cs=CMB.gs();
+  if(cs&&!cs.over){hints.push('attack','block','flee');return 'Try: '+hints.map(h=>'**'+h+'**').join(', ')}
+  const scene=SCENE_DATA[r.scene];
+  if(scene){
+    if(scene.npcs&&scene.npcs.length)scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)hints.push('talk to '+n.name)});
+    const exits=scene.exits;Object.keys(exits).forEach(k=>{const ex=exits[k];if(ex.discovered||r.ss['exit_'+r.scene+'_'+k])hints.push('go to '+ex.label)});
+  }
+  hints.push('look');
+  const con=r.bp.find(i=>i.t==='consumable');
+  if(con)hints.push('use '+con.name);
+  return 'Try: '+hints.slice(0,4).map(h=>'**'+h+'**').join(', ')+', or use the buttons below.';
+},
+_matchExit(text){
+  const r=GS.run,scene=SCENE_DATA[r.scene];if(!scene)return null;
+  const exits=scene.exits,t=text.toLowerCase();
+  for(const k of Object.keys(exits)){
+    const ex=exits[k];
+    if(!(ex.discovered||r.ss['exit_'+r.scene+'_'+k]))continue;
+    if(ex.label.toLowerCase().includes(t)||ex.scene.toLowerCase().includes(t))return ex.scene;
+  }
+  const dirMap={north:'forward',south:'back',east:'forward',west:'back',forward:'forward',back:'back',left:'back',right:'forward'};
+  for(const[dir,key] of Object.entries(dirMap)){
+    if(t.includes(dir)&&exits[key]){
+      const ex=exits[key];
+      if(ex.discovered||r.ss['exit_'+r.scene+'_'+key])return ex.scene;
+    }
+  }
+  return null;
+},
 parse(raw){
   const w=raw.toLowerCase().replace(/[^a-z0-9\s]/g,'').split(/\s+/).filter(x=>!['the','a','an','to','on','at','with','my','i'].includes(x));
-  if(!w.length){UI.addN('You mutter something unintelligible.','f');return}
+  if(!w.length)return;
   const v=w[0],n=w.slice(1).join(' ');const cs=CMB.gs();
   if(cs&&!cs.over){let cmd=null;
-    if(['attack','hit','strike','slash','shoot','stab'].includes(v))cmd='attack';
+    if(['attack','hit','strike','slash','shoot','stab','fight'].includes(v))cmd='attack';
     else if(['block','defend','shield','guard'].includes(v))cmd='block';
-    else if(v==='move'&&(n.includes('close')||n.includes('forward')||n.includes('advance'))){const ms=CMB.pMove('closer');ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();const ca=CMB.gs();if(ca)UI.updateDist(ca.dist,!ca.over);return}
-    else if(v==='move'&&(n.includes('back')||n.includes('away')||n.includes('retreat'))){const ms=CMB.pMove('back');ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();const ca=CMB.gs();if(ca)UI.updateDist(ca.dist,!ca.over);return}
+    else if(v==='move'&&(n.includes('close')||n.includes('forward')||n.includes('advance'))){const ms=CMB.pMove('closer');ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();const ca=CMB.gs();if(ca)UI.updateDist(ca.dist,!ca.over);UI.refreshCombatBtns();return}
+    else if(v==='move'&&(n.includes('back')||n.includes('away')||n.includes('retreat'))){const ms=CMB.pMove('back');ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();const ca=CMB.gs();if(ca)UI.updateDist(ca.dist,!ca.over);UI.refreshCombatBtns();return}
     else if(['flee','run','escape'].includes(v))cmd='flee';
     else if(['use','drink','potion'].includes(v))cmd='use_potion';
     else if(['vanish','hide','stealth'].includes(v))cmd='vanish';
     else if(['inventory','backpack','bag','check'].includes(v)&&(n.includes('inv')||n.includes('back')||n.includes('bag')||!n)){ML.openInv();return}
-    if(cmd){const ms=CMB.pAct(cmd);ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();const ca=CMB.gs();if(ca){UI.updateDist(ca.dist,!ca.over);if(ca.over){if(ca.won)SE.onWin();else SE.onDeath()}}return}
+    if(cmd){SE.doCombatAction(cmd);return}
+    const fuzzy=this._fuzzyMatch(v);
+    if(fuzzy&&fuzzy!==v){UI.addN(`Did you mean '${fuzzy}'?`,'y');return}
     UI.addN("Not a valid combat action. Try: attack, block, flee, use potion, move closer/back.",'y');return}
-  if(['go','move','walk','head','travel'].includes(v)){
-    if(n.includes('north')||n.includes('forward')||n.includes('ahead'))SE.handleAction('go_north');
-    else if(n.includes('south')||n.includes('back'))SE.handleAction('go_south');
-    else UI.addN('Go where? Try: north, south.','y');return}
-  if(['search','look','examine','inspect','check'].includes(v)){
+
+  if(['go','move','walk','head','travel','enter'].includes(v)){
+    const target=this._matchExit(n);
+    if(target){SE.enter(target);return}
+    UI.addN(`Go where? ${this._contextSuggestions()}`,'y');return}
+  if(['search','look','examine','inspect'].includes(v)){
     if(n.includes('inv')||n.includes('back')||n.includes('bag')){ML.openInv();return}
+    if(n==='around'||!n){SE.handleAction('search');return}
     SE.handleAction('search');return}
+  if(['read'].includes(v)){SE.handleAction('search');return}
+  if(['open'].includes(v)){SE.handleAction('search');return}
+  if(['take','grab'].includes(v)||v==='pick'){SE.handleAction('search');return}
   if(['equip','wear','wield'].includes(v)){const it=GS.run.bp.find(i=>i.name.toLowerCase().includes(n));
     if(it&&(it.t==='melee'||it.t==='ranged')){const idx=GS.run.bp.indexOf(it);if(GS.run.wpn)GS.run.bp.push(GS.run.wpn);GS.run.wpn=it;GS.run.bp.splice(idx,1);GS.recalcDerived();GS.saveA();UI.addN(`Equipped ${it.name}.`,'s');UI.updateHUD()}
     else UI.addN("Can't equip that.",'y');return}
+  if(['unequip'].includes(v)){
+    if(GS.run.wpn&&(!n||GS.run.wpn.name.toLowerCase().includes(n))){if(GS.run.bp.length>=6){UI.addN('Backpack full!','d');return}GS.run.bp.push(GS.run.wpn);GS.run.wpn=null;GS.recalcDerived();GS.saveA();UI.addN('Weapon unequipped.','y');UI.updateHUD()}
+    else UI.addN("Nothing to unequip.",'y');return}
+  if(['drop'].includes(v)){const it=GS.run.bp.find(i=>!i.undrop&&i.name.toLowerCase().includes(n));
+    if(it){const idx=GS.run.bp.indexOf(it);GS.run.bp.splice(idx,1);GS.saveA();UI.addN(`Dropped ${it.name}.`,'y')}
+    else UI.addN("Nothing to drop.",'y');return}
   if(['use','drink'].includes(v)){const it=GS.run.bp.find(i=>i.t==='consumable'&&i.name.toLowerCase().includes(n||'potion'));
     if(it){const idx=GS.run.bp.indexOf(it);if(it.heal){const h=Math.min(it.heal,GS.run.mHP-GS.run.hp);GS.run.hp+=h;GS.run.bp.splice(idx,1);GS.saveA();UI.addN(`Used ${it.name}, recovered ${h} HP. (${GS.run.hp}/${GS.run.mHP})`,'s');UI.updateHUD()}}
     else UI.addN("Nothing to use.",'y');return}
-  if(['talk','speak'].includes(v)){SE.handleAction('talk');return}
+  if(['talk','speak'].includes(v)){
+    const scene=SCENE_DATA[GS.run.scene];
+    if(scene&&scene.npcs&&scene.npcs.length){
+      const matched=n?scene.npcs.find(nid=>{const np=NPCS[nid];return np&&np.name.toLowerCase().includes(n)}):scene.npcs[0];
+      if(matched){SE.handleAction('talk_'+matched);return}}
+    UI.addN('There is no one here to talk to.','y');return}
   if(['inventory','backpack','bag'].includes(v)){ML.openInv();return}
-  if(['stats','stat','character','char'].includes(v)){ML.openStats();return}
-  if(['save'].includes(v)){if(GS.qSave())UI.addN('Quick saved.','y');else UI.addN('Quick save failed.','d');return}
-  if(['flee','run'].includes(v)){SE.handleAction('flee');return}
-  const flavor=['The wind whispers through the trees, offering no answers.','You ponder the meaning of those words, but find none.','A crow regards you with mild interest before flying away.','The mud squelches underfoot. Nothing happens.','You scratch your chin thoughtfully. Perhaps try something else.'];
-  UI.addN(flavor[Math.floor(Math.random()*flavor.length)],'f');
+  if(['stats','stat','character','char','status'].includes(v)){ML.openStats();return}
+  if(['save','quicksave'].includes(v)){if(GS.qSave())UI.addN('Quick saved.','y');else UI.addN('Quick save failed.','d');return}
+  if(['load'].includes(v)){ML.openSL();return}
+  if(['help'].includes(v)||raw.trim()==='?'){
+    UI.addN('Commands: look, search, talk to [name], go [direction], use [item], equip [item], inventory, stats, save, help.','y');return}
+  if(['journal','guide'].includes(v)){if(GS.run.jrnUnlk)ML.openJrn();else UI.addN("You don't have a journal yet.",'y');return}
+
+  const fuzzy=this._fuzzyMatch(v);
+  if(fuzzy){UI.addN(`Did you mean '${fuzzy}'? ${this._contextSuggestions()}`,'y');return}
+  UI.addN(`I don't understand '${raw}'. ${this._contextSuggestions()}`,'y');
 }
 };
 
 // === SCENE ENGINE ===
 const SE={
-scenes:{
-trailhead:{
-  enter(){UI.addN('\u2014 The Trailhead \u2014','h');
-    UI.addN('The muddy trail stretches northward into a dense, fog-choked forest. The air is thick with wet earth and decay. A half-rotted sign reads: "Beware \u2014 creatures ahead."');
-    UI.addN('A weathered guardsman stands beside the trail gate, watching with tired but alert eyes.','f');
-    if(!GS.run.ss.aldric)setTimeout(()=>SE.aldric(),600)},
-  getActions(){const a=[];if(!GS.run.ss.aldric)a.push({l:'Talk to Aldric',cmd:'talk_aldric',d:'The gatekeeper awaits'});a.push({l:'Go North',cmd:'go_north',d:'Head deeper into the trail'});return a},
-  handle(cmd){if(cmd==='talk_aldric'||cmd==='talk')SE.aldric();else if(cmd==='go_north')SE.enter('midway')}
-},
-midway:{
-  enter(){UI.addN('\u2014 Midway on the Trail \u2014','h');
-    UI.addN('The trail narrows between gnarled trees whose branches interlock overhead. Mud sucks at your boots with every step.');
-    if(!GS.run.ss.pouch)UI.addN('Something glints in the mud \u2014 a leather pouch, half-buried and forgotten.','f')},
-  getActions(){const a=[];if(!GS.run.ss.pouch)a.push({l:'Search Pouch',cmd:'search',d:'The leather pouch in the mud'});a.push({l:'Go North',cmd:'go_north',d:'Continue deeper'});a.push({l:'Go South',cmd:'go_south',d:'Back to trailhead'});return a},
-  handle(cmd){if(cmd==='search'){if(!GS.run.ss.pouch){GS.run.ss.pouch=true;
-    if(GS.run.bp.length<6){GS.run.bp.push({...ITEMS.hpot});UI.addN('You pry the pouch from the mud. Inside: a small vial of glowing red liquid \u2014 a Health Potion! Stowed in your backpack.','s')}
-    else{UI.addN('The pouch holds a Health Potion but your backpack is full!','d');GS.run.ss.pouch=false}GS.saveA()}
-    else UI.addN('The empty pouch lies in the mud. Nothing else here.','f')}
-    else if(cmd==='go_north')SE.enter('ooze');else if(cmd==='go_south')SE.enter('trailhead')}
-},
-ooze:{
-  enter(){UI.addN('\u2014 Ambush! \u2014','h');
-    UI.addN('The trail opens into a clearing. The mud bubbles unnaturally. A mass of glistening gray slime rises from the earth, quivering with malevolent intent.');
-    UI.addN('A Gray Ooze blocks your path!','d');
-    const cs=CMB.start('gray_ooze');UI.updateDist(cs.dist,true);
-    UI.addN(`Combat begins! Distance: ${cs.dist}m. The ooze quivers, preparing to advance.`,'y')},
-  getActions(){return[]},handle(){}
-},
-post_ooze:{
-  enter(){UI.addN('\u2014 After the Battle \u2014','h');
-    UI.addN('The remains of the Gray Ooze spread across the trail in a steaming, acrid puddle. The forest is quiet.');
-    if(!GS.run.ss.oozeSearch1)UI.addN('Something solid rests within the dissolving remains.','f');
-    else if(!GS.run.ss.oozeSearch2)UI.addN('The remains still glisten. Perhaps there is more to find.','f')},
-  getActions(){const a=[];
-    if(!GS.run.ss.oozeSearch1)a.push({l:'Search Remains',cmd:'search',d:'Something solid in the ooze'});
-    else if(!GS.run.ss.oozeSearch2)a.push({l:'Search Again',cmd:'search',d:'Look more carefully'});
-    a.push({l:'Go North',cmd:'go_north',d:'Continue to trail end'});a.push({l:'Go South',cmd:'go_south',d:'Back toward midway'});return a},
-  handle(cmd){if(cmd==='search'){
-    if(!GS.run.ss.oozeSearch1){GS.run.ss.oozeSearch1=true;
-      if(GS.run.bp.length<6){GS.run.bp.push({...ITEMS.guide});GS.run.hbFound=true;GS.run.jrnUnlk=true;
-        GS.setJM({guideFound:true});GS.saveA();
-        UI.addN("You reach into the dissolving slime and pull out a weathered leather-bound book. Its pages are miraculously dry. The cover reads: \u201cPlayer\u2019s Guide.\u201d",'s');
-        UI.addN("The guide has been added to your backpack. You feel its knowledge flowing through you \u2014 your journal is now available!",'s');
-        UI.updateHUD();UI.pulseJ()}
-      else{UI.addN('Something solid, but your backpack is full! Make room and search again.','d');GS.run.ss.oozeSearch1=false;GS.saveA()}}
-    else if(!GS.run.ss.oozeSearch2){GS.run.ss.oozeSearch2=true;GS.saveA();
-      UI.addN('You sift through the remains more carefully, but find only dissolving slime and a faint acidic smell.','f')}
-    else UI.addN('Nothing more to find in the remains.','f')}
-    else if(cmd==='go_north')SE.enter('trail_end');
-    else if(cmd==='go_south')SE.enter('midway')}
-},
-trail_end:{
-  enter(){UI.addN('\u2014 Trail\u2019s End \u2014','h');
-    UI.addN('The forest thins and the trail widens to a mossy clearing lit by dappled sunlight. A small stone shrine stands at the center, covered in climbing ivy.');
-    UI.addN('A woman in green robes tends herbs near the shrine. She looks up and smiles warmly.','f');
-    if(!GS.run.ss.mira)setTimeout(()=>SE.mira(),600)},
-  getActions(){const a=[];if(!GS.run.ss.mira)a.push({l:'Talk to Mira',cmd:'talk',d:'The healer by the shrine'});if(GS.run.ss.mira)a.push({l:'Rest Here',cmd:'rest',d:'Your journey is complete'});return a},
-  handle(cmd){if(cmd==='talk')SE.mira();else if(cmd==='rest')SE.runComplete()}
-}
+_prevScene:null,
+
+async enter(id){
+  const r=GS.run,prevId=r.scene;
+  if(id===prevId&&!SCENE_DATA[id].events.combat){return}
+  this._prevScene=prevId;
+  r.scene=id;r.cs=null;GS.saveA();UI.updateDist(0,false);
+
+  const scene=SCENE_DATA[id];if(!scene)return;
+  const firstVisit=!r.ss['visited_'+id];
+
+  if(scene.events.combat){
+    await this._startCombat(id,scene);
+    return;
+  }
+
+  if(id!==prevId&&r.mp<r.mMP){let regen=1;if(r.subspecies==='brightelf')regen=2;r.mp=Math.min(r.mp+regen,r.mMP);GS.saveA();UI.updateHUD()}
+
+  const holdMs=firstVisit?1000:500;
+  const subtitle=firstVisit?scene.subtitle:null;
+
+  if(prevId&&prevId!==id){
+    const fadeD=REDUCED_MOTION?0:200;
+    UI.el.nw.style.transition=`opacity ${fadeD}ms ease`;
+    UI.el.nw.style.opacity='0';
+    await UI._wait(fadeD+50);
+  }
+
+  await UI.showTitleCard(scene.name,subtitle,holdMs);
+
+  r.ss['visited_'+id]=true;GS.saveA();
+  UI.clearN();
+  UI.addN(scene.description);
+
+  scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)UI.addN(n.desc,'f')});
+
+  UI.renderNPCButtons(id);
+  UI.renderSceneActions(id);
+  UI.renderExits(id);
+
+  if(scene.events.onEnter)scene.events.onEnter(r);
+  if(firstVisit&&scene.events.onFirstVisit)scene.events.onFirstVisit(r);
+
+  UI.el.nw.style.opacity='1';
+  UI.updateHUD();
 },
 
-enter(id){GS.run.scene=id;GS.run.cs=null;GS.saveA();UI.updateDist(0,false);
+async _startCombat(id,scene){
   const r=GS.run;
-  if(id!=='ooze'&&r.mp<r.mMP){let regen=1;if(r.subspecies==='brightelf')regen=2;r.mp=Math.min(r.mp+regen,r.mMP);GS.saveA();UI.updateHUD()}
-  const s=this.scenes[id];if(s&&s.enter)s.enter()},
-resume(){const s=this.scenes[GS.run.scene];if(!s)return;
-  const cs=CMB.gs();if(cs&&!cs.over)UI.updateDist(cs.dist,true);else UI.updateDist(0,false);UI.updateHUD()},
-getActions(){const s=this.scenes[GS.run.scene];return s&&s.getActions?s.getActions():[]},
-handleAction(cmd){const s=this.scenes[GS.run.scene];if(s&&s.handle)s.handle(cmd)},
+  UI.addN(scene.description);
 
-onWin(){UI.updateDist(0,false);const cs=GS.run.cs;
-  if(cs&&cs.enemy){const xp=cs.enemy.xp||0;
-    if(xp){const xpRes=GS.addXP(xp);UI.addN(`+${xpRes.gained} XP!`,'s');UI.updateHUD();
-      if(xpRes.leveled){const showLvl=(idx)=>{if(idx>=xpRes.lvls.length){if(cs.enemy.id==='gray_ooze')SE.enter('post_ooze');return};
-        ML.openLvl(xpRes.lvls[idx],()=>showLvl(idx+1))};showLvl(0);return}}
-    if(cs.enemy.id==='gray_ooze')SE.enter('post_ooze')}},
-onDeath(){UI.updateDist(0,false);
-  setTimeout(()=>{UI.addN('You have fallen. The darkness is complete.','d');
-    setTimeout(()=>{const qs=GS.getQS(),sv=GS.getMSaves(),hasSave=qs||sv.some(s=>s);
-      if(hasSave){UI.addN('But perhaps fate is not yet sealed\u2026 choose a memory to return to.','f');ML.openSL()}
-      else{UI.addN('With no saved memories to return to, a new traveler must take your place\u2026','f');setTimeout(()=>{GS.clearA();UI.clearN();UI.showCC()},2000)}
-    },1500)},800)},
+  UI.addN('Something stirs in the shadows ahead\u2026','f');
+  await UI._wait(500);
+  const eKey=scene.events.combat;
+  const eName=ENEMIES[eKey]?ENEMIES[eKey].name:'a creature';
+  UI.addN(`A ${eName} lurches from the undergrowth, blocking your path!`,'d');
+  await UI._wait(300);
 
-aldric(){if(GS.run.ss.aldric)return;
-  const nm=GS.run.name;
+  const cs=CMB.start(eKey);
+  UI.updateDist(cs.dist,true);
+  UI.addN(`Combat begins! Distance: ${cs.dist}m.`,'y');
+  UI.enterCombatMode();
+  UI.updateHUD();
+},
+
+async doCombatAction(cmd){
+  if(UI._busy)return;
+  UI.setCombatBusy(true);
+
+  const playerMs=[];
+  const enemyMs=[];
+  const allMs=CMB.pAct(cmd);
+
+  let foundEnemy=false;
+  allMs.forEach(m=>{
+    if(!foundEnemy&&(m.c==='c'||m.c==='s'||m.c==='f'||m.c==='y'||m.c==='d')&&!m.t.startsWith('The ')){playerMs.push(m)}
+    else{foundEnemy=true;enemyMs.push(m)}
+  });
+  if(!enemyMs.length){playerMs.push(...allMs.filter(m=>!playerMs.includes(m)))}
+
+  for(const m of playerMs){UI.addN(m.t,m.c);await UI._wait(150)}
+  await UI._wait(REDUCED_MOTION?0:400);
+
+  for(const m of enemyMs){UI.addN(m.t,m.c);await UI._wait(150)}
+  if(enemyMs.length)await UI._wait(REDUCED_MOTION?0:300);
+
+  UI.updateHUD();
+  const ca=CMB.gs();
+  if(ca){
+    UI.updateDist(ca.dist,!ca.over);
+    if(ca.over){
+      if(ca.fled){this._handleFlee();return}
+      if(ca.won)this.onWin();
+      else this.onDeath();
+      return;
+    }
+  }
+  UI.setCombatBusy(false);
+  UI.refreshCombatBtns();
+},
+
+async _handleFlee(){
+  UI.exitCombatMode();
+  UI.updateDist(0,false);
+  await UI._wait(300);
+  if(this._prevScene)this.enter(this._prevScene);
+},
+
+resume(){
+  const cs=CMB.gs();
+  if(cs&&!cs.over){UI.updateDist(cs.dist,true);UI.enterCombatMode()}
+  else UI.updateDist(0,false);
+  UI.updateHUD();
+},
+
+getActions(){
+  const r=GS.run,scene=SCENE_DATA[r.scene];if(!scene)return[];
+  const a=[];
+  if(scene.npcs)scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)a.push({l:'Talk to '+n.name,cmd:'talk_'+nid,d:n.desc})});
+  if(scene.actions)scene.actions.forEach(act=>{if(!act.condition||act.condition(r))a.push({l:act.label,cmd:act.id,d:act.desc||''})});
+  if(scene.exits)Object.keys(scene.exits).forEach(k=>{const ex=scene.exits[k];
+    if(ex.discovered||r.ss['exit_'+r.scene+'_'+k])
+      a.push({l:(k==='back'?'\u2190 ':'')+'Go to '+ex.label+(k!=='back'?' \u2192':''),cmd:'go_'+ex.scene,d:''})});
+  return a;
+},
+
+handleAction(cmd){
+  const r=GS.run,sceneId=r.scene;
+
+  if(cmd.startsWith('go_')){this.enter(cmd.slice(3));return}
+
+  if(cmd.startsWith('talk_')){
+    const nid=cmd.slice(5);
+    if(nid==='aldric')this.aldric();
+    else if(nid==='mira')this.mira();
+    return;
+  }
+  if(cmd==='talk'){
+    const scene=SCENE_DATA[sceneId];
+    if(scene&&scene.npcs&&scene.npcs.length){this.handleAction('talk_'+scene.npcs[0]);return}
+    UI.addN('There is no one here to talk to.','y');return;
+  }
+
+  if(cmd==='search'){
+    if(sceneId==='midway'){
+      if(!r.ss.pouch){r.ss.pouch=true;
+        if(r.bp.length<6){r.bp.push({...ITEMS.hpot});UI.addN('You pry the pouch from the mud. Inside: a small vial of glowing red liquid \u2014 a Health Potion! Stowed in your backpack.','s')}
+        else{UI.addN('The pouch holds a Health Potion but your backpack is full!','d');r.ss.pouch=false}GS.saveA()}
+      else UI.addN('The empty pouch lies in the mud. Nothing else here.','f');return}
+    if(sceneId==='post_ooze'){
+      if(!r.ss.oozeSearch1){r.ss.oozeSearch1=true;
+        if(r.bp.length<6){r.bp.push({...ITEMS.guide});r.hbFound=true;r.jrnUnlk=true;
+          GS.setJM({guideFound:true});GS.saveA();
+          UI.addN("You reach into the dissolving slime and pull out a weathered leather-bound book. Its pages are miraculously dry. The cover reads: \u201cPlayer\u2019s Guide.\u201d",'s');
+          UI.addN("The guide has been added to your backpack. Your journal is now available!",'s');
+          UI.updateHUD();UI.pulseJ()}
+        else{UI.addN('Something solid, but your backpack is full! Make room and search again.','d');r.ss.oozeSearch1=false;GS.saveA()}}
+      else if(!r.ss.oozeSearch2){r.ss.oozeSearch2=true;GS.saveA();
+        UI.addN('You sift through the remains more carefully, but find only dissolving slime and a faint acidic smell.','f')}
+      else UI.addN('Nothing more to find in the remains.','f');return}
+    UI.addN('You look around carefully but find nothing of interest.','f');return;
+  }
+
+  if(cmd==='rest'){this.runComplete();return}
+},
+
+async onWin(){
+  UI.exitCombatMode();UI.updateDist(0,false);
+  const cs=GS.run.cs,r=GS.run;if(!cs||!cs.enemy)return;
+  const enemy=cs.enemy,xp=enemy.xp||0;
+
+  await UI._wait(500);
+
+  const card=document.createElement('div');card.className='vic-card';
+  card.innerHTML=`<div class="vic-h">\u2726 VICTORY</div>`;
+  card.innerHTML+=`<div class="vic-stat">${enemy.name} defeated</div>`;
+
+  const xpRes=xp?GS.addXP(xp):{gained:0,leveled:false,lvls:[]};
+  if(xp)card.innerHTML+=`<div class="vic-stat">XP gained: +${xpRes.gained}</div>`;
+  card.innerHTML+=`<div class="vic-stat">HP remaining: ${r.hp}/${r.mHP}</div>`;
+  card.innerHTML+=`<div class="vic-stat">MP remaining: ${r.mp}/${r.mMP}</div>`;
+
+  const loot=[];
+  const eDef=ENEMIES[enemy.id];
+  if(eDef&&eDef.loot){eDef.loot.forEach(l=>{
+    const roll=Math.random()*100;
+    if(roll<=l.chance){
+      if(l.item==='gold')loot.push({name:`${l.amount} Gold`,t:'gold',amount:l.amount,desc:'Currency'});
+      else{const it=ITEMS[l.item];if(it)loot.push({...it})}
+    }
+  })}
+
+  if(loot.length===1&&loot[0].t!=='gold'){
+    if(r.bp.length<6){r.bp.push(loot[0]);GS.saveA();card.innerHTML+=`<div class="vic-stat" style="color:var(--grn);margin-top:6px">Acquired: ${loot[0].name}</div>`}
+    else{card.innerHTML+=`<div class="vic-stat" style="color:var(--red)">Backpack full! ${loot[0].name} left behind.</div>`}
+  } else if(loot.length>0){
+    card.innerHTML+=`<div class="vic-loot-h">Loot</div>`;
+    const lootWrap=document.createElement('div');lootWrap.id='vic-loot-list';
+    loot.forEach((it,idx)=>{
+      const row=document.createElement('div');row.className='vic-loot-row';
+      row.innerHTML=`<span class="vic-loot-name">${it.name}</span><span class="vic-loot-desc">${it.desc||''}</span>`;
+      if(it.t==='gold'){
+        const btn=document.createElement('button');btn.className='vic-take-btn';btn.textContent='Take';
+        btn.onclick=()=>{btn.textContent='Taken';btn.disabled=true;UI.addN(`Picked up ${it.name}.`,'s')};
+        row.appendChild(btn);
+      } else {
+        const btn=document.createElement('button');btn.className='vic-take-btn';btn.textContent='Take';
+        if(r.bp.length>=6){btn.textContent='Full';btn.disabled=true}
+        btn.onclick=()=>{
+          if(r.bp.length>=6){btn.textContent='Full';btn.disabled=true;return}
+          r.bp.push(it);GS.saveA();btn.textContent='Taken';btn.disabled=true;
+          lootWrap.querySelectorAll('.vic-take-btn:not([disabled])').forEach(b=>{if(r.bp.length>=6){b.textContent='Full';b.disabled=true}})};
+        row.appendChild(btn);
+      }
+      lootWrap.appendChild(row);
+    });
+    card.appendChild(lootWrap);
+    const leave=document.createElement('button');leave.className='vic-leave';leave.textContent='Leave All';
+    leave.onclick=()=>{lootWrap.querySelectorAll('.vic-take-btn:not([disabled])').forEach(b=>{b.textContent='Left';b.disabled=true})};
+    card.appendChild(leave);
+  }
+
+  if(xpRes.leveled){
+    xpRes.lvls.forEach(lvl=>{
+      const lvlDiv=document.createElement('div');
+      lvlDiv.innerHTML=`<div class="vic-lvl-h">Level Up! Level ${lvl} reached!</div>`;
+      lvlDiv.innerHTML+=`<div class="vic-lvl-info">+1 Health (+4 max HP). HP and MP fully restored!</div>`;
+      lvlDiv.innerHTML+='<div style="font-size:.85rem;color:var(--t2);margin-bottom:6px">Choose a stat to increase:</div>';
+      const grid=document.createElement('div');grid.className='vic-stat-grid';
+      STAT_NAMES.forEach(k=>{const b=document.createElement('button');b.className='vic-stat-btn';
+        b.innerHTML=`${STAT_LABELS[k]}<span>${r.stats[k]}</span>`;
+        b.onclick=()=>{r.stats[k]++;GS.recalcDerived();r.hp=r.mHP;r.mp=r.mMP;GS.saveA();UI.updateHUD();
+          grid.querySelectorAll('.vic-stat-btn').forEach(x=>x.disabled=true);
+          b.style.borderColor='var(--gold)';b.style.color='var(--gold)'};
+        grid.appendChild(b)});
+      lvlDiv.appendChild(grid);card.appendChild(lvlDiv)});
+  }
+
+  UI.addEl(card);UI.updateHUD();
+
+  await UI._wait(800);
+  const nextScene=enemy.id==='gray_ooze'?'post_ooze':null;
+  if(nextScene){
+    const goBtn=document.createElement('button');goBtn.className='nav-btn';goBtn.style.marginTop='10px';
+    goBtn.textContent='Continue \u2192';goBtn.onclick=()=>SE.enter(nextScene);
+    UI.addEl(goBtn);
+  }
+},
+
+async onDeath(){
+  UI.exitCombatMode();UI.updateDist(0,false);
+  UI.addN('Everything fades to black\u2026','d');
+  await UI._wait(1000);
+  UI.showDeathScreen();
+},
+deathLoad(){
+  UI.hideDeathScreen();
+  const qs=GS.getQS();
+  if(qs){GS.qLoad();UI.clearN();UI.restoreN();UI.updateHUD();SE.resume();return}
+  const sv=GS.getMSaves();
+  for(let i=0;i<3;i++){if(sv[i]){GS.mLoad(i);UI.clearN();UI.restoreN();UI.updateHUD();SE.resume();return}}
+},
+deathNewRun(){UI.hideDeathScreen();GS.clearA();UI.clearN();UI.showCC()},
+deathTitle(){UI.hideDeathScreen();GS.clearA();UI.clearN();UI.showCC()},
+
+aldric(){
+  const r=GS.run;
+  if(r.ss.aldric){
+    ML.openDlg('Aldric','"You again? Stay sharp out there."',[{text:'"Thanks, Aldric."'}],()=>{});
+    return;
+  }
   ML.openDlg('Aldric the Gatekeeper',
-    `"Well met, ${nm}. You look like you can handle yourself, but the trail ahead is no place for carelessness. Let me share what I know."`,
+    `"Well met, ${r.name}. You look like you can handle yourself, but the trail ahead is no place for carelessness. Let me share what I know."`,
     [{text:'"What dangers lie ahead?"'},{text:'"I can handle myself."'},{text:'"Any advice for a traveler?"'}],
-    (i)=>{GS.run.ss.aldric=true;GS.saveA();
+    (i)=>{r.ss.aldric=true;GS.saveA();
       if(i===0)ML.openDlg('Aldric','"Gray Oozes have been spotted on the trail. Slow creatures, but they\u2019ll close the distance if you let them. Keep your weapon ready and strike when in range. If you have a shield, blocking can save your hide."',
         [{text:'"Thank you, Aldric."'}],()=>{UI.addN('Aldric nods and steps aside, opening the gate.','f')});
       else if(i===1)ML.openDlg('Aldric','"Ha! Confidence is good, but listen \u2014 when something attacks, you can block with a shield to reduce the blow. And if things go badly, there\u2019s no shame in running. Distance is your friend."',
@@ -955,12 +1484,16 @@ aldric(){if(GS.run.ss.aldric)return;
       else ML.openDlg('Aldric','"Mind the distance between you and whatever you\u2019re fighting. Melee weapons need you close \u2014 5 meters or less. If you\u2019re using a bow, stay back at 10 meters or more. And keep a potion handy. You\u2019ll thank me later."',
         [{text:'"Wise words. Farewell."'}],()=>{UI.addN('Aldric steps aside and opens the gate.','f')})})},
 
-mira(){if(GS.run.ss.mira)return;
+mira(){
   const r=GS.run;
+  if(r.ss.mira){
+    ML.openDlg('Mira','"Rest well, traveler. The shrine is always here."',[{text:'"Thank you, Mira."'}],()=>{});
+    return;
+  }
   ML.openDlg('Mira the Healer',
     '"Welcome, traveler. You bear the marks of battle \u2014 that acidic stench can only mean you faced an Ooze on the trail. Let me tend your wounds."',
     [{text:'"Please, I could use the help."'},{text:'"What can you tell me about this place?"'}],
-    (i)=>{r.hp=r.mHP;r.mp=r.mMP;GS.run.ss.mira=true;UI.updateHUD();
+    (i)=>{r.hp=r.mHP;r.mp=r.mMP;r.ss.mira=true;UI.updateHUD();
       if(i===0){if(r.bp.length<6)r.bp.push({...ITEMS.hpot});GS.saveA();
         ML.openDlg('Mira',`"There. Good as new. Take this potion as well \u2014 the road beyond here grows darker still. You\u2019ve done well to make it this far, ${r.name}. Perhaps we\u2019ll meet again."`,
           [{text:'"Until next time, Mira."'}],()=>{UI.addN('Mira smiles and returns to her herbs. You feel restored.','s');UI.addN(`HP and MP fully restored. Health Potion added to backpack.`,'y');SE.runComplete()})}
@@ -984,14 +1517,19 @@ runComplete(){
 };
 
 // === INIT ===
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',async()=>{
   UI.init();
   const res=GS.loadA();
   if(res==='incompatible'){
     GS.clearA();
     alert('A new version of Minute Adventurer is available! Your old save is incompatible. Please start a new adventure.');
     CC.reset();
-  }else if(res){UI.showGame();UI.restoreN();SE.resume()}
+  }else if(res){
+    UI.showGame();UI.restoreN();
+    const scene=SCENE_DATA[GS.run.scene];
+    if(scene){await UI.showTitleCard(scene.name,null,500)}
+    SE.resume();
+  }
   else{CC.reset()}
 });
 // === PWA SERVICE WORKER REGISTRATION ===
