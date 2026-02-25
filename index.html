@@ -10,157 +10,259 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Minute Adventurer">
-<meta name="theme-color" content="#1a1a2e">
+<meta name="theme-color" content="#12121e">
 <meta name="description" content="A text-based dark fantasy adventure played in minutes.">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
---bg:#1a1a2e;--bg2:#22223a;--bg3:#2a2a46;--bgO:rgba(10,10,20,.88);
---t1:#e8e8f0;--t2:#a0a0b0;--t3:#8888a0;
---gold:#c9a84c;--goldB:#e0c060;
---red:#c44054;--redD:#8b2635;
---grn:#5a9c6a;--grnD:#4a7c59;
---blu:#4488cc;--bluD:#336699;
---brd:#4a4a60;--brdL:#6b6b7b;--foc:#e0c060;
---fn:Georgia,'Times New Roman',serif;
+--bg:#12121e;--bg2:#1a1a2e;--bg3:#242438;--bgO:rgba(0,0,0,.7);
+--text:#e8e8f0;--text2:#a0a0b4;--text3:#6b6b80;
+--gold:#c9a84c;--gold-dim:#8a7030;--gold-bright:#e0c060;
+--red:#c44054;--blue:#4a7cc9;--green:#5a9c6a;--green-dim:#385c44;
+--border:#2a2a40;--focus:#e0c060;
+--fn:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 --fm:'Courier New',Consolas,monospace;
+--t1:#e8e8f0;--t2:#a0a0b4;--t3:#6b6b80;
+--goldB:#e0c060;--grn:#5a9c6a;--grnD:#385c44;
+--blu:#4a7cc9;--brd:#2a2a40;--brdL:#3a3a55;
+--foc:#e0c060;--redD:#8b2635;--bluD:#336699;
 }
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--fn);font-size:16px;line-height:1.7;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
-*:focus-visible{outline:3px solid var(--foc)!important;outline-offset:2px!important;border-radius:2px}
-#app{display:flex;flex-direction:column;height:100dvh;max-width:680px;margin:0 auto;position:relative}
-#hud{display:none;flex-shrink:0;min-height:50px;background:var(--bg2);border-bottom:1px solid var(--brd);padding:6px 10px;z-index:100}
-#hud.vis{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--fn);font-size:16px;line-height:1.7;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+*:focus-visible{outline:3px solid var(--focus)!important;outline-offset:2px!important;border-radius:2px}
+/* Landing */
+#landing{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;position:relative;overflow:hidden}
+#landing.hidden{display:none}
+#particles{position:fixed;inset:0;pointer-events:none;z-index:0}
+#landing-content{position:relative;z-index:1;text-align:center;padding:20px;width:100%;max-width:400px}
+#landing-title{font-size:1.75rem;color:var(--gold);font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:0;animation:fadeIn .8s ease forwards}
+#landing-sub{font-size:1rem;color:var(--text2);margin-top:8px;opacity:0;animation:fadeIn .8s ease .4s forwards}
+#landing-buttons{margin-top:32px;display:flex;flex-direction:column;gap:12px;align-items:center;opacity:0;animation:fadeIn .8s ease 1s forwards}
+.lbtn{display:block;width:100%;max-width:320px;min-height:52px;background:transparent;border-radius:8px;font-family:var(--fn);font-size:1rem;cursor:pointer;padding:12px 24px;transition:background .15s}
+.lbtn-primary{border:2px solid var(--gold);color:var(--gold)}
+.lbtn-primary:hover,.lbtn-primary:active{background:rgba(201,168,76,.08)}
+.lbtn-secondary{border:1px solid var(--border);color:var(--text2)}
+.lbtn-secondary:hover,.lbtn-secondary:active{background:rgba(201,168,76,.08)}
+.lbtn-link{border:none;color:var(--text3);font-size:.9rem;min-height:auto;padding:8px;background:transparent}
+.lbtn-link:hover{color:var(--text2)}
+.lbtn-sub{font-size:.85rem;color:var(--text3);margin-top:4px}
+#landing-version{position:absolute;bottom:20px;left:0;right:0;text-align:center;font-size:.8rem;color:var(--text3)}
+/* App */
+#app{display:none;flex-direction:column;height:100dvh;max-width:680px;margin:0 auto;position:relative}
+#app.vis{display:flex}
+/* HUD */
+#hud{display:none;flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 10px;z-index:100}
+#hud.vis{display:flex;align-items:center;gap:8px}
 #hud-l{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 #hud-portrait{width:32px;height:32px;image-rendering:pixelated;flex-shrink:0}
-#hud-info{display:flex;flex-direction:column;min-width:0;gap:1px}
-#hud-nc{font-family:var(--fm);font-size:.85rem;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#hud-bars{display:flex;flex-direction:column;gap:2px}
+#hud-info{display:flex;flex-direction:column;min-width:0;gap:2px}
+#hud-nc{font-size:.85rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hud-bars{display:flex;flex-direction:column;gap:3px}
 .bar-row{display:flex;align-items:center;gap:6px}
-.bar-o{width:80px;height:10px;background:var(--bg);border:1px solid var(--brd);border-radius:2px;overflow:hidden}
-.bar-i{height:100%;transition:width .3s}
-.bar-hp{background:var(--red)}.bar-mp{background:var(--blu)}
-.bar-txt{font-family:var(--fm);font-size:.75rem;color:var(--t1);min-width:60px}
-#hud-r{display:flex;align-items:center;gap:4px;flex-shrink:0}
-.hbtn{width:44px;height:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t1);font-size:1.2rem;transition:background .15s}
-.hbtn:active,.hbtn:hover{background:var(--bg2);border-color:var(--gold)}
-.hbtn[disabled]{opacity:.35;cursor:default;pointer-events:none}
-.hbtn canvas{width:24px;height:24px;image-rendering:pixelated}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 8px 2px var(--gold)}}.hbtn.pulse{animation:pulse 1s ease-in-out 3}
-#narr-w{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 14px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
-#narr-log{display:flex;flex-direction:column;gap:10px}
-.ne{font-size:1.15rem;line-height:1.75;color:var(--t1);animation:fi .3s ease}
-.ne-h{font-size:1.5rem;color:var(--gold);font-weight:bold;letter-spacing:.04em;margin-top:6px}
-.ne-f{color:var(--t2);font-style:italic}.ne-c{color:var(--t1)}
-.ne-s{border-left:3px solid var(--grn);padding-left:10px}
-.ne-d{border-left:3px solid var(--red);padding-left:10px}
-.ne-y{font-family:var(--fm);font-size:.9rem;color:var(--t2);border-left:3px solid var(--brd);padding-left:10px}
-@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-#dist-m{display:none;background:var(--bg2);border:1px solid var(--brd);border-radius:4px;padding:8px 12px;margin:0 14px 6px}
+.bar-o{width:80px;height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.bar-i{height:100%;border-radius:3px;transition:width .3s}
+.bar-hp{background:var(--red)}.bar-mp{background:var(--blue)}
+.bar-txt{font-size:.8rem;color:var(--text2);min-width:55px}
+/* HUD Buttons */
+#hud-r{display:flex;align-items:center;gap:2px;flex-shrink:0}
+#hud-explore,#hud-combat{display:flex;gap:2px}
+#hud-combat{display:none}
+#hud.combat-mode #hud-explore{display:none}
+#hud.combat-mode #hud-combat{display:flex}
+.hbtn{width:48px;height:48px;background:transparent;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--text2);transition:background .15s;border-radius:4px;padding:4px}
+.hbtn:active,.hbtn:hover{background:var(--bg3)}
+.hbtn[disabled]{opacity:.3;cursor:default;pointer-events:none}
+.hbtn canvas{width:20px;height:20px;image-rendering:pixelated}
+.hbtn span{font-size:.7rem;color:var(--text3);line-height:1}
+@keyframes pulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 8px 2px var(--gold)}}.hbtn.pulse{animation:pulse 1s ease-in-out 3}
+/* Narrative */
+#narr-w{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 16px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+#narr-log{display:flex;flex-direction:column;gap:12px}
+.ne{font-size:1rem;line-height:1.7;color:var(--text);animation:fadeSlide .3s ease}
+.ne-h{font-size:1.2rem;color:var(--gold);font-weight:600;margin-top:20px}
+.ne-f{color:var(--text2);font-style:italic}
+.ne-c{color:var(--text)}
+.ne-s{color:var(--green)}
+.ne-d{color:var(--red)}
+.ne-y{font-size:.85rem;color:var(--text3)}
+.ne-g{color:var(--gold)}
+/* Distance */
+#dist-m{display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px}
 #dist-m.vis{display:block}
-#dist-lbl{font-family:var(--fm);font-size:.85rem;color:var(--t2);margin-bottom:4px;text-align:center}
-#dist-bar{width:100%;height:20px;background:var(--bg);border:1px solid var(--brd);border-radius:3px;position:relative;overflow:hidden}
-.dist-mk{position:absolute;top:2px;width:14px;height:14px;border-radius:50%;transition:left .3s}
-#dist-p{background:var(--gold);border:1px solid #fff}
-#dist-e{background:var(--red);border:1px solid #fff}
-#dist-rd{font-family:var(--fm);font-size:.9rem;color:var(--t1);text-align:center;margin-top:4px}
-#bbar{display:none;flex-shrink:0;background:var(--bg2);border-top:1px solid var(--brd);padding:8px 10px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));gap:6px;flex-direction:column}
-#bbar.vis{display:flex}
-#act-row{display:flex;gap:8px}
-.abtn{flex:1;min-height:48px;min-width:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t1);font-family:var(--fm);font-size:1rem;cursor:pointer;padding:8px 4px;transition:background .15s,border-color .15s}
-.abtn:active,.abtn:hover{background:var(--bg2);border-color:var(--gold)}
-#inp-row{display:flex;gap:8px}
-#tinp{flex:1;min-height:44px;background:var(--bg);border:1px solid var(--brd);border-radius:6px;color:var(--t1);font-family:var(--fn);font-size:1rem;padding:8px 12px}
-#tinp::placeholder{color:var(--t3)}#tinp:focus{border-color:var(--gold)}
-#sbtn{min-width:48px;min-height:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--gold);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
-#sbtn:active{background:var(--bg2)}
+#dist-info{display:flex;justify-content:space-between;font-size:.85rem}
+#dist-info span:first-child{color:var(--gold)}
+#dist-info span:last-child{color:var(--red)}
+#dist-track{width:100%;height:2px;background:var(--border);position:relative;margin:8px 0}
+.dist-mk{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;transform:translateY(-50%);transition:left .3s ease}
+#dist-p{background:var(--gold)}#dist-e{background:var(--red)}
+#dist-rd{text-align:center;font-size:.9rem;margin-top:4px}
+.dist-meters{color:var(--text)}.dist-hit{color:var(--text2);margin-left:4px}
+/* Movement */
+#move-btns{display:none;padding:6px 16px;gap:8px;background:var(--bg2);border-bottom:1px solid var(--border)}
+#move-btns.vis{display:flex}
+.mv-btn{flex:1;min-height:40px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:var(--fn);font-size:.85rem;cursor:pointer;transition:border-color .15s,background .15s}
+.mv-btn:active,.mv-btn:hover{border-color:var(--gold);background:rgba(201,168,76,.06)}
+.mv-btn[disabled]{opacity:.3;cursor:default;pointer-events:none}
+/* Bottom bar */
+#bbar{display:none;flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);padding:8px 10px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+#bbar.vis{display:block}
+#explore-bar{display:flex;gap:8px;align-items:center}
+#combat-bar{display:none;gap:6px}
+#bbar.combat-mode #explore-bar{display:none}
+#bbar.combat-mode #combat-bar{display:flex}
+#inp-row{display:flex;gap:8px;flex:1}
+#tinp{flex:1;min-height:44px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--fn);font-size:1rem;padding:8px 12px}
+#tinp::placeholder{color:var(--text3)}#tinp:focus{border-color:var(--gold)}
+#sbtn{min-width:48px;min-height:48px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--gold);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+#sbtn:active{background:var(--bg3)}
+.acts-btn{min-height:48px;padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:var(--fn);font-size:.9rem;cursor:pointer;white-space:nowrap;transition:border-color .15s}
+.acts-btn:active{border-color:var(--gold)}
+.cbtn{flex:1;min-height:48px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--fn);font-size:.9rem;cursor:pointer;padding:6px 4px;transition:background .15s,border-color .15s}
+.cbtn:active,.cbtn:hover{background:var(--bg2);border-color:var(--gold)}
+.cbtn[disabled]{opacity:.35;cursor:default;pointer-events:none}
+.cbtn .pct{display:block;font-size:.75rem;color:var(--text2)}
+/* Modals */
 .mo{display:none;position:fixed;inset:0;background:var(--bgO);z-index:500;justify-content:center;align-items:center;padding:0}
 .mo.open{display:flex}
-.mc{background:var(--bg2);border:1px solid var(--brd);width:100%;height:100%;overflow-y:auto;padding:16px;display:flex;flex-direction:column}
+.mc{background:var(--bg2);width:100%;height:100%;overflow-y:auto;padding:16px;display:flex;flex-direction:column;animation:modalIn .2s ease}
 @media(min-width:600px){.mc{max-width:560px;max-height:85vh;height:auto;border-radius:8px;margin:20px}}
-.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0}
-.mt{font-size:1.5rem;color:var(--gold);font-weight:bold;letter-spacing:.04em}
-.mx{width:44px;height:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;color:var(--t1);font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.mx:active{background:var(--bg)}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-shrink:0}
+.mt{font-size:1.2rem;color:var(--gold);font-weight:600}
+.mx{width:48px;height:48px;background:transparent;border:none;border-radius:4px;color:var(--text3);font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:color .15s}
+.mx:active,.mx:hover{color:var(--text)}
 .mb{flex:1;overflow-y:auto}
-.mbtn{display:block;width:100%;min-height:52px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;color:var(--t1);font-family:var(--fn);font-size:1.05rem;cursor:pointer;padding:10px 14px;text-align:left;margin-bottom:8px;transition:border-color .15s,background .15s}
-.mbtn:active,.mbtn:hover{border-color:var(--gold);background:var(--bg2)}
-.mbtn.sel{border-color:var(--gold);background:var(--bg);box-shadow:0 0 0 2px var(--gold)}
+.mbtn{display:block;width:100%;min-height:52px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--fn);font-size:1rem;cursor:pointer;padding:10px 14px;text-align:left;margin-bottom:8px;transition:border-color .15s,background .15s}
+.mbtn:active,.mbtn:hover{border-color:var(--gold);background:rgba(201,168,76,.06)}
+.mbtn.sel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
 .mbtn[disabled]{opacity:.4;cursor:default;pointer-events:none}
+/* Tabs */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab-btn{flex:1;min-width:0;min-height:44px;padding:8px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text3);font-family:var(--fn);font-size:.85rem;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
+.tab-btn.act{color:var(--gold);border-bottom-color:var(--gold)}
+.tab-btn:hover{color:var(--text2)}
+.tab-panel{display:none}.tab-panel.act{display:block}
+/* Char creation */
 #cc{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;align-items:center}
-#cc h1{font-size:2rem;color:var(--gold);letter-spacing:.06em;text-align:center;margin-bottom:6px}
-#cc .sub{color:var(--t2);font-size:1rem;text-align:center;margin-bottom:20px}
+#cc h1{font-size:1.75rem;color:var(--gold);font-weight:700;letter-spacing:.06em;text-align:center;margin-bottom:6px}
+#cc .sub{color:var(--text2);font-size:1rem;text-align:center;margin-bottom:20px}
+.cc-step{font-size:.8rem;color:var(--text3);text-align:center;margin-bottom:16px}
 .ccs{display:none;width:100%;max-width:480px}.ccs.act{display:block}
-.ccs h2{font-size:1.4rem;color:var(--gold);margin-bottom:14px;text-align:center;letter-spacing:.03em}
-#ninp{width:100%;min-height:52px;background:var(--bg);border:2px solid var(--brd);border-radius:8px;color:var(--t1);font-family:var(--fn);font-size:1.3rem;padding:10px 16px;text-align:center}
+.ccs h2{font-size:1.2rem;color:var(--gold);font-weight:600;margin-bottom:14px;text-align:center}
+#ninp{width:100%;min-height:52px;background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--fn);font-size:1.2rem;padding:10px 16px;text-align:center}
 #ninp:focus{border-color:var(--gold)}
 .ccds{display:flex;flex-direction:column;gap:10px}
 @media(min-width:480px){.ccds{display:grid;grid-template-columns:1fr 1fr}}
-.ccd{background:var(--bg3);border:2px solid var(--brd);border-radius:8px;padding:14px;cursor:pointer;display:flex;gap:12px;align-items:center;min-height:80px;transition:border-color .15s,background .15s}
+.ccd{background:var(--bg3);border:2px solid var(--border);border-radius:8px;padding:14px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;min-height:80px;transition:border-color .15s,box-shadow .15s}
 .ccd:active,.ccd:hover{border-color:var(--gold)}
-.ccd.sel,.ccd[aria-checked="true"]{border-color:var(--gold);background:var(--bg);box-shadow:0 0 0 2px var(--gold)}
+.ccd.sel,.ccd[aria-checked="true"]{border-color:var(--gold);box-shadow:0 0 12px rgba(201,168,76,.15)}
 .ccd canvas{width:64px;height:64px;image-rendering:pixelated;flex-shrink:0}
 .ccd-i{flex:1;min-width:0}
-.ccd-n{font-size:1.15rem;color:var(--gold);font-weight:bold}
-.ccd-d{font-size:.95rem;color:var(--t2);margin-top:2px}
-.ccd-s{font-family:var(--fm);font-size:.85rem;color:var(--t3);margin-top:4px}
-.ccnv{display:flex;gap:10px;margin-top:18px;width:100%;max-width:480px}
-.ccnb{flex:1;min-height:52px;background:var(--bg3);border:2px solid var(--brd);border-radius:8px;color:var(--t1);font-family:var(--fn);font-size:1.1rem;cursor:pointer}
-.ccnb.pri{border-color:var(--gold);color:var(--gold)}.ccnb:active{background:var(--bg2)}.ccnb[disabled]{opacity:.35;cursor:default}
-.csum{background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:16px;width:100%}
-.csr{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd);font-family:var(--fm);font-size:.95rem}
-.csl{color:var(--t2)}.csv{color:var(--t1)}
+.ccd-n{font-size:1rem;color:var(--gold);font-weight:600}
+.ccd-d{font-size:.9rem;color:var(--text2);margin-top:2px}
+.ccd-s{font-size:.8rem;color:var(--text3);margin-top:4px}
+.ccnv{display:flex;gap:10px;margin-top:18px;width:100%;max-width:480px;align-items:center}
+.ccnb{flex:1;min-height:52px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:var(--fn);font-size:1rem;cursor:pointer;transition:border-color .15s}
+.ccnb.pri{border:2px solid var(--gold);color:var(--gold)}
+.ccnb:active{background:var(--bg3)}
+.ccnb[disabled]{opacity:.35;cursor:default}
+.csum{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;width:100%}
+.csr{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:.9rem}
+.csl{color:var(--text2)}.csv{color:var(--text)}
 .sbar{display:flex;align-items:center;gap:6px;margin:2px 0}
-.sbar-l{font-family:var(--fm);font-size:.8rem;color:var(--t2);width:65px;text-align:right}
-.sbar-o{flex:1;height:8px;background:var(--bg2);border:1px solid var(--brd);border-radius:2px;overflow:hidden;max-width:140px}
-.sbar-i{height:100%;background:var(--gold);border-radius:1px}
-.sbar-v{font-family:var(--fm);font-size:.8rem;color:var(--t1);width:20px}
-.hb-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border:1px solid var(--brd);border-radius:6px;margin-bottom:6px}
-.hb-name{font-family:var(--fm);font-size:1rem;color:var(--t1)}
+.sbar-l{font-size:.8rem;color:var(--text2);width:65px;text-align:right}
+.sbar-o{flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;max-width:140px}
+.sbar-i{height:100%;background:var(--gold);border-radius:3px}
+.sbar-v{font-family:var(--fm);font-size:.8rem;color:var(--text);width:20px}
+.hb-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-bottom:6px}
+.hb-name{font-size:.9rem;color:var(--text)}
 .hb-val{font-family:var(--fm);font-size:1rem;color:var(--gold);min-width:20px;text-align:center}
-.hb-btn{width:44px;height:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;color:var(--gold);font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.hb-btn{width:48px;height:48px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--gold);font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .hb-btn:active{background:var(--bg2);border-color:var(--gold)}
 .hb-btn[disabled]{opacity:.3;cursor:default;pointer-events:none}
-.hb-pts{font-family:var(--fm);font-size:1.1rem;color:var(--gold);text-align:center;margin-bottom:12px}
-.ist{font-size:1.1rem;color:var(--gold);margin:12px 0 6px;letter-spacing:.03em}
-.isl{display:flex;align-items:center;justify-content:space-between;min-height:48px;background:var(--bg);border:1px solid var(--brd);border-radius:4px;padding:8px 12px;margin-bottom:6px;flex-wrap:wrap;gap:4px}
-.isl-l{font-family:var(--fm);font-size:.85rem;color:var(--t3);min-width:70px}
-.isl-i{font-size:1rem;color:var(--t1);flex:1}.isl-e{font-size:.95rem;color:var(--t3);font-style:italic;flex:1}
-.isl-a{display:flex;gap:4px}
-.iab{min-width:44px;min-height:44px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;color:var(--t1);font-family:var(--fm);font-size:.85rem;cursor:pointer}
+.hb-pts{font-size:.9rem;color:var(--gold);text-align:center;margin-bottom:12px}
+/* Section titles */
+.ist{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin:20px 0 8px}
+.ist:first-child{margin-top:0}
+/* Equipment/items */
+.isl{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px}
+.isl-head{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.isl-top{display:flex;justify-content:space-between;align-items:center}
+.isl-name{font-size:1rem;color:var(--text);font-weight:600}
+.isl-l{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.isl-i{font-size:.85rem;color:var(--text2);margin-top:2px}
+.isl-e{font-size:.9rem;color:var(--text3);font-style:italic}
+.isl-empty{border-style:dashed}
+.isl-a{display:flex;gap:4px;margin-top:8px}
+.iab{min-width:48px;min-height:44px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text2);font-family:var(--fn);font-size:.85rem;cursor:pointer;padding:4px 12px;transition:border-color .15s}
 .iab:active{background:var(--bg2);border-color:var(--gold)}
-.jtabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;flex-shrink:0;-webkit-overflow-scrolling:touch}
-.jtab{min-width:44px;min-height:44px;padding:8px 14px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;color:var(--t2);font-family:var(--fm);font-size:.85rem;cursor:pointer;white-space:nowrap;flex-shrink:0}
-.jtab.act{background:var(--bg);border-color:var(--gold);color:var(--gold)}.jtab:active{border-color:var(--gold)}
+/* Stat rows */
+.stat-row{display:flex;align-items:center;padding:6px 0;gap:8px}
+.stat-name{font-size:.85rem;color:var(--text2);flex:1}
+.stat-val{font-family:var(--fm);font-size:1rem;color:var(--text);min-width:24px;text-align:right}
+.stat-derived{font-size:.85rem;color:var(--text3);min-width:80px;text-align:right}
+.trait-card{background:var(--bg3);border-radius:6px;padding:10px 12px;margin-top:8px}
+.trait-card strong{color:var(--gold)}
+.trait-card p{font-size:.9rem;color:var(--text2);margin-top:4px}
+.xp-bar-o{width:100%;height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-top:6px}
+.xp-bar-i{height:100%;background:var(--gold);border-radius:2px}
+/* Journal */
+.jtabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.jtab{flex:1;min-width:0;min-height:44px;padding:8px 10px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text3);font-family:var(--fn);font-size:.85rem;cursor:pointer;white-space:nowrap;transition:color .15s}
+.jtab.act{color:var(--gold);border-bottom-color:var(--gold)}
+.jtab:active{color:var(--text2)}
 .jp{display:none}.jp.act{display:block}
-.jp h3{font-size:1.2rem;color:var(--gold);margin:14px 0 8px}
-.jp p{font-size:1rem;line-height:1.7;color:var(--t1);margin-bottom:6px}
-.be{background:var(--bg);border:1px solid var(--brd);border-radius:6px;padding:12px;margin-bottom:10px}
-.be-n{font-size:1.1rem;color:var(--gold);font-weight:bold}
-.be-l{font-style:italic;color:var(--t2);margin:4px 0}
-.be-s{font-family:var(--fm);font-size:.85rem;color:var(--t1)}
-.ssl{background:var(--bg);border:1px solid var(--brd);border-radius:6px;padding:12px;margin-bottom:10px}
-.ssl-h{font-size:1rem;color:var(--gold);font-weight:bold;margin-bottom:4px}
-.ssl-i{font-family:var(--fm);font-size:.85rem;color:var(--t2)}
+.jp h3{font-size:1.1rem;color:var(--gold);font-weight:600;margin:16px 0 8px}
+.jp p{font-size:1rem;line-height:1.7;color:var(--text);margin-bottom:8px}
+/* Bestiary */
+.be{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:10px}
+.be-n{font-size:1rem;color:var(--gold);font-weight:600}
+.be-l{font-style:italic;color:var(--text2);margin:4px 0;font-size:.9rem}
+.be-s{font-size:.8rem;color:var(--text3)}
+/* Save/Load */
+.ssl{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px}
+.ssl-h{font-size:.9rem;color:var(--text);font-weight:600;margin-bottom:4px}
+.ssl-i{font-size:.85rem;color:var(--text2)}
 .ssl-a{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-.slb{min-height:44px;min-width:44px;padding:8px 16px;background:var(--bg3);border:1px solid var(--brd);border-radius:4px;color:var(--t1);font-family:var(--fm);font-size:.9rem;cursor:pointer}
-.slb:active{border-color:var(--gold);background:var(--bg2)}
-.slb.dng{border-color:var(--red);color:var(--red)}.slb.dng:active{background:rgba(196,64,84,.15)}
-.snotice{font-family:var(--fm);font-size:.85rem;color:var(--t3);margin-top:12px;padding:8px;background:var(--bg);border-radius:4px;border:1px solid var(--brd)}
-.dsp{font-size:1.2rem;color:var(--gold);font-weight:bold;margin-bottom:8px}
-.dtx{font-size:1.1rem;line-height:1.7;color:var(--t1);margin-bottom:16px}
+.slb{min-height:44px;min-width:48px;padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text2);font-family:var(--fn);font-size:.9rem;cursor:pointer;transition:border-color .15s}
+.slb:active{border-color:var(--gold);background:var(--bg3)}
+.slb.dng{border-color:var(--red);color:var(--red)}.slb.dng:active{background:rgba(196,64,84,.1)}
+.snotice{font-size:.8rem;color:var(--text3);margin-top:12px;padding:8px;background:var(--bg3);border-radius:4px}
+/* Dialogue */
+.dlg-name{font-size:1.2rem;color:var(--gold);text-align:center;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.dlg-title{font-size:.85rem;color:var(--text3);text-align:center;margin-bottom:16px}
+.dsp{font-size:1.2rem;color:var(--gold);font-weight:600;margin-bottom:8px}
+.dtx{font-size:1rem;line-height:1.7;color:var(--text);margin-bottom:20px;padding:0 8px}
 .dopts{display:flex;flex-direction:column;gap:8px}
+/* Weight tags */
+.wt-tag{font-size:.7rem;padding:1px 5px;border-radius:3px;margin-left:4px}
+.wt-0{color:var(--green);border:1px solid var(--green)}.wt-1{color:var(--gold);border:1px solid var(--gold)}.wt-2{color:var(--red);border:1px solid var(--red)}
+/* Misc */
+.msep{border:none;border-top:1px solid var(--border);margin:10px 0}
 .rc{text-align:center;padding:20px 0}
-.rc h2{font-size:1.8rem;color:var(--gold);margin-bottom:12px}
-.rc .xp{font-family:var(--fm);font-size:1.2rem;color:var(--grn);margin-bottom:8px}
-.rc .lu{font-size:1.3rem;color:var(--goldB);margin-bottom:16px}
-.msep{border:none;border-top:1px solid var(--brd);margin:10px 0}
-.wt-tag{font-family:var(--fm);font-size:.7rem;padding:1px 5px;border-radius:3px;margin-left:4px}
-.wt-0{color:var(--grn);border:1px solid var(--grn)}.wt-1{color:var(--gold);border:1px solid var(--gold)}.wt-2{color:var(--red);border:1px solid var(--red)}
-@media(max-width:480px){.ne{font-size:1.2rem}#hud{padding:4px 8px}}
+.rc h2{font-size:1.4rem;color:var(--gold);font-weight:600;margin-bottom:12px}
+.rc .xp{font-family:var(--fm);font-size:1.2rem;color:var(--green);margin-bottom:8px}
+.rc .lu{font-size:1.2rem;color:var(--gold-bright);margin-bottom:16px}
+/* Animations */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes modalIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){
+*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+#particles{display:none}
+}
+@media(max-width:480px){.ne{font-size:1.05rem}#hud{padding:6px 8px}}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>
 </head>
 <body>
+<div id="landing">
+<canvas id="particles"></canvas>
+<div id="landing-content">
+<h1 id="landing-title">Minute Adventurer</h1>
+<p id="landing-sub">Welcome, Adventurer</p>
+<div id="landing-buttons"></div>
+</div>
+<div id="landing-version">v0.2 &middot; A text adventure</div>
+</div>
 <div id="app" role="application" aria-label="The Muddy Trail text adventure game">
 <header id="hud" role="banner" aria-label="Character status">
 <div id="hud-l">
@@ -171,36 +273,57 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 <div class="bar-row"><div class="bar-o" id="mp-bar-o" role="progressbar" aria-label="Mana points" aria-valuemin="0"><div class="bar-i bar-mp" id="mp-bar-i" style="width:100%"></div></div><span class="bar-txt" id="mp-txt" aria-live="polite">20/20 MP</span></div>
 </div></div></div>
 <div id="hud-r">
-<button class="hbtn" id="b-stats" aria-label="Open stat sheet" title="Stats"><canvas width="24" height="24" aria-hidden="true"></canvas></button>
-<button class="hbtn" id="b-inv" aria-label="Open inventory" title="Inventory"><canvas width="24" height="24" aria-hidden="true"></canvas></button>
-<button class="hbtn" id="b-jrn" aria-label="Journal locked" title="Journal" disabled><canvas width="24" height="24" aria-hidden="true"></canvas></button>
-<button class="hbtn" id="b-qs" aria-label="Quick save" title="Quick Save (Q)"><canvas width="24" height="24" aria-hidden="true"></canvas></button>
-<button class="hbtn" id="b-menu" aria-label="Open menu" title="Menu"><canvas width="24" height="24" aria-hidden="true"></canvas></button>
+<div id="hud-explore">
+<button class="hbtn" id="b-char" aria-label="Open character sheet" title="Character"><canvas width="20" height="20" aria-hidden="true"></canvas><span>Char</span></button>
+<button class="hbtn" id="b-jrn" aria-label="Journal locked" title="Journal" disabled><canvas width="20" height="20" aria-hidden="true"></canvas><span>Jrnl</span></button>
+<button class="hbtn" id="b-menu" aria-label="Open menu" title="Menu"><canvas width="20" height="20" aria-hidden="true"></canvas><span>Menu</span></button>
+</div>
+<div id="hud-combat">
+<button class="hbtn" id="b-atk" aria-label="Attack"><canvas width="20" height="20" aria-hidden="true"></canvas><span id="atk-lbl">Atk</span></button>
+<button class="hbtn" id="b-def" aria-label="Block"><canvas width="20" height="20" aria-hidden="true"></canvas><span>Block</span></button>
+<button class="hbtn" id="b-item" aria-label="Use item"><canvas width="20" height="20" aria-hidden="true"></canvas><span>Item</span></button>
+</div>
 </div></header>
 <main id="cc" role="main" aria-label="Character creation">
 <h1>The Muddy Trail</h1><p class="sub">A Text Adventure</p>
+<div class="cc-step" id="cc-step"></div>
 <div class="ccs act" id="ccs1" aria-label="Step 1: Name"><h2>What is your name, traveler?</h2><input type="text" id="ninp" maxlength="20" placeholder="Enter name..." aria-label="Character name" autocomplete="off"></div>
 <div class="ccs" id="ccs2" aria-label="Step 2: Species"><h2>Choose Your Heritage</h2><div class="ccds" id="sp-cards" role="radiogroup" aria-label="Species"></div></div>
 <div class="ccs" id="ccs3" aria-label="Step 3: Subspecies"><h2>Choose Your Lineage</h2><div class="ccds" id="subsp-cards" role="radiogroup" aria-label="Subspecies"></div></div>
-<div class="ccs" id="ccs4" aria-label="Step 4: Bonus Stats"><h2>Adaptable Heritage</h2><p class="sub" style="margin-bottom:10px">Assign +1 to two different stats.</p><div class="hb-pts" id="hb-pts">Points remaining: 2</div><div id="hb-list"></div></div>
+<div class="ccs" id="ccs4" aria-label="Step 4: Bonus Stats"><h2>Your Adaptable Heritage</h2><p class="sub" style="margin-bottom:10px">Assign +1 to two different stats.</p><div class="hb-pts" id="hb-pts">Points remaining: 2</div><div id="hb-list"></div></div>
 <div class="ccs" id="ccs5" aria-label="Step 5: Class"><h2>Choose Your Path</h2><div class="ccds" id="cl-cards" role="radiogroup" aria-label="Class"></div></div>
 <div class="ccs" id="ccs6" aria-label="Step 6: Confirm"><h2>Your Character</h2><div class="csum" id="cc-sum"></div></div>
 <div class="ccnv" id="cc-nav"><button class="ccnb" id="cc-bk" aria-label="Go back" style="display:none">Back</button><button class="ccnb pri" id="cc-nx" aria-label="Continue">Continue</button></div>
 </main>
 <div id="game" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+<div id="dist-m" aria-label="Combat distance">
+<div id="dist-info"><span>You</span><span id="dist-enemy-name">Enemy</span></div>
+<div id="dist-track"><div class="dist-mk" id="dist-p" aria-label="You"></div><div class="dist-mk" id="dist-e" aria-label="Enemy"></div></div>
+<div id="dist-rd"><span class="dist-meters">15m</span> <span class="dist-hit"></span></div>
+</div>
+<div id="move-btns">
+<button class="mv-btn" id="mv-closer" aria-label="Move closer">&#9664; Closer</button>
+<button class="mv-btn" id="mv-further" aria-label="Move further">Further &#9654;</button>
+</div>
 <div id="narr-w" role="log" aria-label="Story narrative" aria-live="polite"><div id="narr-log"></div></div>
-<div id="dist-m" aria-label="Combat distance"><div id="dist-lbl">Distance</div><div id="dist-bar"><div class="dist-mk" id="dist-p" aria-label="You"></div><div class="dist-mk" id="dist-e" aria-label="Enemy"></div></div><div id="dist-rd">15m</div></div>
 </div>
 <div id="bbar" aria-label="Actions and input">
-<div id="act-row"><button class="abtn" id="b-act" aria-label="Open actions">Actions</button><button class="abtn" id="b-inv2" aria-label="Open inventory">Inventory</button></div>
+<div id="explore-bar">
 <div id="inp-row"><input type="text" id="tinp" placeholder="Type a command..." aria-label="Type command" autocomplete="off"><button id="sbtn" aria-label="Send command">&#9654;</button></div>
+<button class="acts-btn" id="b-acts" aria-label="Open actions">Actions</button>
+</div>
+<div id="combat-bar">
+<button class="cbtn" id="cb-atk">Attack<span class="pct" id="cb-atk-pct"></span></button>
+<button class="cbtn" id="cb-block">Block</button>
+<button class="cbtn" id="cb-flee">Flee<span class="pct" id="cb-flee-pct"></span></button>
+<button class="cbtn" id="cb-item">Item</button>
+</div>
 </div></div>
 <div class="mo" id="m-act" role="dialog" aria-label="Actions" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Actions</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-act-b"></div></div></div>
-<div class="mo" id="m-inv" role="dialog" aria-label="Inventory" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Inventory</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-inv-b"></div></div></div>
+<div class="mo" id="m-char" role="dialog" aria-label="Character" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Character</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-char-b"></div></div></div>
 <div class="mo" id="m-jrn" role="dialog" aria-label="Journal" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Player's Guide</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-jrn-b"></div></div></div>
-<div class="mo" id="m-sl" role="dialog" aria-label="Save Load" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Save &amp; Load</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-sl-b"></div></div></div>
+<div class="mo" id="m-menu" role="dialog" aria-label="Menu" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Menu</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-menu-b"></div></div></div>
 <div class="mo" id="m-dlg" role="dialog" aria-label="Dialogue" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt" id="dlg-t">NPC</h2><span></span></div><div class="mb" id="m-dlg-b"></div></div></div>
-<div class="mo" id="m-stats" role="dialog" aria-label="Character Stats" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Character</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-stats-b"></div></div></div>
 <div class="mo" id="m-lvl" role="dialog" aria-label="Level Up" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Level Up!</h2><span></span></div><div class="mb" id="m-lvl-b"></div></div></div>
 <script>
 /* =====================================================================
@@ -308,7 +431,10 @@ pack(){const c=PA.C,_=null;return[[_,_,c.lt,c.lt,c.lt,c.lt,_,_],[_,c.lt,c.ltD,c.
 book(){const c=PA.C,_=null;return[[_,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,_],[c.lt,c.gd,c.wh,c.wh,c.wh,c.wh,c.gd,c.lt],[c.lt,c.wh,c.lt,c.lt,c.lt,c.wh,c.wh,c.lt],[c.lt,c.wh,c.lt,c.gd,c.lt,c.wh,c.wh,c.lt],[c.lt,c.wh,c.lt,c.lt,c.lt,c.wh,c.wh,c.lt],[c.lt,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.lt],[c.lt,c.gd,c.wh,c.wh,c.wh,c.wh,c.gd,c.lt],[_,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,_]]},
 save(){const c=PA.C;return[[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt],[c.mt,c.mtD,c.mtD,c.mtD,c.mtD,c.mtD,c.mt,c.mt],[c.mt,c.mtD,c.mtD,c.mtD,c.mtD,c.mtD,c.mt,c.mt],[c.mt,c.mtD,c.mtD,c.mtD,c.mtD,c.mtD,c.mt,c.mt],[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt],[c.mt,c.mtL,c.mt,c.mtL,c.mtL,c.mt,c.mtL,c.mt],[c.mt,c.mtL,c.mt,c.mtL,c.mtL,c.mt,c.mtL,c.mt],[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt]]},
 menu(){const c=PA.C,_=null;return[[_,_,_,_,_,_,_,_],[c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh],[_,_,_,_,_,_,_,_],[c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh],[_,_,_,_,_,_,_,_],[c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh],[_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_]]},
-person(){const c=PA.C,_=null;return[[_,_,c.gd,c.gd,c.gd,c.gd,_,_],[_,c.gd,_,_,_,_,c.gd,_],[_,c.gd,c.wh,_,_,c.wh,c.gd,_],[_,_,c.gd,c.gd,c.gd,c.gd,_,_],[_,_,_,c.gd,c.gd,_,_,_],[_,c.gd,c.gd,c.gd,c.gd,c.gd,c.gd,_],[_,_,_,c.gd,c.gd,_,_,_],[_,_,c.gd,_,_,c.gd,_,_]]}
+person(){const c=PA.C,_=null;return[[_,_,c.gd,c.gd,c.gd,c.gd,_,_],[_,c.gd,_,_,_,_,c.gd,_],[_,c.gd,c.wh,_,_,c.wh,c.gd,_],[_,_,c.gd,c.gd,c.gd,c.gd,_,_],[_,_,_,c.gd,c.gd,_,_,_],[_,c.gd,c.gd,c.gd,c.gd,c.gd,c.gd,_],[_,_,_,c.gd,c.gd,_,_,_],[_,_,c.gd,_,_,c.gd,_,_]]},
+sword(){const c=PA.C,_=null;return[[_,_,_,_,_,_,c.wh,c.wh],[_,_,_,_,_,c.wh,c.mtL,_],[_,_,_,_,c.wh,c.mtL,_,_],[_,_,_,c.wh,c.mtL,_,_,_],[_,_,c.wh,c.wh,_,_,_,_],[_,c.gd,c.gd,_,_,_,_,_],[_,_,c.gd,c.gd,_,_,_,_],[_,_,_,_,_,_,_,_]]},
+shield(){const c=PA.C,_=null;return[[_,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,_],[c.mt,c.mt,c.mt,c.gd,c.gd,c.mt,c.mt,c.mt],[c.mt,c.mt,c.mt,c.gd,c.gd,c.mt,c.mt,c.mt],[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt],[_,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,_],[_,_,c.mt,c.mt,c.mt,c.mt,_,_],[_,_,_,c.mt,c.mt,_,_,_],[_,_,_,_,_,_,_,_]]},
+potion(){const c=PA.C,_=null;return[[_,_,c.gy,c.gy,c.gy,c.gy,_,_],[_,_,_,c.gy,c.gy,_,_,_],[_,_,c.rd,c.rd,c.rd,c.rd,_,_],[_,c.rd,c.rd,c.rd,c.rd,c.rd,c.rd,_],[_,c.rd,c.rd,c.wh,c.rd,c.rd,c.rd,_],[_,c.rd,c.rd,c.rd,c.rd,c.rd,c.rd,_],[_,c.rd,c.rd,c.rd,c.rd,c.rd,c.rd,_],[_,_,c.rd,c.rd,c.rd,c.rd,_,_]]}
 },
 renderIcon(cv,fn){const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);this.draw(x,fn(),cv.width)},
 renderPortrait(cv,k){const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);const fn=this.species[k];if(fn)this.draw(x,fn(),cv.width)}
@@ -527,65 +653,132 @@ eTurn(){const cs=this.gs(),r=GS.run,e=cs.enemy,ms=[];
 const UI={
 el:{},
 init(){
-  this.el={app:$('app'),hud:$('hud'),hp:$('hud-portrait'),hnc:$('hud-nc'),
+  this.el={landing:$('landing'),landBtns:$('landing-buttons'),
+    app:$('app'),hud:$('hud'),hp:$('hud-portrait'),hnc:$('hud-nc'),
     hbi:$('hp-bar-i'),hbo:$('hp-bar-o'),htx:$('hp-txt'),
     mbi:$('mp-bar-i'),mbo:$('mp-bar-o'),mtx:$('mp-txt'),
-    bst:$('b-stats'),bi:$('b-inv'),bj:$('b-jrn'),bq:$('b-qs'),bm:$('b-menu'),
+    bchar:$('b-char'),bj:$('b-jrn'),bmenu:$('b-menu'),
+    batk:$('b-atk'),bdef:$('b-def'),bitem:$('b-item'),atkLbl:$('atk-lbl'),
     cc:$('cc'),gm:$('game'),nw:$('narr-w'),nl:$('narr-log'),
-    dm:$('dist-m'),dr:$('dist-rd'),dp:$('dist-p'),de:$('dist-e'),
-    bb:$('bbar'),ba:$('b-act'),bi2:$('b-inv2'),ti:$('tinp'),sb:$('sbtn'),
-    ni:$('ninp'),cbk:$('cc-bk'),cnx:$('cc-nx')};
+    dm:$('dist-m'),dr:$('dist-rd'),dp:$('dist-p'),de:$('dist-e'),dename:$('dist-enemy-name'),
+    mvBtns:$('move-btns'),mvCloser:$('mv-closer'),mvFurther:$('mv-further'),
+    bb:$('bbar'),exploreBar:$('explore-bar'),combatBar:$('combat-bar'),
+    bacts:$('b-acts'),ti:$('tinp'),sb:$('sbtn'),
+    cbAtk:$('cb-atk'),cbBlock:$('cb-block'),cbFlee:$('cb-flee'),cbItem:$('cb-item'),
+    cbAtkPct:$('cb-atk-pct'),cbFleePct:$('cb-flee-pct'),
+    ni:$('ninp'),cbk:$('cc-bk'),cnx:$('cc-nx'),ccStep:$('cc-step')};
   this.renderIcons();this.bind();this.vvp();
 },
 renderIcons(){
-  [[this.el.bst,PA.icons.person],[this.el.bi,PA.icons.pack],[this.el.bj,PA.icons.book],[this.el.bq,PA.icons.save],[this.el.bm,PA.icons.menu]].forEach(([b,fn])=>{const c=b.querySelector('canvas');if(c)PA.renderIcon(c,fn)});
+  const map=[[this.el.bchar,PA.icons.person],[this.el.bj,PA.icons.book],[this.el.bmenu,PA.icons.menu],
+    [this.el.batk,PA.icons.sword],[this.el.bdef,PA.icons.shield],[this.el.bitem,PA.icons.potion]];
+  map.forEach(([b,fn])=>{const c=b.querySelector('canvas');if(c)PA.renderIcon(c,fn)});
 },
 bind(){
   this.el.cnx.onclick=()=>CC.next();this.el.cbk.onclick=()=>CC.back();
   this.el.ni.onkeydown=e=>{if(e.key==='Enter')CC.next()};
-  this.el.bst.onclick=()=>ML.openStats();
-  this.el.bi.onclick=()=>ML.openInv();this.el.bj.onclick=()=>ML.openJrn();
-  this.el.bq.onclick=()=>{if(GS.qSave())this.addN('Game quick saved.','y');else this.addN('Quick save failed \u2014 storage may be full.','d')};
-  this.el.bm.onclick=()=>ML.openSL();
-  this.el.ba.onclick=()=>ML.openAct();this.el.bi2.onclick=()=>ML.openInv();
+  this.el.bchar.onclick=()=>ML.openChar();
+  this.el.bj.onclick=()=>ML.openJrn();
+  this.el.bmenu.onclick=()=>ML.openMenu();
+  this.el.bacts.onclick=()=>ML.openAct();
   this.el.sb.onclick=()=>this.submit();this.el.ti.onkeydown=e=>{if(e.key==='Enter')this.submit()};
+  const doCombat=(cmd)=>{const ms=CMB.pAct(cmd);ms.forEach(m=>this.addN(m.t,m.c));this.updateHUD();
+    const ca=CMB.gs();if(ca){this.updateDist(ca.dist,!ca.over);if(ca.over){if(ca.won)SE.onWin();else SE.onDeath()}}};
+  this.el.batk.onclick=()=>doCombat('attack');
+  this.el.bdef.onclick=()=>doCombat('block');
+  this.el.bitem.onclick=()=>doCombat('use_potion');
+  this.el.cbAtk.onclick=()=>doCombat('attack');
+  this.el.cbBlock.onclick=()=>doCombat('block');
+  this.el.cbFlee.onclick=()=>doCombat('flee');
+  this.el.cbItem.onclick=()=>doCombat('use_potion');
+  const doMove=(dir)=>{const ms=CMB.pMove(dir);ms.forEach(m=>this.addN(m.t,m.c));this.updateHUD();
+    const ca=CMB.gs();if(ca){this.updateDist(ca.dist,!ca.over);this.updateCombatUI()}};
+  this.el.mvCloser.onclick=()=>doMove('closer');
+  this.el.mvFurther.onclick=()=>doMove('back');
   document.onkeydown=e=>{
-    if((e.key==='q'||e.key==='Q')&&document.activeElement.tagName!=='INPUT'&&GS.run){if(GS.qSave())this.addN('Game quick saved.','y');else this.addN('Quick save failed \u2014 storage may be full.','d')}
-    if(e.key==='Escape')ML.closeAll();
-  };
+    if((e.key==='q'||e.key==='Q')&&document.activeElement.tagName!=='INPUT'&&GS.run){if(GS.qSave())this.addN('Game quick saved.','y');else this.addN('Quick save failed.','d')}
+    if(e.key==='Escape')ML.closeAll()};
 },
 vvp(){if(window.visualViewport){const a=()=>{$('app').style.height=window.visualViewport.height+'px'};window.visualViewport.addEventListener('resize',a);window.visualViewport.addEventListener('scroll',a)}},
-showGame(){this.el.cc.style.display='none';const g=this.el.gm;g.style.display='flex';g.style.flexDirection='column';g.style.flex='1';g.style.overflow='hidden';this.el.hud.classList.add('vis');this.el.bb.classList.add('vis');this.updateHUD()},
+showLanding(){this.el.landing.classList.remove('hidden');this.el.app.classList.remove('vis');this.buildLandingButtons();Particles.start()},
+buildLandingButtons(){
+  const b=this.el.landBtns;b.innerHTML='';
+  const res=GS.loadA();
+  if(res===true&&GS.run){
+    const r=GS.run,clName=CL[r.classes[0]]?CL[r.classes[0]].name:r.classes[0];
+    const cont=document.createElement('button');cont.className='lbtn lbtn-primary';
+    cont.innerHTML='Continue<div class="lbtn-sub">Continue as '+r.name+' · Lv'+r.level+' '+clName+'</div>';
+    cont.onclick=()=>{this.el.landing.classList.add('hidden');Particles.stop();this.el.app.classList.add('vis');this.showGame();this.restoreN();SE.resume()};
+    b.appendChild(cont);
+    const nw=document.createElement('button');nw.className='lbtn lbtn-secondary';nw.textContent='New Adventure';
+    nw.onclick=()=>{if(!confirm('Start new adventure? Current progress will be lost unless saved.'))return;GS.clearA();this.el.landing.classList.add('hidden');Particles.stop();this.el.app.classList.add('vis');this.showCC()};
+    b.appendChild(nw);
+    const ld=document.createElement('button');ld.className='lbtn lbtn-link';ld.textContent='Load Game';
+    ld.onclick=()=>{this.el.landing.classList.add('hidden');Particles.stop();this.el.app.classList.add('vis');this.showGame();this.restoreN();SE.resume();ML.openMenu()};
+    b.appendChild(ld);
+  } else {
+    if(res==='incompatible')GS.clearA();
+    const nw=document.createElement('button');nw.className='lbtn lbtn-primary';nw.textContent='New Adventure';
+    nw.onclick=()=>{this.el.landing.classList.add('hidden');Particles.stop();this.el.app.classList.add('vis');this.showCC()};
+    b.appendChild(nw);
+  }
+},
+showGame(){this.el.cc.style.display='none';const g=this.el.gm;g.style.display='flex';g.style.flexDirection='column';g.style.flex='1';g.style.overflow='hidden';
+  this.el.hud.classList.add('vis');this.el.bb.classList.add('vis');this.setCombatMode(false);this.updateHUD()},
 showCC(){this.el.cc.style.display='flex';this.el.gm.style.display='none';this.el.hud.classList.remove('vis');this.el.bb.classList.remove('vis');CC.reset()},
+setCombatMode(on){
+  if(on){this.el.hud.classList.add('combat-mode');this.el.bb.classList.add('combat-mode');this.updateCombatUI()}
+  else{this.el.hud.classList.remove('combat-mode');this.el.bb.classList.remove('combat-mode')}
+},
+updateCombatUI(){
+  const cs=CMB.gs(),r=GS.run;if(!cs||cs.over)return;
+  const w=r.wpn;if(w){const isMelee=w.t==='melee';const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
+    this.el.atkLbl.textContent=hitPct+'%';this.el.cbAtkPct.textContent=hitPct+'%'}
+  const fleePct=CALC.flee(r,cs.dist);this.el.cbFleePct.textContent=fleePct+'%';
+  const moveAmt=CALC.combatMove(r);
+  this.el.mvCloser.textContent='◄ Closer '+moveAmt+'m';this.el.mvFurther.textContent='Further '+moveAmt+'m ►';
+  this.el.mvCloser.disabled=cs.movedThisTurn||cs.dist<=5;this.el.mvFurther.disabled=cs.movedThisTurn||cs.dist>=30;
+  this.el.dename.textContent=cs.enemy.name;
+},
 updateHUD(){const r=GS.run;if(!r)return;
-  PA.renderPortrait(this.el.hp,r.species);this.el.hp.setAttribute('aria-label',SP[r.species].name+' portrait');
+  PA.renderPortrait(this.el.hp,r.species);
   const clName=CL[r.classes[0]]?CL[r.classes[0]].name:r.classes[0];
-  this.el.hnc.textContent=`${r.name} \u00b7 ${clName} Lv${r.level}`;
+  this.el.hnc.textContent=r.name+' · '+clName+' Lv'+r.level;
   const hpp=Math.max(0,(r.hp/r.mHP)*100);this.el.hbi.style.width=hpp+'%';
   this.el.hbo.setAttribute('aria-valuenow',r.hp);this.el.hbo.setAttribute('aria-valuemax',r.mHP);
-  this.el.htx.textContent=`${r.hp}/${r.mHP} HP`;
+  this.el.htx.textContent=r.hp+'/'+r.mHP+' HP';
   const mpp=Math.max(0,(r.mp/r.mMP)*100);this.el.mbi.style.width=mpp+'%';
   this.el.mbo.setAttribute('aria-valuenow',r.mp);this.el.mbo.setAttribute('aria-valuemax',r.mMP);
-  this.el.mtx.textContent=`${r.mp}/${r.mMP} MP`;
+  this.el.mtx.textContent=r.mp+'/'+r.mMP+' MP';
   const m=GS.getJM();
   if(r.jrnUnlk||m.guideFound||m.handbookFound){this.el.bj.disabled=false;this.el.bj.setAttribute('aria-label','Open journal')}
   else{this.el.bj.disabled=true;this.el.bj.setAttribute('aria-label','Journal locked')}
+  const cs=CMB.gs();if(cs&&!cs.over)this.setCombatMode(true);else this.setCombatMode(false);
 },
 addN(text,type=''){const e=document.createElement('div');e.className='ne';
-  const cls={h:'ne-h',f:'ne-f',c:'ne-c',s:'ne-s',d:'ne-d',y:'ne-y'};
+  const cls={h:'ne-h',f:'ne-f',c:'ne-c',s:'ne-s',d:'ne-d',y:'ne-y',g:'ne-g'};
   if(cls[type])e.classList.add(cls[type]);e.textContent=text;
   this.el.nl.appendChild(e);
   if(GS.run){GS.run.nlog.push({t:text,c:type});if(GS.run.nlog.length>200)GS.run.nlog=GS.run.nlog.slice(-200);GS.saveA()}this.scroll()},
 clearN(){this.el.nl.innerHTML=''},
-restoreN(){this.clearN();if(GS.run&&GS.run.nlog)GS.run.nlog.forEach(n=>{const e=document.createElement('div');e.className='ne';const cls={h:'ne-h',f:'ne-f',c:'ne-c',s:'ne-s',d:'ne-d',y:'ne-y'};if(cls[n.c])e.classList.add(cls[n.c]);e.textContent=n.t;this.el.nl.appendChild(e)});this.scroll()},
+restoreN(){this.clearN();if(GS.run&&GS.run.nlog)GS.run.nlog.forEach(n=>{const e=document.createElement('div');e.className='ne';const cls={h:'ne-h',f:'ne-f',c:'ne-c',s:'ne-s',d:'ne-d',y:'ne-y',g:'ne-g'};if(cls[n.c])e.classList.add(cls[n.c]);e.textContent=n.t;this.el.nl.appendChild(e)});this.scroll()},
 scroll(){requestAnimationFrame(()=>{this.el.nw.scrollTop=this.el.nw.scrollHeight})},
-updateDist(d,show){if(show){this.el.dm.classList.add('vis');this.el.de.style.left=`calc(${Math.min(90,Math.max(10,10+(d-5)*(80/25)))}% - 7px)`;this.el.dp.style.left='5%';this.el.dr.textContent=d+'m'}else this.el.dm.classList.remove('vis')},
+updateDist(d,show){
+  if(show){this.el.dm.classList.add('vis');this.el.mvBtns.classList.add('vis');
+    this.el.dp.style.left='5%';
+    const eLeft=Math.min(90,Math.max(10,10+(d-5)*(80/25)));this.el.de.style.left=eLeft+'%';
+    const cs=CMB.gs(),r=GS.run;let hitInfo='';
+    if(cs&&r&&r.wpn){const isMelee=r.wpn.t==='melee';const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);hitInfo=' · '+hitPct+'% to hit'}
+    this.el.dr.innerHTML='<span class="dist-meters">'+d+'m</span><span class="dist-hit">'+hitInfo+'</span>';
+    this.updateCombatUI();
+  } else {this.el.dm.classList.remove('vis');this.el.mvBtns.classList.remove('vis')}
+},
 submit(){const raw=this.el.ti.value.trim();this.el.ti.value='';if(!raw)return;CP.parse(raw)},
 pulseJ(){this.el.bj.classList.add('pulse');setTimeout(()=>this.el.bj.classList.remove('pulse'),3100)}
 };
 function $(id){return document.getElementById(id)}
-function statBar(label,val,max){max=max||25;return`<div class="sbar"><span class="sbar-l">${label}</span><div class="sbar-o"><div class="sbar-i" style="width:${Math.min(100,(val/max)*100)}%"></div></div><span class="sbar-v">${val}</span></div>`}
-function wtTag(wt){return`<span class="wt-tag wt-${wt}">${WT_NAMES[wt]||'?'}</span>`}
+function statBar(label,val,max){max=max||25;return'<div class="sbar"><span class="sbar-l">'+label+'</span><div class="sbar-o"><div class="sbar-i" style="width:'+Math.min(100,(val/max)*100)+'%"></div></div><span class="sbar-v">'+val+'</span></div>'}
+function wtTag(wt){return'<span class="wt-tag wt-'+wt+'">'+(WT_NAMES[wt]||'?')+'</span>'}
 
 // === MODAL SYSTEM ===
 const ML={
@@ -598,98 +791,101 @@ open(id){this.closeAll();const o=$(id);if(!o)return;this.prev=document.activeEle
 _trap(e){if(e.key!=='Tab')return;const o=ML.active;if(!o)return;const f=o.querySelector('.mc').querySelectorAll('button,input,[tabindex]:not([tabindex="-1"])');if(!f.length)return;const fi=f[0],la=f[f.length-1];if(e.shiftKey&&document.activeElement===fi){e.preventDefault();la.focus()}else if(!e.shiftKey&&document.activeElement===la){e.preventDefault();fi.focus()}},
 closeAll(){document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));if(this.prev){this.prev.focus();this.prev=null}this.active=null},
 
+openChar(tab){
+  const b=$('m-char-b');b.innerHTML='';const r=GS.run;if(!r)return;
+  const tabs=document.createElement('div');tabs.className='tab-bar';
+  const panels={};const names=['Stats','Equipment','Backpack '+r.bp.length+'/6'];
+  const keys=['stats','equip','bp'];
+  const activeTab=tab||'stats';
+  keys.forEach((k,i)=>{
+    const t=document.createElement('button');t.className='tab-btn'+(k===activeTab?' act':'');t.textContent=names[i];
+    t.onclick=()=>{tabs.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('act'));t.classList.add('act');
+      Object.values(panels).forEach(p=>p.classList.remove('act'));panels[k].classList.add('act')};
+    tabs.appendChild(t);
+    const pg=document.createElement('div');pg.className='tab-panel'+(k===activeTab?' act':'');panels[k]=pg});
+  b.appendChild(tabs);
+
+  // Stats tab
+  const sp=SP[r.species],subData=sp.subspecies?sp.subspecies[r.subspecies]:null;
+  let sh='<div class="ist">Primary</div>';
+  const primaryStats=['health','mana','melee','ranged'];
+  primaryStats.forEach(k=>{
+    let derived='';
+    if(k==='health')derived=r.mHP+' HP';
+    else if(k==='mana')derived=r.mMP+' MP';
+    else if(k==='melee'){const h=CALC.meleeHit(r,0)-55;derived=(h>=0?'+':'')+h+'% hit, '+(CALC.meleeDmgMod(r)>=0?'+':'')+CALC.meleeDmgMod(r)+' dmg'}
+    else if(k==='ranged'){const h=CALC.rangedHit(r,0)-55;derived=(h>=0?'+':'')+h+'% hit, '+(CALC.rangedDmgMod(r)>=0?'+':'')+CALC.rangedDmgMod(r)+' dmg'}
+    sh+='<div class="stat-row"><span class="stat-name">'+STAT_LABELS[k]+'</span><span class="stat-val">'+r.stats[k]+'</span><span class="stat-derived">'+derived+'</span></div>'});
+  sh+='<div class="ist">Secondary</div>';
+  const secStats=['speech','sight','smarts','movement'];
+  secStats.forEach(k=>{
+    let derived='';
+    if(k==='speech')derived=CALC.speech(r)+'%';
+    else if(k==='sight')derived=CALC.search(r)+'%';
+    else if(k==='smarts')derived=CALC.smarts(r)+'%';
+    else if(k==='movement'){const eff=CALC.effMov(r);derived=CALC.combatMove(r)+'m/turn';
+      if(eff!==r.stats[k])sh+='<div class="stat-row"><span class="stat-name">'+STAT_LABELS[k]+'</span><span class="stat-val">'+r.stats[k]+' ('+eff+')</span><span class="stat-derived">'+derived+'</span></div>';return}
+    sh+='<div class="stat-row"><span class="stat-name">'+STAT_LABELS[k]+'</span><span class="stat-val">'+r.stats[k]+'</span><span class="stat-derived">'+derived+'</span></div>'});
+  const traitName=subData?subData.trait:(r.species==='human'?sp.trait:'');
+  const traitDesc=subData?subData.traitDesc:(r.species==='human'?sp.traitDesc:'');
+  if(traitName)sh+='<div class="ist">Species Trait</div><div class="trait-card"><strong>'+traitName+'</strong><p>'+traitDesc+'</p></div>';
+  sh+='<div class="ist">Level</div><div style="font-size:.9rem;color:var(--text2)">Level '+r.level+' · '+(r.level<25?r.xp+'/'+r.level*100+' XP':'Max Level')+'</div>';
+  if(r.level<25)sh+='<div class="xp-bar-o"><div class="xp-bar-i" style="width:'+Math.min(100,(r.xp/(r.level*100))*100)+'%"></div></div>';
+  panels.stats.innerHTML=sh;
+
+  // Equipment tab
+  let eh='';
+  [{l:'Weapon',k:'wpn',i:r.wpn},{l:'Offhand',k:'oh',i:r.oh},{l:'Armor',k:'arm',i:r.arm}].forEach(s=>{
+    eh+='<div class="isl-l">'+s.l+'</div>';
+    if(s.i){eh+='<div class="isl"><div class="isl-top"><span class="isl-name">'+s.i.name+(s.i.wt!==undefined?wtTag(s.i.wt):'')+'</span></div><div class="isl-i">'+( s.i.desc||'')+'</div>';
+      if(s.k!=='arm')eh+='<div class="isl-a"><button class="iab" data-unequip="'+s.k+'">Unequip</button></div>';
+      eh+='</div>'}
+    else eh+='<div class="isl isl-empty"><span class="isl-e">Empty</span></div>'});
+  const wt=CALC.totalWt(r);if(wt>0)eh+='<div style="font-size:.8rem;color:var(--text3);margin-top:8px">Weight penalty: -'+wt+' Movement</div>';
+  panels.equip.innerHTML=eh;
+  panels.equip.querySelectorAll('[data-unequip]').forEach(btn=>{
+    btn.onclick=()=>{const k=btn.dataset.unequip;if(r.bp.length>=6){alert('Backpack full!');return}r.bp.push(r[k]);r[k]=null;GS.recalcDerived();GS.saveA();ML.openChar('equip');UI.updateHUD()}});
+
+  // Backpack tab
+  let bh='';
+  for(let i=0;i<6;i++){
+    if(i<r.bp.length){const it=r.bp[i];
+      bh+='<div class="isl"><div class="isl-top"><span class="isl-name">'+it.name+(it.wt!==undefined?wtTag(it.wt):'')+'</span></div><div class="isl-i">'+(it.desc||'')+'</div><div class="isl-a">';
+      if(it.t==='consumable')bh+='<button class="iab" data-use="'+i+'">Use</button>';
+      if(it.t==='melee'||it.t==='ranged')bh+='<button class="iab" data-equip="'+i+'">Equip</button>';
+      if(!it.undrop)bh+='<button class="iab" data-drop="'+i+'">Drop</button>';
+      bh+='</div></div>'}
+    else bh+='<div class="isl isl-empty"><span class="isl-e">Empty slot</span></div>'}
+  panels.bp.innerHTML=bh;
+  panels.bp.querySelectorAll('[data-use]').forEach(btn=>{
+    btn.onclick=()=>{const idx=parseInt(btn.dataset.use);const it=r.bp[idx];if(it&&it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;r.bp.splice(idx,1);GS.saveA();UI.addN('Used '+it.name+', recovered '+h+' HP. ('+r.hp+'/'+r.mHP+')','s');UI.updateHUD();ML.openChar('bp')}}});
+  panels.bp.querySelectorAll('[data-equip]').forEach(btn=>{
+    btn.onclick=()=>{const idx=parseInt(btn.dataset.equip);const it=r.bp[idx];if(r.wpn)r.bp.push(r.wpn);r.wpn=it;r.bp.splice(idx,1);GS.recalcDerived();GS.saveA();UI.updateHUD();ML.openChar('bp')}});
+  panels.bp.querySelectorAll('[data-drop]').forEach(btn=>{
+    btn.onclick=()=>{const idx=parseInt(btn.dataset.drop);const it=r.bp.splice(idx,1)[0];GS.saveA();UI.addN('Dropped '+it.name+'.','y');ML.openChar('bp')}});
+  Object.values(panels).forEach(p=>b.appendChild(p));
+  this.open('m-char')},
+
 openAct(){
   const b=$('m-act-b');b.innerHTML='';const cs=CMB.gs(),r=GS.run;
   if(cs&&!cs.over){
-    const moveAmt=CALC.combatMove(r);
-    b.innerHTML+='<div class="ist">Movement (free)</div>';
-    const mkMove=(label,dir)=>{const btn=document.createElement('button');btn.className='mbtn';
-      btn.innerHTML=`<strong>${label}</strong>`;
-      if(cs.movedThisTurn)btn.disabled=true;
-      if(dir==='closer'&&cs.dist<=5)btn.disabled=true;
-      if(dir==='back'&&cs.dist>=30)btn.disabled=true;
-      btn.onclick=()=>{const ms=CMB.pMove(dir);ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();
-        const ca=CMB.gs();if(ca)UI.updateDist(ca.dist,!ca.over);ML.openAct()};
-      b.appendChild(btn)};
-    mkMove(`Move Closer (\u2212${moveAmt}m)`,'closer');
-    mkMove(`Move Back (+${moveAmt}m)`,'back');
-    b.innerHTML+='<hr class="msep"><div class="ist">Actions</div>';
     const w=r.wpn;let atkDesc='No weapon';
-    if(w){const isMelee=w.t==='melee';
-      const inRange=isMelee?cs.dist<=w.rng:(cs.dist<=w.rng);
-      const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
-      atkDesc=`${w.name} \u2014 ${hitPct}% to hit`+(inRange?'':' (out of range)')}
-    const acts=[
-      {l:'Attack',cmd:'attack',d:atkDesc},
-      {l:'Block',cmd:'block',d:'Reduce incoming damage'},
-      {l:'Use Potion',cmd:'use_potion',d:'Drink a health potion'},
-      {l:`Flee (${CALC.flee(r,cs.dist)}%)`,cmd:'flee',d:'Attempt to escape'}];
+    if(w){const isMelee=w.t==='melee';const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
+      const inRange=isMelee?cs.dist<=w.rng:cs.dist<=w.rng;atkDesc=w.name+' — '+hitPct+'% to hit'+(inRange?'':' (out of range)')}
+    const acts=[{l:'Attack',cmd:'attack',d:atkDesc},{l:'Block',cmd:'block',d:'Reduce incoming damage'},
+      {l:'Use Potion',cmd:'use_potion',d:'Drink a health potion'},{l:'Flee ('+CALC.flee(r,cs.dist)+'%)',cmd:'flee',d:'Attempt to escape'}];
     if(r.subspecies==='shadowstep'&&!r.traitState.vanishUsed&&!r.traitState.hidden)
       acts.push({l:'Vanish (2 MP)',cmd:'vanish',d:'Hide and deal double damage next attack'});
     acts.forEach(a=>{const btn=document.createElement('button');btn.className='mbtn';
-      btn.innerHTML=`<strong>${a.l}</strong>${a.d?`<br><span style="color:var(--t2);font-size:.9rem">${a.d}</span>`:''}`;
+      btn.innerHTML='<strong>'+a.l+'</strong>'+(a.d?'<br><span style="color:var(--text2);font-size:.9rem">'+a.d+'</span>':'');
       btn.onclick=()=>{ML.closeAll();const ms=CMB.pAct(a.cmd);ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();
         const ca=CMB.gs();if(ca){UI.updateDist(ca.dist,!ca.over);if(ca.over){if(ca.won)SE.onWin();else SE.onDeath()}}};
       b.appendChild(btn)})}
   else{const acts=SE.getActions();
     acts.forEach(a=>{const btn=document.createElement('button');btn.className='mbtn';
-      btn.innerHTML=`<strong>${a.l}</strong>${a.d?`<br><span style="color:var(--t2);font-size:.9rem">${a.d}</span>`:''}`;
+      btn.innerHTML='<strong>'+a.l+'</strong>'+(a.d?'<br><span style="color:var(--text2);font-size:.9rem">'+a.d+'</span>':'');
       btn.onclick=()=>{ML.closeAll();SE.handleAction(a.cmd)};b.appendChild(btn)})}
   this.open('m-act')},
-
-openInv(){
-  const b=$('m-inv-b');b.innerHTML='';const r=GS.run;if(!r)return;
-  b.innerHTML='<div class="ist">Equipment</div>';
-  [{l:'Weapon',k:'wpn',i:r.wpn},{l:'Offhand',k:'oh',i:r.oh},{l:'Armor',k:'arm',i:r.arm}].forEach(s=>{
-    const row=document.createElement('div');row.className='isl';
-    row.innerHTML=`<span class="isl-l">${s.l}</span>`;
-    if(s.i){row.innerHTML+=`<span class="isl-i">${s.i.name}${s.i.wt!==undefined?wtTag(s.i.wt):''} <small style="color:var(--t3)">${s.i.desc||''}</small></span>`;
-      if(s.k!=='arm'){const ub=document.createElement('button');ub.className='iab';ub.textContent='Unequip';
-        ub.onclick=()=>{if(r.bp.length>=6){alert('Backpack full!');return}r.bp.push(r[s.k]);r[s.k]=null;GS.recalcDerived();GS.saveA();ML.openInv();UI.updateHUD()};
-        const a=document.createElement('div');a.className='isl-a';a.appendChild(ub);row.appendChild(a)}}
-    else row.innerHTML+=`<span class="isl-e">Empty</span>`;b.appendChild(row)});
-  const bpT=document.createElement('div');bpT.className='ist';bpT.textContent=`Backpack (${r.bp.length}/6)`;b.appendChild(bpT);
-  if(!r.bp.length){const e=document.createElement('div');e.className='isl';e.innerHTML='<span class="isl-e">Empty</span>';b.appendChild(e)}
-  r.bp.forEach((it,i)=>{const row=document.createElement('div');row.className='isl';
-    row.innerHTML=`<span class="isl-i">${it.name}${it.wt!==undefined?wtTag(it.wt):''} <small style="color:var(--t3)">${it.desc||''}</small></span>`;
-    const a=document.createElement('div');a.className='isl-a';
-    if(it.t==='melee'||it.t==='ranged'){const eb=document.createElement('button');eb.className='iab';eb.textContent='Equip';
-      eb.onclick=()=>{if(r.wpn)r.bp.push(r.wpn);r.wpn=it;r.bp.splice(i,1);GS.recalcDerived();GS.saveA();ML.openInv();UI.updateHUD()};a.appendChild(eb)}
-    if(it.t==='consumable'){const ub=document.createElement('button');ub.className='iab';ub.textContent='Use';
-      ub.onclick=()=>{if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;r.bp.splice(i,1);GS.saveA();UI.addN(`Used ${it.name}, recovered ${h} HP. (${r.hp}/${r.mHP})`,'s');UI.updateHUD();ML.openInv()}};a.appendChild(ub)}
-    if(!it.undrop){const db=document.createElement('button');db.className='iab';db.textContent='Drop';
-      db.onclick=()=>{r.bp.splice(i,1);GS.saveA();UI.addN(`Dropped ${it.name}.`,'y');ML.openInv()};a.appendChild(db)}
-    row.appendChild(a);b.appendChild(row)});
-  this.open('m-inv')},
-
-openStats(){
-  const b=$('m-stats-b');b.innerHTML='';const r=GS.run;if(!r)return;
-  const sp=SP[r.species],subData=sp.subspecies?sp.subspecies[r.subspecies]:null;
-  b.innerHTML+=`<div class="ist">${r.name} \u2014 ${sp.name}${subData?' '+subData.name:''} ${CL[r.classes[0]].name}</div>`;
-  b.innerHTML+=`<div style="font-family:var(--fm);font-size:.85rem;color:var(--t2);margin-bottom:8px">Level ${r.level} \u2014 ${r.level<25?`${r.xp}/${r.level*100} XP`:'Max Level'}</div>`;
-  b.innerHTML+='<div class="ist">Stats</div>';
-  let statsH='';STAT_NAMES.forEach(k=>statsH+=statBar(STAT_LABELS[k],r.stats[k]));b.innerHTML+=statsH;
-  b.innerHTML+='<div class="ist">Derived</div>';
-  const pDef=CALC.playerDef(r);
-  const derived=[['Max HP',r.mHP],['Max MP',r.mMP],['Melee Hit',CALC.meleeHit(r,0)+'%'],['Ranged Hit',CALC.rangedHit(r,0)+'%'],
-    ['Defense',pDef],['Combat Move',CALC.combatMove(r)+'m/turn'],['Eff. Movement',CALC.effMov(r)],
-    ['Flee (10m)',CALC.flee(r,10)+'%'],['Search',CALC.search(r)+'%'],['Persuasion',CALC.speech(r)+'%'],['Knowledge',CALC.smarts(r)+'%']];
-  derived.forEach(([l,v])=>{b.innerHTML+=`<div class="csr"><span class="csl">${l}</span><span class="csv">${v}</span></div>`});
-  const traitName=subData?subData.trait:(r.species==='human'?sp.trait:'');
-  const traitDesc=subData?subData.traitDesc:(r.species==='human'?sp.traitDesc:'');
-  if(traitName)b.innerHTML+=`<div class="ist">Trait: ${traitName}</div><p style="color:var(--t2);font-size:.95rem">${traitDesc}</p>`;
-  this.open('m-stats')},
-
-openLvl(lvl,cb){
-  const b=$('m-lvl-b');b.innerHTML='';const r=GS.run;
-  b.innerHTML+=`<p style="text-align:center;font-size:1.2rem;color:var(--gold);margin-bottom:8px">You reached level ${lvl}!</p>`;
-  b.innerHTML+=`<p style="text-align:center;color:var(--grn);margin-bottom:12px">+1 Health (automatic, +4 max HP)<br>HP and MP fully restored!</p>`;
-  b.innerHTML+='<div class="ist">Choose a stat to increase by 1:</div>';
-  STAT_NAMES.forEach(k=>{const btn=document.createElement('button');btn.className='mbtn';
-    btn.innerHTML=`<strong>${STAT_LABELS[k]}</strong> <span style="color:var(--t2)">(currently ${r.stats[k]})</span>`;
-    btn.onclick=()=>{r.stats[k]++;GS.recalcDerived();r.hp=r.mHP;r.mp=r.mMP;GS.saveA();ML.closeAll();UI.updateHUD();if(cb)cb()};
-    b.appendChild(btn)});
-  this.open('m-lvl')},
 
 openJrn(){
   const b=$('m-jrn-b');b.innerHTML='';const r=GS.run,m=GS.getJM();
@@ -699,48 +895,69 @@ openJrn(){
     t.onclick=()=>{tabs.querySelectorAll('.jtab').forEach(x=>{x.classList.remove('act');x.setAttribute('aria-selected','false')});t.classList.add('act');t.setAttribute('aria-selected','true');Object.values(pgs).forEach(p=>p.classList.remove('act'));pgs[n].classList.add('act')};
     tabs.appendChild(t);const pg=document.createElement('div');pg.className='jp'+(i===0?' act':'');pg.setAttribute('role','tabpanel');pgs[n]=pg});
   b.appendChild(tabs);
-  pgs.Combat.innerHTML='<h3>Combat System</h3><p>Combat uses percentage-based checks. Your hit chance is shown before each attack.</p><h3>Distance</h3><p>Battlefield spans 5m\u201330m. Melee weapons strike at 5m. Ranged: 10\u201330m (penalty under 10m).</p><h3>Free Movement</h3><p>Each turn you can move AND take an action. Movement distance = Movement stat \u00d7 2 meters, reduced by equipment weight.</p><h3>Actions</h3><p><strong style="color:var(--gold)">Attack</strong> \u2014 Hit chance: 55% + (attack stat \u2212 5) \u00d7 5% \u2212 enemy defense \u00d7 3%.</p><p><strong style="color:var(--gold)">Block</strong> \u2014 Raise shield to reduce damage.</p><p><strong style="color:var(--gold)">Use Item</strong> \u2014 Consume potions mid-combat.</p><p><strong style="color:var(--gold)">Flee</strong> \u2014 30% + distance \u00d7 1.5% + (Movement \u2212 5) \u00d7 5%.</p><h3>Damage</h3><p>Weapon dice + (attack stat \u2212 5) + trait bonuses. All rolls clamped 5%\u201395%.</p>';
-  let clH='<h3>Classes</h3>';Object.values(CL).forEach(c=>{clH+=`<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">${c.name}</strong></p><p style="font-style:italic;color:var(--t2)">${c.desc}</p><p style="font-family:var(--fm);font-size:.9rem">${c.stats}</p></div>`});pgs.Classes.innerHTML=clH;
-  let spH='<h3>Species</h3>';Object.entries(SP).forEach(([k,s])=>{spH+=`<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">${s.name}</strong></p><p style="font-style:italic;color:var(--t2)">${s.desc}</p>`;
-    spH+=`<p style="font-family:var(--fm);font-size:.85rem">`;STAT_NAMES.forEach(st=>spH+=`${STAT_LABELS[st]}:${s.stats[st]} `);spH+='</p>';
-    if(s.subspecies)Object.values(s.subspecies).forEach(sub=>{spH+=`<p style="margin-left:12px;margin-top:4px"><strong style="color:var(--goldB)">${sub.name}</strong> \u2014 <em style="color:var(--t2)">${sub.trait}</em>: ${sub.traitDesc}</p>`});
-    else if(s.trait)spH+=`<p style="margin-left:12px"><em style="color:var(--t2)">${s.trait}</em>: ${s.traitDesc}</p>`;
+  pgs.Combat.innerHTML='<h3>Combat System</h3><p>Combat uses percentage-based checks. Your hit chance is shown before each attack.</p><h3>Distance</h3><p>Battlefield spans 5m–30m. Melee weapons strike at 5m. Ranged: 10–30m (penalty under 10m).</p><h3>Free Movement</h3><p>Each turn you can move AND take an action. Movement distance = Movement stat × 2 meters, reduced by equipment weight.</p><h3>Actions</h3><p><strong style="color:var(--gold)">Attack</strong> — Hit chance: 55% + (attack stat − 5) × 5% − enemy defense × 3%.</p><p><strong style="color:var(--gold)">Block</strong> — Raise shield to reduce damage.</p><p><strong style="color:var(--gold)">Use Item</strong> — Consume potions mid-combat.</p><p><strong style="color:var(--gold)">Flee</strong> — 30% + distance × 1.5% + (Movement − 5) × 5%.</p><h3>Damage</h3><p>Weapon dice + (attack stat − 5) + trait bonuses. All rolls clamped 5%–95%.</p>';
+  let clH='<h3>Classes</h3>';Object.values(CL).forEach(c=>{clH+='<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">'+c.name+'</strong></p><p style="font-style:italic;color:var(--text2)">'+c.desc+'</p><p style="font-size:.9rem;color:var(--text3)">'+c.stats+'</p></div>'});pgs.Classes.innerHTML=clH;
+  let spH='<h3>Species</h3>';Object.entries(SP).forEach(([k,s])=>{spH+='<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">'+s.name+'</strong></p><p style="font-style:italic;color:var(--text2)">'+s.desc+'</p>';
+    spH+='<p style="font-size:.85rem;color:var(--text3)">';STAT_NAMES.forEach(st=>{spH+=STAT_LABELS[st]+':'+s.stats[st]+' '});spH+='</p>';
+    if(s.subspecies)Object.values(s.subspecies).forEach(sub=>{spH+='<p style="margin-left:12px;margin-top:4px"><strong style="color:var(--gold-bright)">'+sub.name+'</strong> — <em style="color:var(--text2)">'+sub.trait+'</em>: '+sub.traitDesc+'</p>'});
+    else if(s.trait)spH+='<p style="margin-left:12px"><em style="color:var(--text2)">'+s.trait+'</em>: '+s.traitDesc+'</p>';
     spH+='</div>'});pgs.Species.innerHTML=spH;
-  const bst=m.bestiary||{};if(!Object.keys(bst).length)pgs.Bestiary.innerHTML='<h3>Bestiary</h3><p style="color:var(--t3);font-style:italic">No creatures encountered yet.</p>';
-  else{let bH='<h3>Bestiary</h3>';Object.entries(bst).forEach(([id,be])=>{const se=r?(r.bSeen[id]||0):0,de=r?(r.bDef[id]||0):0;bH+=`<div class="be"><div class="be-n">${be.name}</div><div class="be-l">${be.lore}</div><div class="be-s">HP:${be.hp} ATK:${be.atk} DEF:${be.def} DMG:${be.dmg} Move:${be.spd}m Range:${be.rng}m</div><div class="be-s" style="margin-top:4px">Encountered: ${se} | Defeated: ${de}</div></div>`});pgs.Bestiary.innerHTML=bH}
-  pgs.World.innerHTML='<h3>The World</h3><p>The realm lies under an ashen sky. Once-great kingdoms crumbled into scattered settlements, connected by muddy trails winding through forests thick with ancient magic and creeping dangers. Travelers arm themselves not from paranoia but necessity \u2014 the wilds teem with oozes, beasts, and worse. Yet good folk remain on the roads: gatekeepers, healers, and wanderers who trade stories by firelight. The trail is dangerous, but it is the only way forward.</p>';
+  const bst=m.bestiary||{};if(!Object.keys(bst).length)pgs.Bestiary.innerHTML='<h3>Bestiary</h3><p style="color:var(--text3);font-style:italic">No creatures encountered yet.</p>';
+  else{let bH='<h3>Bestiary</h3>';Object.entries(bst).forEach(([id,be])=>{const se=r?(r.bSeen[id]||0):0,de=r?(r.bDef[id]||0):0;bH+='<div class="be"><div class="be-n">'+be.name+'</div><div class="be-l">'+be.lore+'</div><div class="be-s">HP:'+be.hp+' ATK:'+be.atk+' DEF:'+be.def+' DMG:'+be.dmg+' Move:'+be.spd+'m Range:'+be.rng+'m</div><div class="be-s" style="margin-top:4px">Encountered: '+se+' | Defeated: '+de+'</div></div>'});pgs.Bestiary.innerHTML=bH}
+  pgs.World.innerHTML='<h3>The World</h3><p>The realm lies under an ashen sky. Once-great kingdoms crumbled into scattered settlements, connected by muddy trails winding through forests thick with ancient magic and creeping dangers. Travelers arm themselves not from paranoia but necessity — the wilds teem with oozes, beasts, and worse. Yet good folk remain on the roads: gatekeepers, healers, and wanderers who trade stories by firelight. The trail is dangerous, but it is the only way forward.</p>';
   Object.values(pgs).forEach(p=>b.appendChild(p));this.open('m-jrn')},
 
-openSL(){
-  const b=$('m-sl-b');b.innerHTML='';
-  const qs=GS.getQS(),mkSlot=(title,data,loadFn)=>{
-    const d=document.createElement('div');d.className='ssl';d.innerHTML=`<div class="ssl-h">${title}</div>`;
-    if(data){const clName=CL[data.classes?data.classes[0]:data.class]?CL[data.classes?data.classes[0]:data.class].name:'?';
-      d.innerHTML+=`<div class="ssl-i">${data.name} \u00b7 ${clName} Lv${data.level} \u00b7 ${data.scene}<br>${new Date(data.savedAt).toLocaleString()}</div>`;
-      const a=document.createElement('div');a.className='ssl-a';
-      const lb=document.createElement('button');lb.className='slb';lb.textContent='Load';lb.onclick=()=>{const res=loadFn();if(res==='incompatible'){alert('This save is from an older version and is incompatible. Please start a new adventure.');return}if(res){ML.closeAll();UI.clearN();UI.restoreN();UI.updateHUD();SE.resume()}};a.appendChild(lb);d.appendChild(a)}
-    else d.innerHTML+=`<div class="ssl-i" style="color:var(--t3)">Empty</div>`;return d};
-  b.appendChild(mkSlot('Quick Save',qs,()=>GS.qLoad()));
+openMenu(){
+  const b=$('m-menu-b');b.innerHTML='';
+  const qs=GS.getQS();
+  // Quick save button
+  if(GS.run){const qsb=document.createElement('button');qsb.className='slb';qsb.textContent='Quick Save';qsb.style.cssText='width:100%;margin-bottom:12px';
+    qsb.onclick=()=>{if(GS.qSave()){UI.addN('Game quick saved.','y');ML.openMenu()}else UI.addN('Quick save failed.','d')};b.appendChild(qsb)}
+  // Save slots
   const sv=GS.getMSaves();
-  for(let i=0;i<3;i++){const sl=document.createElement('div');sl.className='ssl';sl.innerHTML=`<div class="ssl-h">Slot ${i+1}</div>`;
+  const mkSlot=(title,data,loadFn)=>{
+    const d=document.createElement('div');d.className='ssl';d.innerHTML='<div class="ssl-h">'+title+'</div>';
+    if(data){const clName=CL[data.classes?data.classes[0]:data.class]?CL[data.classes?data.classes[0]:data.class].name:'?';
+      d.innerHTML+='<div class="ssl-i">'+data.name+' · '+clName+' Lv'+data.level+' · '+data.scene+'<br>'+new Date(data.savedAt).toLocaleString()+'</div>';
+      const a=document.createElement('div');a.className='ssl-a';
+      const lb=document.createElement('button');lb.className='slb';lb.textContent='Load';lb.onclick=()=>{const res=loadFn();if(res==='incompatible'){alert('This save is from an older version.');return}if(res){ML.closeAll();UI.clearN();UI.restoreN();UI.updateHUD();SE.resume()}};a.appendChild(lb);d.appendChild(a)}
+    else d.innerHTML+='<div class="ssl-i" style="color:var(--text3)">Empty</div>';return d};
+  if(qs)b.appendChild(mkSlot('Quick Save',qs,()=>GS.qLoad()));
+  for(let i=0;i<3;i++){const sl=document.createElement('div');sl.className='ssl';sl.innerHTML='<div class="ssl-h">Slot '+(i+1)+'</div>';
     if(sv[i]){const clName=CL[sv[i].classes?sv[i].classes[0]:sv[i].class]?CL[sv[i].classes?sv[i].classes[0]:sv[i].class].name:'?';
-      sl.innerHTML+=`<div class="ssl-i">${sv[i].name} \u00b7 ${clName} Lv${sv[i].level} \u00b7 ${sv[i].scene}<br>${new Date(sv[i].savedAt).toLocaleString()}</div>`}
-    else sl.innerHTML+=`<div class="ssl-i" style="color:var(--t3)">Empty</div>`;
+      sl.innerHTML+='<div class="ssl-i">'+sv[i].name+' · '+clName+' Lv'+sv[i].level+' · '+sv[i].scene+'<br>'+new Date(sv[i].savedAt).toLocaleString()+'</div>'}
+    else sl.innerHTML+='<div class="ssl-i" style="color:var(--text3)">Empty</div>';
     const a=document.createElement('div');a.className='ssl-a';
-    if(GS.run){const sb=document.createElement('button');sb.className='slb';sb.textContent='Save';const ii=i;sb.onclick=()=>{if(GS.mSave(ii)){UI.addN(`Saved to slot ${ii+1}.`,'y')}else{UI.addN(`Save to slot ${ii+1} failed.`,'d')}ML.openSL()};a.appendChild(sb)}
+    if(GS.run){const sb=document.createElement('button');sb.className='slb';sb.textContent='Save';const ii=i;sb.onclick=()=>{if(GS.mSave(ii)){UI.addN('Saved to slot '+(ii+1)+'.','y')}else{UI.addN('Save failed.','d')}ML.openMenu()};a.appendChild(sb)}
     if(sv[i]){const lb=document.createElement('button');lb.className='slb';lb.textContent='Load';const ii=i;lb.onclick=()=>{const res=GS.mLoad(ii);if(res==='incompatible'){alert('This save is from an older version.');return}if(res){ML.closeAll();UI.clearN();UI.restoreN();UI.updateHUD();SE.resume()}};a.appendChild(lb)}
     sl.appendChild(a);b.appendChild(sl)}
-  const nr=document.createElement('button');nr.className='slb dng';nr.textContent='New Run';nr.style.cssText='margin-top:12px;width:100%';
+  const nr=document.createElement('button');nr.className='slb dng';nr.textContent='New Adventure';nr.style.cssText='margin-top:12px;width:100%';
   nr.onclick=()=>{if(GS.run&&!confirm('Start new run? Unsaved progress lost.'))return;GS.clearA();ML.closeAll();UI.clearN();UI.showCC()};b.appendChild(nr);
   const nt=document.createElement('div');nt.className='snotice';nt.textContent='Saves are stored in this browser.';b.appendChild(nt);
-  this.open('m-sl')},
+  this.open('m-menu')},
 
-openDlg(speaker,text,opts,cb){
+openDlg(speaker,title,text,opts,cb){
   $('dlg-t').textContent=speaker;const b=$('m-dlg-b');b.innerHTML='';
-  b.innerHTML+=`<div class="dsp">${speaker}</div><div class="dtx">${text}</div>`;
+  b.innerHTML+='<div class="dlg-name">'+speaker+'</div>';
+  if(title)b.innerHTML+='<div class="dlg-title">'+title+'</div>';
+  b.innerHTML+='<div class="dtx">'+text+'</div>';
   if(opts&&opts.length){const od=document.createElement('div');od.className='dopts';
     opts.forEach((o,i)=>{const btn=document.createElement('button');btn.className='mbtn';btn.textContent=o.text;btn.onclick=()=>{ML.closeAll();if(cb)cb(i,o)};od.appendChild(btn)});b.appendChild(od)}
-  this.open('m-dlg')}
+  this.open('m-dlg');
+  // Remove close button and backdrop-close for dialogue (player must choose)
+  const modal=$('m-dlg');const mx=modal.querySelector('.mx');if(mx)mx.style.display='none';
+  modal.onclick=e=>{e.stopPropagation()}},
+
+openLvl(lvl,cb){
+  const b=$('m-lvl-b');b.innerHTML='';const r=GS.run;
+  b.innerHTML+='<p style="text-align:center;font-size:1.2rem;color:var(--gold);margin-bottom:8px">You reached level '+lvl+'!</p>';
+  b.innerHTML+='<p style="text-align:center;color:var(--green);margin-bottom:12px">+1 Health (automatic, +4 max HP)<br>HP and MP fully restored!</p>';
+  b.innerHTML+='<div class="ist">Choose a stat to increase by 1:</div>';
+  STAT_NAMES.forEach(k=>{const btn=document.createElement('button');btn.className='mbtn';
+    btn.innerHTML='<strong>'+STAT_LABELS[k]+'</strong> <span style="color:var(--text2)">(currently '+r.stats[k]+')</span>';
+    btn.onclick=()=>{r.stats[k]++;GS.recalcDerived();r.hp=r.mHP;r.mp=r.mMP;GS.saveA();ML.closeAll();UI.updateHUD();if(cb)cb()};
+    b.appendChild(btn)});
+  this.open('m-lvl')}
 };
 
 // === CHARACTER CREATION ===
@@ -749,6 +966,9 @@ step:1,sp:null,subsp:null,cl:null,humanBonus:[],
 reset(){this.step=1;this.sp=null;this.subsp=null;this.cl=null;this.humanBonus=[];this.showStep(1);UI.el.ni.value='';UI.el.cbk.style.display='none';UI.el.cnx.textContent='Continue';this.buildSP();this.buildCL()},
 showStep(n){document.querySelectorAll('.ccs').forEach(s=>s.classList.remove('act'));const s=$('ccs'+n);if(s)s.classList.add('act');
   UI.el.cbk.style.display=n>1?'block':'none';UI.el.cnx.textContent=n===6?'Begin Adventure':'Continue';
+  // Step indicator
+  let totalSteps=6;if(this.sp==='human')totalSteps=6;else if(this.sp&&SP[this.sp]&&!SP[this.sp].subspecies)totalSteps=5;
+  UI.el.ccStep.textContent='Step '+n+' of '+totalSteps;
   if(n===1)requestAnimationFrame(()=>UI.el.ni.focus());if(n===6)this.buildSum()},
 next(){
   if(this.step===1&&!UI.el.ni.value.trim()){UI.el.ni.focus();return}
@@ -773,7 +993,7 @@ back(){if(this.step>1){
   this.showStep(this.step)}},
 mkCard(cont,key,data,portraits,sel,setSel){
   const c=document.createElement('div');c.className='ccd';c.setAttribute('role','radio');c.setAttribute('aria-checked','false');c.setAttribute('tabindex','0');
-  c.setAttribute('aria-label',`${data.name}: ${data.desc}`);
+  c.setAttribute('aria-label',data.name+': '+data.desc);
   const cv=document.createElement('canvas');cv.width=64;cv.height=64;cv.setAttribute('aria-hidden','true');
   if(portraits)PA.renderPortrait(cv,key);
   const info=document.createElement('div');info.className='ccd-i';
@@ -781,8 +1001,8 @@ mkCard(cont,key,data,portraits,sel,setSel){
   if(data.stats&&typeof data.stats==='object'&&!Array.isArray(data.stats)){
     const s=data.stats;statsLine=STAT_NAMES.map(k=>STAT_LABELS[k].substring(0,3)+':'+s[k]).join(' ')}
   else if(typeof data.stats==='string')statsLine=data.stats;
-  let traitLine='';if(data.trait)traitLine=`<div class="ccd-s" style="color:var(--gold)">${data.trait}: ${data.traitDesc||''}</div>`;
-  info.innerHTML=`<div class="ccd-n">${data.name}</div><div class="ccd-d">${data.desc}</div>${statsLine?`<div class="ccd-s">${statsLine}</div>`:''}${traitLine}`;
+  let traitLine='';if(data.trait)traitLine='<div class="ccd-s" style="color:var(--gold)">'+data.trait+': '+(data.traitDesc||'')+'</div>';
+  info.innerHTML='<div class="ccd-n">'+data.name+'</div><div class="ccd-d">'+data.desc+'</div>'+(statsLine?'<div class="ccd-s">'+statsLine+'</div>':'')+traitLine;
   c.appendChild(cv);c.appendChild(info);
   const pick=()=>{cont.querySelectorAll('.ccd').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-checked','false')});c.classList.add('sel');c.setAttribute('aria-checked','true');setSel(key)};
   c.onclick=pick;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}};cont.appendChild(c)},
@@ -792,11 +1012,16 @@ buildSubSP(){const c=$('subsp-cards');c.innerHTML='';const sp=SP[this.sp];if(!sp
 buildHumanBonus(){const c=$('hb-list');c.innerHTML='';this.humanBonus=[];$('hb-pts').textContent='Points remaining: 2';
   STAT_NAMES.forEach(k=>{const row=document.createElement('div');row.className='hb-row';row.id='hb-'+k;
     const baseVal=SP.human.stats[k];
-    row.innerHTML=`<span class="hb-name">${STAT_LABELS[k]}</span><span class="hb-val" id="hbv-${k}">${baseVal}</span>`;
+    row.innerHTML='<span class="hb-name">'+STAT_LABELS[k]+'</span><span class="hb-val" id="hbv-'+k+'">'+baseVal+'</span>';
     const btn=document.createElement('button');btn.className='hb-btn';btn.id='hbb-'+k;btn.textContent='+';
-    btn.onclick=()=>{if(this.humanBonus.length>=2||this.humanBonus.includes(k))return;
-      this.humanBonus.push(k);$('hbv-'+k).textContent=baseVal+1;btn.disabled=true;btn.style.opacity='.3';
-      $('hb-pts').textContent=`Points remaining: ${2-this.humanBonus.length}`;
+    btn.onclick=()=>{
+      if(this.humanBonus.includes(k)){
+        this.humanBonus=this.humanBonus.filter(x=>x!==k);$('hbv-'+k).textContent=baseVal;btn.textContent='+';btn.style.opacity='1';
+        $('hb-pts').textContent='Points remaining: '+(2-this.humanBonus.length);
+        STAT_NAMES.forEach(sk=>{const b=$('hbb-'+sk);if(b){b.disabled=false;b.style.opacity='1'}});return}
+      if(this.humanBonus.length>=2)return;
+      this.humanBonus.push(k);$('hbv-'+k).textContent=baseVal+1;btn.textContent='−';
+      $('hb-pts').textContent='Points remaining: '+(2-this.humanBonus.length);
       if(this.humanBonus.length>=2)STAT_NAMES.forEach(sk=>{if(!this.humanBonus.includes(sk)){const b=$('hbb-'+sk);if(b){b.disabled=true;b.style.opacity='.3'}}})};
     row.appendChild(btn);c.appendChild(row)})},
 buildCL(){const c=$('cl-cards');c.innerHTML='';Object.entries(CL).forEach(([k,cl])=>this.mkCard(c,k,cl,false,this.cl,v=>{this.cl=v}))},
@@ -808,12 +1033,12 @@ buildSum(){const c=$('cc-sum');const nm=UI.el.ni.value.trim(),sp=SP[this.sp],cl=
   let mMP=stats.mana*4;if(this.subsp==='brightelf'||this.subsp==='ashborn')mMP+=4;
   const traitName=subData?subData.trait:(this.sp==='human'?sp.trait:'');
   const traitDesc=subData?subData.traitDesc:(this.sp==='human'?sp.traitDesc:'');
-  let h=[['Name',nm],['Species',sp.name+(subData?' \u2014 '+subData.name:'')],['Class',cl.name],['Max HP',mHP],['Max MP',mMP]];
+  let h=[['Name',nm],['Species',sp.name+(subData?' — '+subData.name:'')],['Class',cl.name],['Max HP',mHP],['Max MP',mMP]];
   if(traitName)h.push(['Trait',traitName]);
-  let html=h.map(([l,v])=>`<div class="csr"><span class="csl">${l}</span><span class="csv">${v}</span></div>`).join('');
+  let html=h.map(([l,v])=>'<div class="csr"><span class="csl">'+l+'</span><span class="csv">'+v+'</span></div>').join('');
   html+='<div class="ist" style="margin-top:10px">Stats</div>';
-  STAT_NAMES.forEach(k=>html+=statBar(STAT_LABELS[k],stats[k]));
-  if(traitDesc)html+=`<div style="margin-top:10px;color:var(--t2);font-size:.9rem;font-style:italic">${traitDesc}</div>`;
+  STAT_NAMES.forEach(k=>{html+=statBar(STAT_LABELS[k],stats[k])});
+  if(traitDesc)html+='<div style="margin-top:10px;color:var(--text2);font-size:.9rem;font-style:italic">'+traitDesc+'</div>';
   c.innerHTML=html}
 };
 
@@ -861,7 +1086,7 @@ parse(raw){
 const SE={
 scenes:{
 trailhead:{
-  enter(){UI.addN('\u2014 The Trailhead \u2014','h');
+  enter(){UI.addN('The Trailhead','h');
     UI.addN('The muddy trail stretches northward into a dense, fog-choked forest. The air is thick with wet earth and decay. A half-rotted sign reads: "Beware \u2014 creatures ahead."');
     UI.addN('A weathered guardsman stands beside the trail gate, watching with tired but alert eyes.','f');
     if(!GS.run.ss.aldric)setTimeout(()=>SE.aldric(),600)},
@@ -869,7 +1094,7 @@ trailhead:{
   handle(cmd){if(cmd==='talk_aldric'||cmd==='talk')SE.aldric();else if(cmd==='go_north')SE.enter('midway')}
 },
 midway:{
-  enter(){UI.addN('\u2014 Midway on the Trail \u2014','h');
+  enter(){UI.addN('Midway on the Trail','h');
     UI.addN('The trail narrows between gnarled trees whose branches interlock overhead. Mud sucks at your boots with every step.');
     if(!GS.run.ss.pouch)UI.addN('Something glints in the mud \u2014 a leather pouch, half-buried and forgotten.','f')},
   getActions(){const a=[];if(!GS.run.ss.pouch)a.push({l:'Search Pouch',cmd:'search',d:'The leather pouch in the mud'});a.push({l:'Go North',cmd:'go_north',d:'Continue deeper'});a.push({l:'Go South',cmd:'go_south',d:'Back to trailhead'});return a},
@@ -880,7 +1105,7 @@ midway:{
     else if(cmd==='go_north')SE.enter('ooze');else if(cmd==='go_south')SE.enter('trailhead')}
 },
 ooze:{
-  enter(){UI.addN('\u2014 Ambush! \u2014','h');
+  enter(){UI.addN('Ambush!','h');
     UI.addN('The trail opens into a clearing. The mud bubbles unnaturally. A mass of glistening gray slime rises from the earth, quivering with malevolent intent.');
     UI.addN('A Gray Ooze blocks your path!','d');
     const cs=CMB.start('gray_ooze');UI.updateDist(cs.dist,true);
@@ -888,7 +1113,7 @@ ooze:{
   getActions(){return[]},handle(){}
 },
 post_ooze:{
-  enter(){UI.addN('\u2014 After the Battle \u2014','h');
+  enter(){UI.addN('After the Battle','h');
     UI.addN('The remains of the Gray Ooze spread across the trail in a steaming, acrid puddle. The forest is quiet.');
     if(!GS.run.ss.oozeSearch1)UI.addN('Something solid rests within the dissolving remains.','f');
     else if(!GS.run.ss.oozeSearch2)UI.addN('The remains still glisten. Perhaps there is more to find.','f')},
@@ -911,7 +1136,7 @@ post_ooze:{
     else if(cmd==='go_south')SE.enter('midway')}
 },
 trail_end:{
-  enter(){UI.addN('\u2014 Trail\u2019s End \u2014','h');
+  enter(){UI.addN('Trail\u2019s End','h');
     UI.addN('The forest thins and the trail widens to a mossy clearing lit by dappled sunlight. A small stone shrine stands at the center, covered in climbing ivy.');
     UI.addN('A woman in green robes tends herbs near the shrine. She looks up and smiles warmly.','f');
     if(!GS.run.ss.mira)setTimeout(()=>SE.mira(),600)},
@@ -957,20 +1182,20 @@ aldric(){if(GS.run.ss.aldric)return;
 
 mira(){if(GS.run.ss.mira)return;
   const r=GS.run;
-  ML.openDlg('Mira the Healer',
+  ML.openDlg('MIRA','The Healer',
     '"Welcome, traveler. You bear the marks of battle \u2014 that acidic stench can only mean you faced an Ooze on the trail. Let me tend your wounds."',
     [{text:'"Please, I could use the help."'},{text:'"What can you tell me about this place?"'}],
     (i)=>{r.hp=r.mHP;r.mp=r.mMP;GS.run.ss.mira=true;UI.updateHUD();
       if(i===0){if(r.bp.length<6)r.bp.push({...ITEMS.hpot});GS.saveA();
-        ML.openDlg('Mira',`"There. Good as new. Take this potion as well \u2014 the road beyond here grows darker still. You\u2019ve done well to make it this far, ${r.name}. Perhaps we\u2019ll meet again."`,
+        ML.openDlg('MIRA','The Healer',`"There. Good as new. Take this potion as well \u2014 the road beyond here grows darker still. You\u2019ve done well to make it this far, ${r.name}. Perhaps we\u2019ll meet again."`,
           [{text:'"Until next time, Mira."'}],()=>{UI.addN('Mira smiles and returns to her herbs. You feel restored.','s');UI.addN(`HP and MP fully restored. Health Potion added to backpack.`,'y');SE.runComplete()})}
       else{if(r.bp.length<6)r.bp.push({...ITEMS.hpot});GS.saveA();
-        ML.openDlg('Mira','"This shrine has stood since before the kingdoms fell. It\u2019s a place of healing \u2014 the forest seems to respect it. Beyond here, the trails lead to darker places: the Whispering Bog, the Iron Hollows\u2026 but those are journeys for another day."',
+        ML.openDlg('MIRA','The Healer','"This shrine has stood since before the kingdoms fell. It\u2019s a place of healing \u2014 the forest seems to respect it. Beyond here, the trails lead to darker places: the Whispering Bog, the Iron Hollows\u2026 but those are journeys for another day."',
           [{text:'"I look forward to it. Thank you."'}],()=>{UI.addN('Mira heals your wounds and gives you a Health Potion.','s');UI.addN(`HP and MP fully restored.`,'y');SE.runComplete()})}})},
 
 runComplete(){
   const r=GS.run,xpRes=GS.addXP(25);
-  UI.addN('\u2014 Trail Complete! \u2014','h');
+  UI.addN('Trail Complete!','h');
   UI.addN(`XP earned: ${xpRes.gained} (exploration bonus)`,'s');
   if(xpRes.leveled){
     const showLvl=(idx)=>{if(idx>=xpRes.lvls.length){UI.addN('Your journey along the Muddy Trail is complete. Save your progress from the menu, or begin anew.','f');UI.updateHUD();return}
@@ -983,17 +1208,32 @@ runComplete(){
 }
 };
 
+// === PARTICLES ===
+const Particles={
+  cvs:null,ctx:null,particles:[],running:false,raf:null,
+  start(){this.cvs=$('particles');if(!this.cvs)return;this.ctx=this.cvs.getContext('2d');
+    this.resize();window.addEventListener('resize',()=>this.resize());
+    this.particles=[];for(let i=0;i<25;i++)this.particles.push(this.spawn());
+    this.running=true;this.loop()},
+  stop(){this.running=false;if(this.raf)cancelAnimationFrame(this.raf)},
+  resize(){if(!this.cvs)return;this.cvs.width=window.innerWidth;this.cvs.height=window.innerHeight},
+  spawn(){return{x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,
+    r:1+Math.random()*1.5,vy:-(0.2+Math.random()*0.3),vx:(Math.random()-0.5)*0.3,
+    o:0.08+Math.random()*0.12}},
+  loop(){if(!this.running)return;const c=this.ctx,w=this.cvs.width,h=this.cvs.height;
+    c.clearRect(0,0,w,h);
+    this.particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;
+      if(p.y<-10){p.y=h+10;p.x=Math.random()*w}
+      c.beginPath();c.arc(p.x,p.y,p.r,0,Math.PI*2);c.fillStyle='rgba(201,168,76,'+p.o+')';c.fill()});
+    this.raf=requestAnimationFrame(()=>this.loop())}
+};
+
 // === INIT ===
 document.addEventListener('DOMContentLoaded',()=>{
   UI.init();
-  const res=GS.loadA();
-  if(res==='incompatible'){
-    GS.clearA();
-    alert('A new version of Minute Adventurer is available! Your old save is incompatible. Please start a new adventure.');
-    CC.reset();
-  }else if(res){UI.showGame();UI.restoreN();SE.resume()}
-  else{CC.reset()}
+  UI.showLanding();
 });
+
 // === PWA SERVICE WORKER REGISTRATION ===
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').then(reg=>{
   reg.addEventListener('updatefound',()=>{const nw=reg.installing;if(nw)nw.addEventListener('statechange',()=>{
