@@ -21,3 +21,6 @@ Then open `http://localhost:8080/index.html` in Chrome. The PWA service worker a
 - There are no dependencies to install, no `package.json`, no build step, and no lint/test commands.
 - The service worker (`sw.js`) caches assets aggressively; if you modify files, do a hard refresh or clear the cache in DevTools.
 - All game state is stored in browser `localStorage` under keys: `activeRun`, `manualSaves`, `quickSave`, `journalMeta`.
+- The game uses a single `index.html` file with inline CSS and JS (~1200 lines). Game logic modules (PA, SP, CL, ENEMIES, ITEMS, CALC, GS, CMB, CP) are distinct from UI modules (UI, ML, CC, SE).
+- The UI uses CSS custom properties defined in `:root`. Both new names (`--text`, `--text2`, `--border`) and legacy aliases (`--t1`, `--t2`, `--brd`) exist for backward compatibility with JS inline styles.
+- When testing, clear `localStorage` to see the landing screen (no active save). With an active save, the landing screen shows Continue/New Adventure/Load Game buttons.
