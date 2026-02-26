@@ -18,11 +18,12 @@ Then open `http://localhost:8080/index.html` in Chrome. The PWA service worker a
 
 ### Notes
 
-- There are no dependencies to install, no `package.json`, no build step, and no lint/test commands.
+- There are no dependencies to install, no `package.json`, no build step, and no lint/test commands. A data validation script (`node validate.js`) checks `data.js` integrity (scene exits, enemy refs, NPC refs, loot item refs).
 - The service worker (`sw.js`) caches assets aggressively; if you modify files, do a hard refresh or clear the cache in DevTools.
-- All game state is stored in browser `localStorage` under keys: `activeRun`, `manualSaves`, `quickSave`, `journalMeta`, and optionally `gameSettings` (high contrast, larger text).
+- All game state is stored in browser `localStorage` under keys: `activeRun`, `manualSaves`, `quickSave`, `journalMeta`, and optionally `gameSettings` (high contrast, larger text). The run object includes `gold` (integer), `adventure` (string: `'muddy_trail'` or `'iron_hollows'`), and `debuffs` (array).
 - The game uses `index.html` (engine + UI) and `data.js` (ENEMIES, ITEMS, NPCS, SCENE_DATA, DEATH_QUOTES). Game logic modules (PA, SP, CL, CALC, GS, CMB, SE) are distinct from UI modules (UI, ML, CC). Play is choice-only: no text input; use the Actions button and scene/nav buttons.
-- Combat state includes `debuffs` array on the run object (e.g. poison from Giant Spider). Consumables use a shared `useConsumable()` helper.
-- The trail has 9 scenes: trailhead, midway, ooze, post_ooze, spider_ambush, post_spider, wolf_den, post_wolf, trail_end. Three enemies: Gray Ooze, Giant Spider (poison), Dire Wolf.
-- The UI uses CSS custom properties defined in `:root`. Both new names (`--text`, `--text2`, `--border`) and legacy aliases (`--t1`, `--t2`, `--brd`) exist for backward compatibility with JS inline styles.
+- Two adventures exist: The Muddy Trail (11 scenes) and The Iron Hollows (9 scenes). After completing the Muddy Trail, the player can continue to Iron Hollows keeping their character (level, gear, gold). The `adventure` field on the run state tracks which adventure is active. `SE.startAdventure(advId)` transitions between adventures.
+- Combat state includes `debuffs` array on the run object. Debuff types: poison (from Giant Spider), bleed (from Dire Wolf), slow (from Cave Crawler — halves movement), stun (from Mine Shade — skips player action). The tick logic is generic; 0-dmg debuffs skip damage but still tick duration. Consumables use a shared `useConsumable()` helper.
+- Seven enemies: Gray Ooze, Giant Spider (poison), Dire Wolf (bleed), Bog Wraith, Cave Crawler (slow), Mine Shade (stun), Iron Golem (boss). Four NPCs: Aldric (gatekeeper), Mira (healer), Garrett (merchant), Torgun (Iron Hollows, heals on first visit).
+- The UI uses CSS custom properties defined in `:root`. `--text3` meets WCAG AA contrast. High-contrast mode overrides include `--text3`.
 - When testing, clear `localStorage` to see the landing screen (no active save). With an active save, the landing screen shows Continue/New Adventure/Load Game buttons.

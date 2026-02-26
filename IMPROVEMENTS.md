@@ -4,6 +4,26 @@ Planned batches of work. Check off as completed.
 
 ---
 
+## Done (batch 5 — v0.7)
+
+- [x] **Second adventure** — Iron Hollows: 9 new scenes, 3 enemies (Cave Crawler, Mine Shade, Iron Golem), 2 items (Dwarven Ale, Iron Shard), NPC Torgun. Player continues with existing character.
+- [x] **More status effects** — Slow (halves movement, from Cave Crawler) and stun (skips player action, from Mine Shade). Generic 0-dmg debuff tick support.
+- [x] **Data validation** — `validate.js` Node script checks scene exits, enemy refs, NPC refs, loot item refs.
+- [x] **Accessibility: keyboard** — `tabindex="-1"` on narrative container; auto-focus first interactive after scene enter.
+- [x] **Accessibility: ARIA** — `aria-label` on gold display; `role=tablist`/`tabpanel` and `aria-selected` on character modal tabs.
+- [x] **Accessibility: contrast** — Bumped `--text3` to `#847a6c` (~4.6:1 AA); high-contrast mode `--text3` to `#9a9080` (~6.5:1).
+
+## Done (batch 4 — v0.6)
+
+- [x] **Gold / economy** — Gold field on run state; enemies drop gold on defeat; items have sell values; Sell button in backpack.
+- [x] **Merchant NPC** — Garrett the Peddler at trail_end; buy (Health Potion 12g, Mana Potion 12g, Antidote 10g) and sell flow.
+- [x] **New item** — Marsh Root (consumable, heals 5 HP, value 5g); drops from Bog Wraith.
+- [x] **Bleed status effect** — Dire Wolf applies bleed (30% chance, 1 dmg/turn, 3 turns); Stoneblood immune; generic debuff tick.
+
+## Done (batch 3 — v0.5)
+
+- [x] **Extra scene branch** — Whispering Bog optional side path from midway; Bog Wraith enemy; Gather Herbs search yields Mana Potion.
+
 ## Done (batch 2 — v0.4)
 
 - [x] **More enemies** — Giant Spider (poison, ranged) and Dire Wolf (fast melee).
@@ -31,11 +51,9 @@ Planned batches of work. Check off as completed.
 
 ## Future work
 
-- [ ] **Extra scene branch** — Optional side path (e.g. "Search the bog" vs "Stay on trail") with different encounter.
-- [ ] **More status effects** — Bleed, slow, stun; additional enemies or abilities that apply them.
-- [ ] **Gold / economy** — Wolf Pelt has `value` field; add a merchant NPC or shop at trail_end.
-- [ ] **Second adventure** — New adventure beyond The Muddy Trail (Whispering Bog? Iron Hollows?).
-- [ ] **Data validation** — Script to check data.js integrity (scene exits, enemy refs, item refs).
+- [ ] **Third adventure** — Another continuation beyond Iron Hollows.
+- [ ] **More items/enemies** — Expand loot variety and encounter diversity.
+- [ ] **Quest log** — Track objectives across adventures.
 
 ---
 
@@ -57,9 +75,9 @@ Run periodically (e.g. before a release or after a batch of features).
 
 ### Accessibility
 
-- [ ] All interactive elements keyboard-focusable and visible focus ring.
-- [ ] ARIA labels and roles correct for modals, dialogs, tabs.
-- [ ] Contrast: text/background meets target (e.g. 7:1 for AAA); check new palette.
+- [x] All interactive elements keyboard-focusable and visible focus ring.
+- [x] ARIA labels and roles correct for modals, dialogs, tabs.
+- [x] Contrast: text/background meets target (AA minimum); `--text3` bumped to `#847a6c`.
 
 ### Content & copy
 
@@ -69,7 +87,7 @@ Run periodically (e.g. before a release or after a batch of features).
 ### Optional automation
 
 - [ ] If introducing a build step later: run a simple lint or size check.
-- [ ] Manual smoke test: new run -> trailhead -> midway -> ooze -> post_ooze -> spider_ambush -> post_spider -> wolf_den -> post_wolf -> trail_end; save/load; combat actions; poison/antidote.
+- [ ] Manual smoke test: new run -> trailhead -> midway -> (optional: whispering_bog -> post_bog -> midway) -> ooze -> post_ooze -> spider_ambush -> post_spider -> wolf_den -> post_wolf -> trail_end -> continue to Iron Hollows -> ih_entrance -> ih_tunnels -> ih_crawler_lair -> ih_post_crawler -> ih_shade_hall -> ih_post_shade -> ih_forge -> ih_post_golem -> ih_exit; save/load; combat actions; poison/antidote/bleed/slow/stun; gold/buy/sell with Garrett.
 
 ---
 
@@ -78,3 +96,4 @@ Run periodically (e.g. before a release or after a batch of features).
 - **Game state:** `activeRun`, `manualSaves`, `quickSave`, `journalMeta`, `gameSettings` (see AGENTS.md).
 - **Modules:** PA, SP, CL, CALC, GS, CMB, SE, UI, ML, CC + helpers (`useConsumable`, `rollLoot`).
 - **Data (in data.js):** ENEMIES, ITEMS, NPCS, SCENE_DATA, DEATH_QUOTES.
+- **Validation:** `node validate.js` checks all data.js cross-references.

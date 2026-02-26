@@ -1,29 +1,45 @@
 /* =====================================================================
-   THE MUDDY TRAIL — Game Data
+   Game Data — The Muddy Trail & The Iron Hollows
    Enemies, items, NPCs, scenes, death quotes
    ===================================================================== */
 
 const ENEMIES={
-gray_ooze:{name:'Gray Ooze',id:'gray_ooze',lore:'A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.',hp:15,mHP:15,atk:5,def:0,dD:4,dB:1,spd:5,aRng:5,sDist:10,xp:50,
+gray_ooze:{name:'Gray Ooze',id:'gray_ooze',lore:'A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.',hp:15,mHP:15,atk:5,def:0,dD:4,dB:1,spd:5,aRng:5,sDist:10,xp:50,gold:5,
   loot:[{item:'hpot',weight:50},{item:null,weight:50}]},
-giant_spider:{name:'Giant Spider',id:'giant_spider',lore:'A forest-dwelling predator that lurks in the canopy, spitting venom and descending on silk threads to ambush travelers below.',hp:18,mHP:18,atk:6,def:1,dD:6,dB:1,spd:7,aRng:10,sDist:15,xp:75,
+giant_spider:{name:'Giant Spider',id:'giant_spider',lore:'A forest-dwelling predator that lurks in the canopy, spitting venom and descending on silk threads to ambush travelers below.',hp:18,mHP:18,atk:6,def:1,dD:6,dB:1,spd:7,aRng:10,sDist:15,xp:75,gold:8,
   onHit:{effect:'poison',chance:40,duration:3,dmg:2},
   loot:[{item:'antidote',weight:40},{item:'hpot',weight:25},{item:null,weight:35}]},
-dire_wolf:{name:'Dire Wolf',id:'dire_wolf',lore:'A massive grey wolf, scarred and cunning. It circles its prey with unnerving patience before closing with terrifying speed.',hp:22,mHP:22,atk:7,def:1,dD:8,dB:1,spd:10,aRng:5,sDist:20,xp:90,
-  loot:[{item:'wolf_pelt',weight:35},{item:'hpot',weight:20},{item:'mpot',weight:15},{item:null,weight:30}]}
+dire_wolf:{name:'Dire Wolf',id:'dire_wolf',lore:'A massive grey wolf, scarred and cunning. It circles its prey with unnerving patience before closing with terrifying speed.',hp:22,mHP:22,atk:7,def:1,dD:8,dB:1,spd:10,aRng:5,sDist:20,xp:90,gold:12,
+  onHit:{effect:'bleed',chance:30,duration:3,dmg:1},
+  loot:[{item:'wolf_pelt',weight:35},{item:'hpot',weight:20},{item:'mpot',weight:15},{item:null,weight:30}]},
+bog_wraith:{name:'Bog Wraith',id:'bog_wraith',lore:'A half-material spectre born of drowned souls and marsh gas. It drifts through the mist, reaching with cold, grasping tendrils.',hp:14,mHP:14,atk:5,def:0,dD:4,dB:1,spd:4,aRng:6,sDist:8,xp:60,gold:6,
+  loot:[{item:'marsh_root',weight:35},{item:'mpot',weight:30},{item:null,weight:35}]},
+cave_crawler:{name:'Cave Crawler',id:'cave_crawler',lore:'A bloated, segmented horror that drags itself through the tunnels on dozens of pale legs. Its chitinous hide turns blades.',hp:25,mHP:25,atk:6,def:2,dD:6,dB:1,spd:3,aRng:5,sDist:10,xp:80,gold:8,
+  onHit:{effect:'slow',chance:25,duration:2,dmg:0},
+  loot:[{item:'dwarven_ale',weight:40},{item:'hpot',weight:25},{item:null,weight:35}]},
+mine_shade:{name:'Mine Shade',id:'mine_shade',lore:'A flickering silhouette that darts between pillars of stone. It strikes from impossible angles, its touch numbing mind and muscle.',hp:12,mHP:12,atk:8,def:0,dD:4,dB:1,spd:8,aRng:12,sDist:18,xp:100,gold:10,
+  onHit:{effect:'stun',chance:20,duration:1,dmg:0},
+  loot:[{item:'mpot',weight:35},{item:'antidote',weight:25},{item:null,weight:40}]},
+iron_golem:{name:'Iron Golem',id:'iron_golem',lore:'A construct of living iron, forged in the old dwarven wars and left to guard the deep forge. It moves with grinding deliberation, each blow like a collapsing wall.',hp:35,mHP:35,atk:9,def:3,dD:10,dB:1,spd:4,aRng:5,sDist:8,xp:150,gold:20,
+  loot:[{item:'iron_shard',weight:50},{item:'hpot',weight:25},{item:null,weight:25}]}
 };
 
 const ITEMS={
-hpot:{name:'Health Potion',t:'consumable',wt:0,heal:10,desc:'Restores 10 HP'},
-mpot:{name:'Mana Potion',t:'consumable',wt:0,mana:10,desc:'Restores 10 MP'},
-antidote:{name:'Antidote',t:'consumable',wt:0,cure:'poison',desc:'Cures poison'},
+hpot:{name:'Health Potion',t:'consumable',wt:0,heal:10,desc:'Restores 10 HP',value:8},
+mpot:{name:'Mana Potion',t:'consumable',wt:0,mana:10,desc:'Restores 10 MP',value:8},
+antidote:{name:'Antidote',t:'consumable',wt:0,cure:'poison',desc:'Cures poison',value:6},
+marsh_root:{name:'Marsh Root',t:'consumable',wt:0,heal:5,desc:'A bitter root. Restores 5 HP.',value:5},
 wolf_pelt:{name:'Wolf Pelt',t:'misc',wt:1,desc:'A thick grey pelt. Proof of the kill.',value:15},
+dwarven_ale:{name:'Dwarven Ale',t:'consumable',wt:0,heal:3,cure:'bleed',desc:'Burns going down. Cures bleed, heals 3 HP.',value:10},
+iron_shard:{name:'Iron Shard',t:'misc',wt:1,desc:'A jagged fragment of living iron. Warm to the touch.',value:20},
 guide:{name:"Player's Guide",t:'key',wt:0,desc:'A weathered guide to combat, creatures, and the world.',undrop:true}
 };
 
 const NPCS={
 aldric:{name:'Aldric',title:'The Gatekeeper',desc:'A weathered guardsman stands beside the trail gate, watching with tired but alert eyes.'},
-mira:{name:'Mira',title:'The Healer',desc:'A woman in green robes tends herbs near the shrine. She looks up and smiles warmly.'}
+mira:{name:'Mira',title:'The Healer',desc:'A woman in green robes tends herbs near the shrine. She looks up and smiles warmly.'},
+garrett:{name:'Garrett',title:'The Peddler',desc:'A thin man in a patched cloak, his pack brimming with oddments. He eyes your backpack appraisingly.'},
+torgun:{name:'Torgun',title:'The Lost Miner',desc:'A stocky dwarf sits against the wall, clutching a battered pickaxe. He looks up with hollow eyes.'}
 };
 
 const SCENE_DATA={
@@ -33,9 +49,9 @@ trailhead:{name:'The Trailhead',subtitle:'Where the road ends and the wild begin
   exits:{forward:{scene:'midway',label:'Midway on the Trail',discovered:true}},
   events:{onFirstVisit:null,onEnter:null,combat:null}},
 midway:{name:'Midway on the Trail',subtitle:'Where the trees close in',
-  description:'The trail narrows between gnarled trees whose branches interlock overhead. Mud sucks at your boots with every step.',
+  description:'The trail narrows between gnarled trees whose branches interlock overhead. Mud sucks at your boots with every step. To the east, murky water glints through the undergrowth.',
   npcs:[],
-  exits:{forward:{scene:'ooze',label:'Deeper Trail',discovered:true},back:{scene:'trailhead',label:'The Trailhead',discovered:true}},
+  exits:{forward:{scene:'ooze',label:'Stay on Trail',discovered:true},bog:{scene:'whispering_bog',label:'Search the Bog',discovered:true},back:{scene:'trailhead',label:'The Trailhead',discovered:true}},
   events:{onFirstVisit:null,onEnter(r){if(!r.ss.pouch)UI.addN('Something glints in the mud \u2014 a leather pouch, half-buried and forgotten.','f')},combat:null},
   actions:[{id:'search',label:'Search Pouch',desc:'The leather pouch in the mud',condition(r){return!r.ss.pouch}}]},
 ooze:{name:'Ambush!',subtitle:null,
@@ -67,6 +83,17 @@ wolf_den:{name:'The Dark Hollow',subtitle:null,
   description:'The trail dips into a rocky hollow. Claw marks score the stone. A low growl rumbles from the shadows.',
   npcs:[],exits:{},
   events:{onFirstVisit:null,onEnter:null,combat:'dire_wolf'}},
+whispering_bog:{name:'Whispering Bog',subtitle:null,
+  description:'Murky water seeps between twisted roots. Mist hangs low. Something stirs beneath the surface \u2014 a pale shape rises from the depths.',
+  npcs:[],exits:{},
+  events:{onFirstVisit:null,onEnter:null,combat:'bog_wraith'}},
+post_bog:{name:'The Bog, Calm',subtitle:'Where the mist retreats',
+  description:'The wraith dissolves into tendrils of fog. The water stills. The marsh holds its secrets, but for now it is quiet.',
+  npcs:[],
+  exits:{back:{scene:'midway',label:'Back to the Trail',discovered:true}},
+  events:{onFirstVisit:null,onEnter(r){
+    if(!r.ss.bogSearch1)UI.addN('Strange herbs float near where the wraith fell. Perhaps usable.', 'f')},combat:null},
+  actions:[{id:'search_bog',label:'Gather Herbs',desc:'Floating herbs from the marsh',condition(r){return!r.ss.bogSearch1}}]},
 post_wolf:{name:'The Hollow, After',subtitle:'Where silence settles like dust',
   description:'The wolf lies still. Blood darkens the stone. The forest holds its breath, as if acknowledging what you\u2019ve done.',
   npcs:[],
@@ -76,9 +103,54 @@ post_wolf:{name:'The Hollow, After',subtitle:'Where silence settles like dust',
   actions:[{id:'search_wolf',label:'Search Den',desc:'Scattered supplies among the bones',condition(r){return!r.ss.wolfSearch1}}]},
 trail_end:{name:"Trail's End",subtitle:'Where the forest breathes again',
   description:'The forest thins and the trail widens to a mossy clearing lit by dappled sunlight. A small stone shrine stands at the center, covered in climbing ivy.',
-  npcs:['mira'],exits:{},
+  npcs:['mira','garrett'],exits:{},
   events:{onFirstVisit:null,onEnter:null,combat:null},
-  actions:[{id:'rest',label:'Rest Here',desc:'Your journey is complete',condition(r){return!!r.ss.mira}}]}
+  actions:[{id:'rest',label:'Rest Here',desc:'Your journey is complete',condition(r){return!!r.ss.mira}}]},
+ih_entrance:{name:'The Iron Hollows',subtitle:'Where the mountain swallows the light',
+  description:'A jagged rift opens in the mountainside. The air is cold and smells of rust and old stone. Torchlight flickers from somewhere deep within.',
+  npcs:['torgun'],
+  exits:{forward:{scene:'ih_tunnels',label:'The Winding Tunnels',discovered:true}},
+  events:{onFirstVisit:null,onEnter:null,combat:null}},
+ih_tunnels:{name:'The Winding Tunnels',subtitle:'Where echoes replace shadows',
+  description:'Narrow passages twist between pillars of raw iron ore. Pick marks scar every surface. The ceiling drips rust-colored water.',
+  npcs:[],
+  exits:{forward:{scene:'ih_crawler_lair',label:'Deeper In',discovered:true},back:{scene:'ih_entrance',label:'The Iron Hollows',discovered:true}},
+  events:{onFirstVisit:null,onEnter(r){if(!r.ss.ihTunnelSearch)UI.addN('A broken crate lies wedged between the rocks. Something clinks inside.','f')},combat:null},
+  actions:[{id:'search_ih_tunnels',label:'Search Crate',desc:'A broken crate between the rocks',condition(r){return!r.ss.ihTunnelSearch}}]},
+ih_crawler_lair:{name:'The Nest',subtitle:null,
+  description:'The tunnel opens into a cavern thick with a sour, organic stench. Pale shapes shift in the darkness.',
+  npcs:[],exits:{},
+  events:{onFirstVisit:null,onEnter:null,combat:'cave_crawler'}},
+ih_post_crawler:{name:'The Shattered Nest',subtitle:'Where chitin crunches underfoot',
+  description:'The crawler lies still, its many legs curled inward. Broken eggs and dried slime coat the walls.',
+  npcs:[],
+  exits:{forward:{scene:'ih_shade_hall',label:'The Shade Hall',discovered:true},back:{scene:'ih_tunnels',label:'The Winding Tunnels',discovered:true}},
+  events:{onFirstVisit:null,onEnter(r){if(!r.ss.ihCrawlerSearch)UI.addN('Something metallic gleams in the creature\u2019s nest.','f')},combat:null},
+  actions:[{id:'search_ih_crawler',label:'Search Nest',desc:'Something metallic in the debris',condition(r){return!r.ss.ihCrawlerSearch}}]},
+ih_shade_hall:{name:'The Shade Hall',subtitle:null,
+  description:'A vast hall of carved stone pillars. The torchlight dims. Shadows move where no one stands.',
+  npcs:[],exits:{},
+  events:{onFirstVisit:null,onEnter:null,combat:'mine_shade'}},
+ih_post_shade:{name:'The Hall, Emptied',subtitle:'Where silence returns to stone',
+  description:'The shade dissolves into motes of dark light. The hall is vast and cold and terribly still.',
+  npcs:[],
+  exits:{forward:{scene:'ih_forge',label:'The Deep Forge',discovered:true},back:{scene:'ih_post_crawler',label:'The Shattered Nest',discovered:true}},
+  events:{onFirstVisit:null,onEnter(r){UI.addN('The air grows warmer as you approach the forge. A faint orange glow pulses ahead.','f')},combat:null}},
+ih_forge:{name:'The Deep Forge',subtitle:null,
+  description:'A colossal forge fills the cavern, its fires still burning after centuries. Standing before the anvil is a hulking figure of living iron.',
+  npcs:[],exits:{},
+  events:{onFirstVisit:null,onEnter:null,combat:'iron_golem'}},
+ih_post_golem:{name:'The Forge Falls Silent',subtitle:'Where iron rests at last',
+  description:'The golem crumbles into a heap of cooling iron. The forge\u2019s flames gutter and dim. For the first time in ages, the mountain is quiet.',
+  npcs:[],
+  exits:{forward:{scene:'ih_exit',label:'Toward Daylight',discovered:true}},
+  events:{onFirstVisit:null,onEnter(r){if(!r.ss.ihGolemSearch)UI.addN('Among the golem\u2019s remains, a battered flask rolls free.','f')},combat:null},
+  actions:[{id:'search_ih_golem',label:'Search Remains',desc:'A flask among the rubble',condition(r){return!r.ss.ihGolemSearch}}]},
+ih_exit:{name:'Daylight',subtitle:'Where the mountain lets you go',
+  description:'A crack of light widens into a blinding exit. Wind rushes in, carrying the scent of pine and open sky. You made it through the Iron Hollows.',
+  npcs:[],exits:{},
+  events:{onFirstVisit:null,onEnter:null,combat:null},
+  actions:[{id:'leave_hollows',label:'Leave the Hollows',desc:'Your journey is complete',condition(){return true}}]}
 };
 
 const DEATH_QUOTES=[
@@ -89,5 +161,9 @@ const DEATH_QUOTES=[
 '"Rest now. The trail goes on without you."',
 '"The spider wraps another meal in silk."',
 '"The wolves will feast tonight."',
-'"Venom and fangs \u2014 the forest\u2019s welcome."'
+'"Venom and fangs \u2014 the forest\u2019s welcome."',
+'"The bog takes back what it gave."',
+'"The mountain claims another."',
+'"Darkness is patient. You were not."',
+'"Iron endures. You did not."'
 ];
