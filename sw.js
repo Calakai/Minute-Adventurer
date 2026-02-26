@@ -1,7 +1,8 @@
-const CACHE_NAME = 'minute-adventurer-v3';
+const CACHE_NAME = 'minute-adventurer-v4';
 const ASSETS = [
   './',
   './index.html',
+  './data.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',

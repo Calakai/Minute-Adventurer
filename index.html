@@ -10,22 +10,18 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Minute Adventurer">
-<meta name="theme-color" content="#12121e">
+<meta name="theme-color" content="#1a1814">
 <meta name="description" content="A text-based dark fantasy adventure played in minutes.">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
---bg:#12121e;--bg2:#1a1a2e;--bg3:#242438;--bgO:rgba(0,0,0,.7);
---text:#e8e8f0;--text2:#a0a0b4;--text3:#6b6b80;
+--bg:#1a1814;--bg2:#252219;--bg3:#322d24;--bgO:rgba(0,0,0,.7);
+--text:#e8e4dc;--text2:#a89f8c;--text3:#6b6458;
 --gold:#c9a84c;--gold-dim:#8a7030;--gold-bright:#e0c060;
---red:#c44054;--blue:#4a7cc9;--green:#5a9c6a;--green-dim:#385c44;
---border:#2a2a40;--focus:#e0c060;
+--red:#c44054;--blue:#4a8b7c;--green:#5a9c6a;--green-dim:#385c44;
+--border:#3d3629;--focus:#e0c060;
 --fn:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 --fm:'Courier New',Consolas,monospace;
---t1:#e8e8f0;--t2:#a0a0b4;--t3:#6b6b80;
---goldB:#e0c060;--grn:#5a9c6a;--grnD:#385c44;
---blu:#4a7cc9;--brd:#2a2a40;--brdL:#3a3a55;
---foc:#e0c060;--redD:#8b2635;--bluD:#336699;
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--fn);font-size:16px;line-height:1.7;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
 *:focus-visible{outline:3px solid var(--focus)!important;outline-offset:2px!important;border-radius:2px}
@@ -109,11 +105,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #combat-bar{display:none;gap:6px}
 #bbar.combat-mode #explore-bar{display:none}
 #bbar.combat-mode #combat-bar{display:flex}
-#inp-row{display:flex;gap:8px;flex:1}
-#tinp{flex:1;min-height:44px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--fn);font-size:1rem;padding:8px 12px}
-#tinp::placeholder{color:var(--text3)}#tinp:focus{border-color:var(--gold)}
-#sbtn{min-width:48px;min-height:48px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--gold);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
-#sbtn:active{background:var(--bg3)}
 .acts-btn{min-height:48px;padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:var(--fn);font-size:.9rem;cursor:pointer;white-space:nowrap;transition:border-color .15s}
 .acts-btn:active{border-color:var(--gold)}
 .cbtn{flex:1;min-height:48px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--fn);font-size:.9rem;cursor:pointer;padding:6px 4px;transition:background .15s,border-color .15s}
@@ -250,6 +241,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #particles{display:none}
 }
 @media(max-width:480px){.ne{font-size:1.05rem}#hud{padding:6px 8px}}
+/* Settings: high contrast & larger text (applied to html) */
+html.settings-high-contrast{--text:#f0ece0;--text2:#b8b0a0;--border:#4a4238}
+html.settings-large-text{font-size:1.1rem}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 /* Title Card */
 #title-card{display:none;position:fixed;inset:0;background:var(--bg);z-index:600;justify-content:center;align-items:center;flex-direction:column;opacity:0;transition:opacity .3s ease}
@@ -319,7 +313,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 <p id="landing-sub">Welcome, Adventurer</p>
 <div id="landing-buttons"></div>
 </div>
-<div id="landing-version">v0.2 &middot; A text adventure</div>
+<div id="landing-version">v0.4 &middot; A text adventure</div>
 </div>
 <div id="app" role="application" aria-label="The Muddy Trail text adventure game">
 <header id="hud" role="banner" aria-label="Character status">
@@ -367,8 +361,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 </div>
 <div id="bbar" aria-label="Actions and input">
 <div id="explore-bar">
-<div id="inp-row"><input type="text" id="tinp" placeholder="Type a command..." aria-label="Type command" autocomplete="off"><button id="sbtn" aria-label="Send command">&#9654;</button></div>
-<button class="acts-btn" id="b-acts" aria-label="Open actions">Actions</button>
+<button class="acts-btn" id="b-acts" aria-label="Choose an action">Actions</button>
 </div>
 <div id="combat-bar">
     <button class="cbtn" id="cb-atk">Attack<span class="pct" id="cb-atk-pct"></span></button>
@@ -388,6 +381,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 <div id="death-screen" aria-live="assertive"><h2>YOU HAVE FALLEN</h2><p class="dq" id="death-quote"></p><button class="ds-btn" id="ds-load">Load Last Save</button><button class="ds-btn" id="ds-new">New Adventure</button><button class="ds-btn" id="ds-title">Return to Title</button></div>
 <div id="as-backdrop"></div>
 <div id="action-sheet" role="dialog" aria-label="Actions"><div class="as-h">Actions</div><div id="as-list"></div></div>
+<script src="data.js"></script>
 <script>
 /* =====================================================================
    THE MUDDY TRAIL — Complete Game Engine v2
@@ -678,51 +672,7 @@ berserker:{name:'Berserker',desc:'You think pain stops me? Pain makes me STRONGE
   oh:null,
   arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[]}
 };
-const ENEMIES={gray_ooze:{name:'Gray Ooze',id:'gray_ooze',lore:'A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.',hp:15,mHP:15,atk:5,def:0,dD:4,dB:1,spd:5,aRng:5,sDist:10,xp:50}};
-const ITEMS={hpot:{name:'Health Potion',t:'consumable',wt:0,heal:10,desc:'Restores 10 HP'},guide:{name:"Player's Guide",t:'key',wt:0,desc:'A weathered guide to combat, creatures, and the world.',undrop:true}};
-const NPCS={
-aldric:{name:'Aldric',title:'The Gatekeeper',desc:'A weathered guardsman stands beside the trail gate, watching with tired but alert eyes.'},
-mira:{name:'Mira',title:'The Healer',desc:'A woman in green robes tends herbs near the shrine. She looks up and smiles warmly.'}
-};
-const SCENE_DATA={
-trailhead:{name:'The Trailhead',subtitle:'Where the road ends and the wild begins',
-  description:'The muddy trail stretches northward into a dense, fog-choked forest. The air is thick with wet earth and decay. A half-rotted sign reads: "Beware \u2014 creatures ahead."',
-  npcs:['aldric'],
-  exits:{forward:{scene:'midway',label:'Midway on the Trail',discovered:true}},
-  events:{onFirstVisit:null,onEnter:null,combat:null}},
-midway:{name:'Midway on the Trail',subtitle:'Where the trees close in',
-  description:'The trail narrows between gnarled trees whose branches interlock overhead. Mud sucks at your boots with every step.',
-  npcs:[],
-  exits:{forward:{scene:'ooze',label:'Deeper Trail',discovered:true},back:{scene:'trailhead',label:'The Trailhead',discovered:true}},
-  events:{onFirstVisit:null,onEnter(r){if(!r.ss.pouch)UI.addN('Something glints in the mud \u2014 a leather pouch, half-buried and forgotten.','f')},combat:null},
-  actions:[{id:'search',label:'Search Pouch',desc:'The leather pouch in the mud',condition(r){return!r.ss.pouch}}]},
-ooze:{name:'Ambush!',subtitle:null,
-  description:'The trail opens into a clearing. The mud bubbles unnaturally.',
-  npcs:[],exits:{},
-  events:{onFirstVisit:null,onEnter:null,combat:'gray_ooze'}},
-post_ooze:{name:'After the Battle',subtitle:'The silence of victory',
-  description:'The remains of the Gray Ooze spread across the trail in a steaming, acrid puddle. The forest is quiet.',
-  npcs:[],
-  exits:{forward:{scene:'trail_end',label:"Trail's End",discovered:true},back:{scene:'midway',label:'Midway on the Trail',discovered:true}},
-  events:{onFirstVisit:null,onEnter(r){
-    if(!r.ss.oozeSearch1)UI.addN('Something solid rests within the dissolving remains.','f');
-    else if(!r.ss.oozeSearch2)UI.addN('The remains still glisten. Perhaps there is more to find.','f')},combat:null},
-  actions:[
-    {id:'search',label:'Search Remains',desc:'Something solid in the ooze',condition(r){return!r.ss.oozeSearch1}},
-    {id:'search',label:'Search Again',desc:'Look more carefully',condition(r){return r.ss.oozeSearch1&&!r.ss.oozeSearch2}}]},
-trail_end:{name:"Trail's End",subtitle:'Where the forest breathes again',
-  description:'The forest thins and the trail widens to a mossy clearing lit by dappled sunlight. A small stone shrine stands at the center, covered in climbing ivy.',
-  npcs:['mira'],exits:{},
-  events:{onFirstVisit:null,onEnter:null,combat:null},
-  actions:[{id:'rest',label:'Rest Here',desc:'Your journey is complete',condition(r){return!!r.ss.mira}}]}
-};
-const DEATH_QUOTES=[
-'"Not every path leads home."',
-'"The trail remembers those who fall."',
-'"Even the bravest meet their end in the mud."',
-'"The forest takes what it is owed."',
-'"Rest now. The trail goes on without you."'
-];
+// ENEMIES, ITEMS, NPCS, SCENE_DATA, DEATH_QUOTES loaded from data.js
 const REDUCED_MOTION=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // === CALC MODULE ===
@@ -765,7 +715,7 @@ newRun(nm,sp,subsp,cl,humanBonus){
     stats,hp:mHP,mp:mMP,mHP,mMP,
     wpn:c.wpn?{...c.wpn}:null,oh:c.oh?{...c.oh}:null,arm:c.arm?{...c.arm}:null,
     bp:c.bp.map(i=>({...i})),scene:'trailhead',ss:{},cs:null,
-    nlog:[],traitState:{},jrnUnlk:false,hbFound:false,bSeen:{},bDef:{},srch:{}};
+    nlog:[],traitState:{},jrnUnlk:false,hbFound:false,bSeen:{},bDef:{},srch:{},debuffs:[]};
   this.run.mHP=CALC.maxHP(this.run);this.run.mMP=CALC.maxMP(this.run);
   this.run.hp=this.run.mHP;this.run.mp=this.run.mMP;
   this.saveA();return this.run;
@@ -783,6 +733,8 @@ qLoad(){try{const d=localStorage.getItem('quickSave');if(d){const p=JSON.parse(d
 getQS(){try{const d=localStorage.getItem('quickSave');if(!d)return null;const p=JSON.parse(d);return p&&p.stats?p:null}catch(e){return null}},
 getJM(){try{return JSON.parse(localStorage.getItem('journalMeta')||'{}')}catch(e){return{}}},
 setJM(u){const m=this.getJM();Object.assign(m,u);try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}},
+getSettings(){try{return JSON.parse(localStorage.getItem('gameSettings')||'{}')}catch(e){return{}}},
+setSettings(s){try{localStorage.setItem('gameSettings',JSON.stringify(s));const root=document.documentElement;root.classList.toggle('settings-high-contrast',!!s.highContrast);root.classList.toggle('settings-large-text',!!s.largeText)}catch(e){}},
 recEnc(id){if(!this.run)return;this.run.bSeen[id]=(this.run.bSeen[id]||0)+1;
   const m=this.getJM();if(!m.bestiary)m.bestiary={};
   if(!m.bestiary[id]){const e=ENEMIES[id];m.bestiary[id]={name:e.name,lore:e.lore,hp:e.mHP,atk:e.atk,def:e.def,dmg:`1d${e.dD}+${e.dB}`,spd:e.spd,rng:e.aRng}}
@@ -811,6 +763,12 @@ pMove(dir){
   cs.movedThisTurn=true;GS.saveA();return ms},
 pAct(act){
   const cs=this.gs();if(!cs||cs.over)return[];const r=GS.run,ms=[];let eActs=true;
+  if(!r.debuffs)r.debuffs=[];
+  for(let i=r.debuffs.length-1;i>=0;i--){const d=r.debuffs[i];
+    if(d.type==='poison'){r.hp-=d.dmg;if(r.hp<0)r.hp=0;ms.push({t:`Poison deals ${d.dmg} damage! (${r.hp}/${r.mHP} HP)`,c:'d'});
+      d.remaining--;if(d.remaining<=0){r.debuffs.splice(i,1);ms.push({t:'The poison fades.',c:'y'})}
+      else ms.push({t:`Poisoned: ${d.remaining} turn${d.remaining!==1?'s':''} remaining.`,c:'y'})}}
+  if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'});GS.saveA();return ms}
   const clDef=CL[r.classes[0]];const ab=clDef?clDef.ability:null;
   switch(act){
   case'attack':{
@@ -901,10 +859,14 @@ pAct(act){
   case'block':{
     const oh=r.oh;if(!oh||oh.t!=='shield'){ms.push({t:'You brace yourself, but the block is weak without a shield.',c:'f'});cs.pBlk=1}
     else{ms.push({t:`You raise your ${oh.name}, ready to deflect.`,c:'c'});cs.pBlk=oh.blk||2}break}
-  case'use_potion':{const idx=r.bp.findIndex(i=>i.t==='consumable'&&i.heal);
-    if(idx===-1){ms.push({t:'No healing items!',c:'y'});return ms}
-    const pot=r.bp.splice(idx,1)[0],h=Math.min(pot.heal,r.mHP-r.hp);r.hp+=h;
-    ms.push({t:`You drink a ${pot.name} and recover ${h} HP! (${r.hp}/${r.mHP} HP)`,c:'s'});break}
+  case'use_potion':case'use_hpot':case'use_mpot':case'use_antidote':case'use_item':{
+    let it=null;
+    if(act==='use_hpot')it=r.bp.find(i=>i.t==='consumable'&&i.heal);
+    else if(act==='use_mpot')it=r.bp.find(i=>i.t==='consumable'&&i.mana);
+    else if(act==='use_antidote')it=r.bp.find(i=>i.t==='consumable'&&i.cure);
+    else it=r.bp.find(i=>i.t==='consumable'&&(i.heal||i.mana||i.cure));
+    if(!it){ms.push({t:'No usable items!',c:'y'});return ms}
+    const msg=useConsumable(it,r);ms.push({t:msg,c:'s'});break}
   case'flee':{const fleePct=CALC.flee(r,cs.dist);const roll=CALC.roll100();
     if(roll<=fleePct){ms.push({t:`You turn and run! (${fleePct}% chance, rolled ${roll})`,c:'s'});cs.fled=true;cs.over=true;eActs=false}
     else ms.push({t:`You try to flee but can't escape! (${fleePct}% chance, rolled ${roll})`,c:'d'});break}
@@ -939,7 +901,13 @@ eTurn(){const cs=this.gs(),r=GS.run,e=cs.enemy,ms=[];
       if(r.subspecies==='stoneblood'&&d>1){d--;ms.push({t:'Stone Skin absorbs 1 damage!',c:'y'})}
       if(r.subspecies==='fireblood'){d++;ms.push({t:'Volcanic Fury: you take 1 extra damage!',c:'y'})}
       if(r.traitState.hidden){r.traitState.hidden=false;delete GS.run.traitState._wasHidden;ms.push({t:'You are revealed by the attack!',c:'y'})}
-      r.hp-=d;if(r.hp<0)r.hp=0}
+      r.hp-=d;if(r.hp<0)r.hp=0;
+      if(e.onHit&&roll<=hitPct){if(!r.debuffs)r.debuffs=[];
+        const oh=e.onHit;if(CALC.roll100()<=oh.chance&&!(r.subspecies==='stoneblood')){
+          const existing=r.debuffs.find(db=>db.type===oh.effect);
+          if(!existing){r.debuffs.push({type:oh.effect,dmg:oh.dmg,remaining:oh.duration});
+            ms.push({t:`You are poisoned! (${oh.duration} turns, ${oh.dmg} dmg/turn)`,c:'d'})}
+          else{existing.remaining=oh.duration;ms.push({t:'Poison refreshed!',c:'d'})}}}}
     else ms.push({t:`The ${e.name} lunges but misses!`,c:'f'})}
   return ms}
 };
@@ -958,7 +926,7 @@ init(){
     dm:$('dist-m'),dr:$('dist-rd'),dp:$('dist-p'),de:$('dist-e'),dename:$('dist-enemy-name'),
     mvBtns:$('move-btns'),mvCloser:$('mv-closer'),mvFurther:$('mv-further'),
     bb:$('bbar'),exploreBar:$('explore-bar'),combatBar:$('combat-bar'),
-    bacts:$('b-acts'),ti:$('tinp'),sb:$('sbtn'),
+    bacts:$('b-acts'),
     cbAtk:$('cb-atk'),cbAbility:$('cb-ability'),cbAbilityName:$('cb-ability-name'),cbAbilityCost:$('cb-ability-cost'),
     cbBlock:$('cb-block'),cbFlee:$('cb-flee'),cbItem:$('cb-item'),
     cbAtkPct:$('cb-atk-pct'),cbFleePct:$('cb-flee-pct'),
@@ -967,6 +935,7 @@ init(){
     ds:$('death-screen'),dsq:$('death-quote'),dsl:$('ds-load'),dsn:$('ds-new'),dst:$('ds-title'),
     ash:$('action-sheet'),asl:$('as-list'),asb:$('as-backdrop')};
   this.renderIcons();this.bind();this.vvp();
+  const st=GS.getSettings();document.documentElement.classList.toggle('settings-high-contrast',!!st.highContrast);document.documentElement.classList.toggle('settings-large-text',!!st.largeText);
 },
 renderIcons(){
   const map=[[this.el.bchar,PA.icons.person],[this.el.bj,PA.icons.book],[this.el.bmenu,PA.icons.menu],
@@ -980,7 +949,6 @@ bind(){
   this.el.bj.onclick=()=>ML.openJrn();
   this.el.bmenu.onclick=()=>ML.openMenu();
   this.el.bacts.onclick=()=>this.openActionSheet();
-  this.el.sb.onclick=()=>this.submit();this.el.ti.onkeydown=e=>{if(e.key==='Enter')this.submit()};
   this.el.batk.onclick=()=>SE.doCombatAction('attack');
   this.el.bdef.onclick=()=>SE.doCombatAction('block');
   this.el.bitem.onclick=()=>SE.doCombatAction('use_potion');
@@ -1095,7 +1063,6 @@ updateDist(d,show){
     this.updateCombatUI();
   } else {this.el.dm.classList.remove('vis');this.el.mvBtns.classList.remove('vis')}
 },
-submit(){const raw=this.el.ti.value.trim();this.el.ti.value='';if(!raw)return;CP.parse(raw)},
 pulseJ(){this.el.bj.classList.add('pulse');setTimeout(()=>this.el.bj.classList.remove('pulse'),3100)},
 _wait(ms){return new Promise(r=>setTimeout(r,REDUCED_MOTION?0:ms))},
 addEl(el){this.el.nl.appendChild(el);this.scroll()},
@@ -1155,7 +1122,10 @@ openActionSheet(){
     if(w){const isMelee=w.t==='melee';const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
       atkDesc=w.name+' \u2014 '+hitPct+'% to hit'}
     const acts=[{l:'Attack \u2014 '+atkDesc,cmd:'attack'},{l:'Block',sub:'Reduce incoming damage',cmd:'block'},
-      {l:'Flee \u2014 '+CALC.flee(r,cs.dist)+'%',cmd:'flee'},{l:'Use Health Potion',cmd:'use_potion'}];
+      {l:'Flee \u2014 '+CALC.flee(r,cs.dist)+'%',cmd:'flee'}];
+    const hpot=r.bp.find(i=>i.t==='consumable'&&i.heal);if(hpot)acts.push({l:'Use '+hpot.name,cmd:'use_hpot'});
+    const mpot=r.bp.find(i=>i.t==='consumable'&&i.mana);if(mpot)acts.push({l:'Use '+mpot.name,cmd:'use_mpot'});
+    const anti=r.bp.find(i=>i.t==='consumable'&&i.cure);if(anti)acts.push({l:'Use '+anti.name,sub:'Cures '+anti.cure,cmd:'use_antidote'});
     const clDef=CL[r.classes[0]],ab=clDef?clDef.ability:null;
     if(ab){const cost=CALC.abilityCost(r,ab);acts.splice(1,0,{l:ab.name+' \u2014 '+cost+' MP',sub:ab.desc,cmd:'ability'})}
     if(r.subspecies==='shadowstep'&&!r.traitState.vanishUsed&&!r.traitState.hidden)
@@ -1164,16 +1134,20 @@ openActionSheet(){
       b.innerHTML=a.l+(a.sub?'<span class="as-btn-sub">'+a.sub+'</span>':'');
       b.onclick=()=>{this.closeActionSheet();SE.doCombatAction(a.cmd)};this.el.asl.appendChild(b)});
   } else {
-    const scene=SCENE_DATA[r.scene];
     const mkA=(label,fn)=>{const b=document.createElement('button');b.className='as-btn';b.textContent=label;
       b.onclick=()=>{this.closeActionSheet();fn()};this.el.asl.appendChild(b)};
-    mkA('Look around',()=>SE.handleAction('search'));
-    mkA('Search area',()=>SE.handleAction('search'));
-    if(scene&&scene.npcs)scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)mkA('Talk to '+n.name,()=>SE.handleAction('talk_'+nid))});
+    const actions=SE.getActions();
+    actions.forEach(a=>{
+      const b=document.createElement('button');b.className='as-btn';
+      b.textContent=a.d?a.l+' \u2014 '+a.d:a.l;
+      b.onclick=()=>{this.closeActionSheet();
+        if(a.cmd.startsWith('go_'))SE.enter(a.cmd.slice(3));
+        else SE.handleAction(a.cmd)};
+      this.el.asl.appendChild(b);
+    });
     mkA('Check inventory',()=>ML.openChar('bp'));
     r.bp.forEach(it=>{if(it.t==='consumable')mkA('Use '+it.name,()=>{
-      if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;const idx=r.bp.indexOf(it);r.bp.splice(idx,1);GS.saveA();
-        UI.addN('Used '+it.name+', recovered '+h+' HP. ('+r.hp+'/'+r.mHP+')','s');UI.updateHUD()}})});
+      const msg=useConsumable(it,r);if(msg)UI.addN(msg,'s')})});
     const clDef2=CL[r.classes[0]],ab2=clDef2?clDef2.ability:null;
     if(ab2&&ab2.type==='heal'&&r.hp<r.mHP){const cost2=CALC.abilityCost(r,ab2);
       if(r.mp>=cost2)mkA(ab2.name+' ('+cost2+' MP)',()=>{r.mp-=cost2;const h=Math.min(ab2.effect.healAmt,r.mHP-r.hp);r.hp+=h;GS.saveA();
@@ -1193,6 +1167,26 @@ setCombatBusy(busy){
 function $(id){return document.getElementById(id)}
 function statBar(label,val,max){max=max||25;return'<div class="sbar"><span class="sbar-l">'+label+'</span><div class="sbar-o"><div class="sbar-i" style="width:'+Math.min(100,(val/max)*100)+'%"></div></div><span class="sbar-v">'+val+'</span></div>'}
 function wtTag(wt){return'<span class="wt-tag wt-'+wt+'">'+(WT_NAMES[wt]||'?')+'</span>'}
+
+function useConsumable(it,r){
+  if(!it||it.t!=='consumable')return null;
+  const idx=r.bp.indexOf(it);if(idx===-1)return null;
+  r.bp.splice(idx,1);
+  if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;GS.saveA();UI.updateHUD();return'Used '+it.name+', recovered '+h+' HP. ('+r.hp+'/'+r.mHP+')'}
+  if(it.mana){const m=Math.min(it.mana,r.mMP-r.mp);r.mp+=m;GS.saveA();UI.updateHUD();return'Used '+it.name+', recovered '+m+' MP. ('+r.mp+'/'+r.mMP+')'}
+  if(it.cure){if(!r.debuffs)r.debuffs=[];const bi=r.debuffs.findIndex(d=>d.type===it.cure);
+    if(bi!==-1){r.debuffs.splice(bi,1);GS.saveA();UI.updateHUD();return'Used '+it.name+'. '+it.cure.charAt(0).toUpperCase()+it.cure.slice(1)+' cured!'}
+    GS.saveA();return'Used '+it.name+', but you weren\u2019t afflicted.'}
+  GS.saveA();return'Used '+it.name+'.';
+}
+
+function rollLoot(enemy){
+  if(!enemy.loot||!enemy.loot.length)return null;
+  const total=enemy.loot.reduce((s,l)=>s+l.weight,0);
+  let roll=Math.random()*total;
+  for(const l of enemy.loot){roll-=l.weight;if(roll<=0)return l.item?{...ITEMS[l.item]}:null}
+  return null;
+}
 
 // === MODAL SYSTEM ===
 const ML={
@@ -1279,7 +1273,7 @@ openChar(tab){
     else bh+='<div class="isl isl-empty"><span class="isl-e">Empty slot</span></div>'}
   panels.bp.innerHTML=bh;
   panels.bp.querySelectorAll('[data-use]').forEach(btn=>{
-    btn.onclick=()=>{const idx=parseInt(btn.dataset.use);const it=r.bp[idx];if(it&&it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;r.bp.splice(idx,1);GS.saveA();UI.addN('Used '+it.name+', recovered '+h+' HP. ('+r.hp+'/'+r.mHP+')','s');UI.updateHUD();ML.openChar('bp')}}});
+    btn.onclick=()=>{const idx=parseInt(btn.dataset.use);const it=r.bp[idx];if(it){const msg=useConsumable(it,r);if(msg)UI.addN(msg,'s');ML.openChar('bp')}}});
   panels.bp.querySelectorAll('[data-equip]').forEach(btn=>{
     btn.onclick=()=>{const idx=parseInt(btn.dataset.equip);const it=r.bp[idx];
       if(r.wpn)r.bp.push(r.wpn);r.wpn=it;r.bp.splice(idx,1);
@@ -1343,6 +1337,16 @@ openMenu(){
   const nr=document.createElement('button');nr.className='slb dng';nr.textContent='New Adventure';nr.style.cssText='margin-top:12px;width:100%';
   nr.onclick=()=>{if(GS.run&&!confirm('Start new run? Unsaved progress lost.'))return;GS.clearA();ML.closeAll();UI.clearN();UI.showCC()};b.appendChild(nr);
   const nt=document.createElement('div');nt.className='snotice';nt.textContent='Saves are stored in this browser.';b.appendChild(nt);
+  const backBtn=(label)=>{const btn=document.createElement('button');btn.className='slb';btn.textContent=label;btn.style.cssText='margin-top:16px;width:100%';btn.onclick=()=>this.openMenu();return btn};
+  const howBtn=document.createElement('button');howBtn.className='slb';howBtn.textContent='How to play';howBtn.style.cssText='margin-top:12px;width:100%';
+  howBtn.onclick=()=>{b.innerHTML='<h3 class="mt" style="margin-bottom:12px">How to play</h3><p style="margin-bottom:12px;color:var(--text2)">Tap <strong>Actions</strong> to see what you can do: move to new locations, talk to NPCs, search, use items, or save. In combat, use the bar to attack, block, move distance, or flee. Your journal (unlocked when you find the guide) holds combat rules, bestiary, and world lore.</p>';b.appendChild(backBtn('Back to menu'))};b.appendChild(howBtn);
+  const chgBtn=document.createElement('button');chgBtn.className='slb';chgBtn.textContent='Changelog';chgBtn.style.cssText='margin-top:8px;width:100%';
+  chgBtn.onclick=()=>{b.innerHTML='<h3 class="mt" style="margin-bottom:12px">Changelog</h3><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.4</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>New enemies: Giant Spider (poison) and Dire Wolf</li><li>New items: Mana Potion, Antidote, Wolf Pelt</li><li>Weighted loot drops from enemies</li><li>Poison status effect with Antidote cure</li><li>Extended trail: 4 new scenes with spider and wolf encounters</li><li>Richer NPC dialogue for Aldric and Mira</li><li>Combat item overhaul: use any consumable in combat</li><li>Game data extracted to data.js for easier modding</li><li>Code cleanup: removed legacy CSS vars, unified consumable logic</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.3</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Choice-only play: no typing; use Actions and scene buttons</li><li>New warm color palette</li><li>Menu: How to play, Changelog, Settings (high contrast, larger text)</li></ul>';b.appendChild(backBtn('Back to menu'))};b.appendChild(chgBtn);
+  const setBtn=document.createElement('button');setBtn.className='slb';setBtn.textContent='Settings';setBtn.style.cssText='margin-top:8px;width:100%';
+  setBtn.onclick=()=>{const st=GS.getSettings();b.innerHTML='<h3 class="mt" style="margin-bottom:12px">Settings</h3>';
+    const row=(label,checked,key)=>{const wrap=document.createElement('div');wrap.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px';
+      const lab=document.createElement('span');lab.textContent=label;lab.style.color='var(--text2)';const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!checked;cb.onchange=()=>{st[key]=cb.checked;GS.setSettings(st)};wrap.appendChild(lab);wrap.appendChild(cb);return wrap};
+    b.appendChild(row('High contrast',st.highContrast,'highContrast'));b.appendChild(row('Larger text',st.largeText,'largeText'));b.appendChild(backBtn('Back to menu'))};b.appendChild(setBtn);
   this.open('m-menu')},
 
 openDlg(speaker,title,text,opts,cb){
@@ -1473,109 +1477,6 @@ buildSum(){const c=$('cc-sum');const nm=UI.el.ni.value.trim(),sp=SP[this.sp],cl=
   STAT_NAMES.forEach(k=>{html+=statBar(STAT_LABELS[k],stats[k])});
   if(traitDesc)html+='<div style="margin-top:10px;color:var(--text2);font-size:.9rem;font-style:italic">'+traitDesc+'</div>';
   c.innerHTML=html}
-};
-
-// === COMMAND PARSER ===
-const CP={
-_lev(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
-  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const c=a[i-1]===b[j-1]?0:1;d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c)}return d[m][n]},
-_verbs:['attack','hit','strike','block','defend','flee','run','escape','go','move','walk','head','travel','enter','search','look','examine','inspect','read','open','take','grab','pick','use','drink','equip','wear','wield','unequip','drop','talk','speak','inventory','backpack','bag','stats','character','save','load','help','journal','guide','vanish','hide','heal','holy','cast','ability','power','backstab','aimed','aggro','arcane'],
-_fuzzy(input){
-  let best=null,bestD=3;
-  for(const v of this._verbs){if(v.startsWith(input)&&input.length>=2)return v;
-    const d=this._lev(input,v);if(d<bestD){bestD=d;best=v}}
-  return bestD<=2?best:null},
-_hints(){
-  const r=GS.run,h=[];const cs=CMB.gs();
-  if(cs&&!cs.over)return'Try: attack, block, flee, ability.';
-  const scene=SCENE_DATA[r.scene];
-  if(scene){
-    if(scene.npcs&&scene.npcs.length)scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)h.push('talk to '+n.name)});
-    if(scene.exits)Object.keys(scene.exits).forEach(k=>{const ex=scene.exits[k];if(ex.discovered||r.ss['exit_'+r.scene+'_'+k])h.push('go to '+ex.label)})}
-  h.push('look');
-  const con=r.bp.find(i=>i.t==='consumable');if(con)h.push('use '+con.name);
-  return'Try: '+h.slice(0,4).join(', ')+', or use the buttons below.';
-},
-_matchExit(text){
-  const r=GS.run,scene=SCENE_DATA[r.scene];if(!scene)return null;
-  const exits=scene.exits,t=text.toLowerCase();
-  for(const k of Object.keys(exits)){const ex=exits[k];
-    if(!(ex.discovered||r.ss['exit_'+r.scene+'_'+k]))continue;
-    if(ex.label.toLowerCase().includes(t)||ex.scene.toLowerCase().includes(t))return ex.scene}
-  const dm={north:'forward',south:'back',east:'forward',west:'back',forward:'forward',back:'back',left:'back',right:'forward'};
-  for(const[dir,key] of Object.entries(dm)){if(t.includes(dir)&&exits[key]){
-    const ex=exits[key];if(ex.discovered||r.ss['exit_'+r.scene+'_'+key])return ex.scene}}
-  return null;
-},
-parse(raw){
-  const w=raw.toLowerCase().replace(/[^a-z0-9\s]/g,'').split(/\s+/).filter(x=>!['the','a','an','to','on','at','with','my','i'].includes(x));
-  if(!w.length)return;
-  const v=w[0],n=w.slice(1).join(' ');const cs=CMB.gs();
-  if(cs&&!cs.over){let cmd=null;
-    if(['attack','hit','strike','slash','shoot','stab','fight'].includes(v))cmd='attack';
-    else if(['block','defend','shield','guard'].includes(v))cmd='block';
-    else if(v==='move'&&(n.includes('close')||n.includes('forward')||n.includes('advance'))){if(!UI._busy){const ms=CMB.pMove('closer');ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();const ca=CMB.gs();if(ca){UI.updateDist(ca.dist,!ca.over);UI.updateCombatUI()}}return}
-    else if(v==='move'&&(n.includes('back')||n.includes('away')||n.includes('retreat'))){if(!UI._busy){const ms=CMB.pMove('back');ms.forEach(m=>UI.addN(m.t,m.c));UI.updateHUD();const ca=CMB.gs();if(ca){UI.updateDist(ca.dist,!ca.over);UI.updateCombatUI()}}return}
-    else if(['flee','run','escape'].includes(v))cmd='flee';
-    else if(['use','drink','potion'].includes(v))cmd='use_potion';
-    else if(['vanish','hide','stealth'].includes(v))cmd='vanish';
-    else if(['power','backstab','aimed','aggro','arcane','holy','heal','ability','cast','spell'].includes(v))cmd='ability';
-    else if(n.includes('power strike')||n.includes('aimed shot')||n.includes('arcane bolt')||n.includes('holy light'))cmd='ability';
-    else if(['inventory','backpack','bag','check'].includes(v)&&(n.includes('inv')||n.includes('back')||n.includes('bag')||!n)){ML.openChar('bp');return}
-    if(cmd){SE.doCombatAction(cmd);return}
-    const fuzzy=this._fuzzy(v);
-    if(fuzzy&&fuzzy!==v){UI.addN('Did you mean \''+fuzzy+'\'?','y');return}
-    UI.addN("Not a valid combat action. Try: attack, block, flee, use potion, ability, move closer/back.",'y');return}
-
-  if(['go','move','walk','head','travel','enter'].includes(v)){
-    const target=this._matchExit(n);
-    if(target){SE.enter(target);return}
-    UI.addN('Go where? '+this._hints(),'y');return}
-  if(['search','look','examine','inspect'].includes(v)){
-    if(n.includes('inv')||n.includes('back')||n.includes('bag')){ML.openChar('bp');return}
-    SE.handleAction('search');return}
-  if(['read','open'].includes(v)){SE.handleAction('search');return}
-  if(['take','grab'].includes(v)||v==='pick'){SE.handleAction('search');return}
-  if(['equip','wear','wield'].includes(v)){const it=GS.run.bp.find(i=>i.name.toLowerCase().includes(n));
-    if(it&&(it.t==='melee'||it.t==='ranged')){const idx=GS.run.bp.indexOf(it);if(GS.run.wpn)GS.run.bp.push(GS.run.wpn);GS.run.wpn=it;GS.run.bp.splice(idx,1);
-      if(it.twoHand&&GS.run.oh){GS.run.bp.push(GS.run.oh);GS.run.oh=null}
-      GS.recalcDerived();GS.saveA();UI.addN('Equipped '+it.name+'.','s');UI.updateHUD()}
-    else UI.addN("Can't equip that.",'y');return}
-  if(['unequip'].includes(v)){
-    if(GS.run.wpn&&(!n||GS.run.wpn.name.toLowerCase().includes(n))){if(GS.run.bp.length>=6){UI.addN('Backpack full!','d');return}GS.run.bp.push(GS.run.wpn);GS.run.wpn=null;GS.recalcDerived();GS.saveA();UI.addN('Weapon unequipped.','y');UI.updateHUD()}
-    else UI.addN("Nothing to unequip.",'y');return}
-  if(['drop'].includes(v)){const it=GS.run.bp.find(i=>!i.undrop&&i.name.toLowerCase().includes(n));
-    if(it){const idx=GS.run.bp.indexOf(it);GS.run.bp.splice(idx,1);GS.saveA();UI.addN('Dropped '+it.name+'.','y')}
-    else UI.addN("Nothing to drop.",'y');return}
-  if(['use','drink'].includes(v)){const it=GS.run.bp.find(i=>i.t==='consumable'&&i.name.toLowerCase().includes(n||'potion'));
-    if(it){const idx=GS.run.bp.indexOf(it);if(it.heal){const h=Math.min(it.heal,GS.run.mHP-GS.run.hp);GS.run.hp+=h;GS.run.bp.splice(idx,1);GS.saveA();UI.addN('Used '+it.name+', recovered '+h+' HP. ('+GS.run.hp+'/'+GS.run.mHP+')','s');UI.updateHUD()}}
-    else UI.addN("Nothing to use.",'y');return}
-  if(['heal','holy','cast'].includes(v)){
-    const r=GS.run,clDef=CL[r.classes[0]],ab=clDef?clDef.ability:null;
-    if(ab&&ab.type==='heal'){const cost=CALC.abilityCost(r,ab);
-      if(r.mp<cost){UI.addN('Not enough MP! Need '+cost+' MP.','y');return}
-      if(r.hp>=r.mHP){UI.addN('Already at full HP.','y');return}
-      r.mp-=cost;const h=Math.min(ab.effect.healAmt,r.mHP-r.hp);r.hp+=h;GS.saveA();
-      UI.addN(ab.name+'! Restored '+h+' HP. ('+r.hp+'/'+r.mHP+' HP, '+cost+' MP)','s');UI.updateHUD()}
-    else UI.addN('You have no healing ability.','y');return}
-  if(['talk','speak'].includes(v)){
-    const scene=SCENE_DATA[GS.run.scene];
-    if(scene&&scene.npcs&&scene.npcs.length){
-      const matched=n?scene.npcs.find(nid=>{const np=NPCS[nid];return np&&np.name.toLowerCase().includes(n)}):scene.npcs[0];
-      if(matched){SE.handleAction('talk_'+matched);return}}
-    UI.addN('There is no one here to talk to.','y');return}
-  if(['inventory','backpack','bag'].includes(v)){ML.openChar('bp');return}
-  if(['stats','stat','character','char','status'].includes(v)){ML.openChar();return}
-  if(['save','quicksave'].includes(v)){if(GS.qSave())UI.addN('Quick saved.','y');else UI.addN('Quick save failed.','d');return}
-  if(['load'].includes(v)){ML.openMenu();return}
-  if(['help'].includes(v)||raw.trim()==='?'){
-    UI.addN('Commands: look, search, talk to [name], go [direction], use [item], equip [item], inventory, stats, save, help.','y');return}
-  if(['journal','guide'].includes(v)){if(GS.run.jrnUnlk)ML.openJrn();else UI.addN("You don't have a journal yet.",'y');return}
-
-  const fuzzy=this._fuzzy(v);
-  if(fuzzy){UI.addN('Did you mean \''+fuzzy+'\'? '+this._hints(),'y');return}
-  UI.addN('I don\'t understand \''+raw+'\'. '+this._hints(),'y');
-}
 };
 
 // === SCENE ENGINE ===
@@ -1712,6 +1613,16 @@ handleAction(cmd){
       else UI.addN('Nothing more to find in the remains.','f');return}
     UI.addN('You look around carefully but find nothing of interest.','f');return;
   }
+  if(cmd==='search_spider'){
+    if(!r.ss.spiderSearch1){r.ss.spiderSearch1=true;
+      if(r.bp.length<6){r.bp.push({...ITEMS.antidote});UI.addN('You cut through the webbing and find a small vial of greenish liquid \u2014 an Antidote. Someone came prepared.','s')}
+      else{UI.addN('Something useful in the webs, but your backpack is full!','d');r.ss.spiderSearch1=false}GS.saveA()}
+    else UI.addN('Nothing but old bones and silk.','f');return}
+  if(cmd==='search_wolf'){
+    if(!r.ss.wolfSearch1){r.ss.wolfSearch1=true;
+      if(r.bp.length<6){r.bp.push({...ITEMS.hpot});UI.addN('Among the scattered remains you find a battered traveler\u2019s satchel. Inside: a Health Potion, still intact.','s')}
+      else{UI.addN('A satchel with supplies, but your backpack is full!','d');r.ss.wolfSearch1=false}GS.saveA()}
+    else UI.addN('Nothing else of value in the den.','f');return}
   if(cmd==='rest'){this.runComplete();return}
 },
 
@@ -1745,9 +1656,23 @@ async onWin(){
       lvlDiv.appendChild(grid);card.appendChild(lvlDiv)});
   }
 
+  const loot=rollLoot(enemy);
+  if(loot){
+    card.innerHTML+='<div class="vic-loot-h">Loot</div>';
+    const lootRow=document.createElement('div');lootRow.className='vic-loot-row';
+    lootRow.innerHTML='<span class="vic-loot-name">'+loot.name+'</span><span class="vic-loot-desc">'+loot.desc+'</span>';
+    if(r.bp.length<6){const takeBtn=document.createElement('button');takeBtn.className='vic-take-btn';takeBtn.textContent='Take';
+      takeBtn.onclick=()=>{r.bp.push(loot);GS.saveA();takeBtn.disabled=true;takeBtn.textContent='Taken';UI.updateHUD()};lootRow.appendChild(takeBtn)}
+    else{const fullBtn=document.createElement('button');fullBtn.className='vic-take-btn';fullBtn.disabled=true;fullBtn.textContent='Full';lootRow.appendChild(fullBtn)}
+    card.appendChild(lootRow);
+  }
+
+  if(r.debuffs&&r.debuffs.length){r.debuffs.forEach(d=>{card.innerHTML+='<div class="vic-stat" style="color:var(--red)">Status: '+d.type+' ('+d.remaining+' turns)</div>'})}
+
   UI.addEl(card);UI.updateHUD();
   await UI._wait(500);
-  const nextScene=enemy.id==='gray_ooze'?'post_ooze':null;
+  const nextMap={gray_ooze:'post_ooze',giant_spider:'post_spider',dire_wolf:'post_wolf'};
+  const nextScene=nextMap[enemy.id]||null;
   if(nextScene){
     const goBtn=document.createElement('button');goBtn.className='nav-btn';goBtn.style.marginTop='12px';
     goBtn.textContent='Continue \u2192';goBtn.onclick=()=>SE.enter(nextScene);
@@ -1775,7 +1700,11 @@ deathTitle(){UI.hideDeathScreen();GS.clearA();UI.clearN();
 aldric(){
   const r=GS.run;
   if(r.ss.aldric){
-    ML.openDlg('ALDRIC','The Gatekeeper','"You again? Stay sharp out there."',[{text:'"Thanks, Aldric."'}],()=>{});return}
+    ML.openDlg('ALDRIC','The Gatekeeper','"Back again? The trail\u2019s gotten worse since you left. Spiders in the canopy past the ooze, and wolves in the hollow beyond. Watch yourself."',
+      [{text:'"Tell me about the spiders."'},{text:'"What about the wolves?"'},{text:'"I\u2019ll be careful."'}],
+      (i)=>{if(i===0)ML.openDlg('ALDRIC','The Gatekeeper','"Giant Spiders \u2014 they spit venom from the treetops. Keep your distance if you can, but they\u2019ll close fast. Carry an Antidote or you\u2019ll regret it."',[{text:'"Noted."'}],()=>{});
+        else if(i===1)ML.openDlg('ALDRIC','The Gatekeeper','"Dire Wolves. Fast, strong, and smart. They start far but close the gap before you can blink. Melee fighters should let them come to you. Ranged? Shoot early, shoot often."',[{text:'"Thanks."'}],()=>{});
+        else{}});return}
   ML.openDlg('ALDRIC','The Gatekeeper',
     '"Well met, '+r.name+'. You look like you can handle yourself, but the trail ahead is no place for carelessness. Let me share what I know."',
     [{text:'"What dangers lie ahead?"'},{text:'"I can handle myself."'},{text:'"Any advice for a traveler?"'}],
@@ -1790,7 +1719,13 @@ aldric(){
 mira(){
   const r=GS.run;
   if(r.ss.mira){
-    ML.openDlg('MIRA','The Healer','"Rest well, traveler. The shrine is always here."',[{text:'"Thank you, Mira."'}],()=>{});return}
+    ML.openDlg('MIRA','The Healer','"Welcome back, '+r.name+'. The shrine is always here for those who need it."',
+      [{text:'"Heal me, please."'},{text:'"What lies beyond the trail?"'},{text:'"Just passing through."'}],
+      (i)=>{if(i===0){r.hp=r.mHP;r.mp=r.mMP;if(r.debuffs)r.debuffs=[];GS.saveA();UI.updateHUD();
+          ML.openDlg('MIRA','The Healer','"There. All mended."',[{text:'"Thank you."'}],()=>{UI.addN('HP and MP fully restored. Status effects cleared.','s')})}
+        else if(i===1)ML.openDlg('MIRA','The Healer','"Beyond this shrine, the trails lead to darker places. The Whispering Bog, where the dead don\u2019t rest easy. The Iron Hollows, where dwarven mines collapsed into something worse. And further still\u2026 well, those are journeys for another day. For now, you\u2019ve earned your rest."',
+          [{text:'"I look forward to it."'}],()=>{})
+        else{}});return}
   ML.openDlg('MIRA','The Healer',
     '"Welcome, traveler. You bear the marks of battle \u2014 that acidic stench can only mean you faced an Ooze on the trail. Let me tend your wounds."',
     [{text:'"Please, I could use the help."'},{text:'"What can you tell me about this place?"'}],

@@ -20,7 +20,9 @@ Then open `http://localhost:8080/index.html` in Chrome. The PWA service worker a
 
 - There are no dependencies to install, no `package.json`, no build step, and no lint/test commands.
 - The service worker (`sw.js`) caches assets aggressively; if you modify files, do a hard refresh or clear the cache in DevTools.
-- All game state is stored in browser `localStorage` under keys: `activeRun`, `manualSaves`, `quickSave`, `journalMeta`.
-- The game uses a single `index.html` file with inline CSS and JS (~1200 lines). Game logic modules (PA, SP, CL, ENEMIES, ITEMS, CALC, GS, CMB, CP) are distinct from UI modules (UI, ML, CC, SE).
+- All game state is stored in browser `localStorage` under keys: `activeRun`, `manualSaves`, `quickSave`, `journalMeta`, and optionally `gameSettings` (high contrast, larger text).
+- The game uses `index.html` (engine + UI) and `data.js` (ENEMIES, ITEMS, NPCS, SCENE_DATA, DEATH_QUOTES). Game logic modules (PA, SP, CL, CALC, GS, CMB, SE) are distinct from UI modules (UI, ML, CC). Play is choice-only: no text input; use the Actions button and scene/nav buttons.
+- Combat state includes `debuffs` array on the run object (e.g. poison from Giant Spider). Consumables use a shared `useConsumable()` helper.
+- The trail has 9 scenes: trailhead, midway, ooze, post_ooze, spider_ambush, post_spider, wolf_den, post_wolf, trail_end. Three enemies: Gray Ooze, Giant Spider (poison), Dire Wolf.
 - The UI uses CSS custom properties defined in `:root`. Both new names (`--text`, `--text2`, `--border`) and legacy aliases (`--t1`, `--t2`, `--brd`) exist for backward compatibility with JS inline styles.
 - When testing, clear `localStorage` to see the landing screen (no active save). With an active save, the landing screen shows Continue/New Adventure/Load Game buttons.
