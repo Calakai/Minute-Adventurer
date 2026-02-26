@@ -733,6 +733,7 @@ maxHP(r){return r.stats.health*4},
 maxMP(r){let b=r.stats.mana*4;if(r.subspecies==='brightelf'||r.subspecies==='ashborn')b+=4;return b},
 totalWt(r){return(r.wpn?r.wpn.wt||0:0)+(r.oh?r.oh.wt||0:0)+(r.arm?r.arm.wt||0:0)},
 effMov(r){let m=r.stats.movement-this.totalWt(r);if(r.subspecies==='quickfoot')m+=2;return Math.max(1,m)},
+combatMove(r){return this.effMov(r)*2},
 ZONES:['close','mid','far'],
 zoneHitMod(zone,wpnType){
   if(wpnType==='ranged'){if(zone==='close')return -15;if(zone==='far')return -10}
@@ -1303,8 +1304,8 @@ closeActionSheet(){this.el.ash.classList.remove('vis');this.el.asb.classList.rem
 
 setCombatBusy(busy){
   this._busy=busy;
-  [this.el.cbAtk,this.el.cbAbility,this.el.cbBlock,this.el.cbFlee,this.el.cbItem,
-   this.el.batk,this.el.bdef,this.el.bitem,this.el.mvCloser,this.el.mvFurther].forEach(b=>{if(b)b.disabled=busy});
+  [this.el.cbAtk,this.el.cbAbility,this.el.cbBlock,this.el.cbFlee,this.el.cbItem,this.el.cbMove,
+   this.el.batk,this.el.bdef,this.el.bitem].forEach(b=>{if(b)b.disabled=busy});
 }
 };
 function $(id){return document.getElementById(id)}
