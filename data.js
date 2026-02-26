@@ -4,23 +4,23 @@
    ===================================================================== */
 
 const ENEMIES={
-gray_ooze:{name:'Gray Ooze',id:'gray_ooze',lore:'A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.',hp:15,mHP:15,atk:5,def:0,dD:4,dB:1,spd:5,aRng:5,sDist:10,xp:50,gold:5,
+gray_ooze:{name:'Gray Ooze',id:'gray_ooze',lore:'A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.',hp:15,mHP:15,atk:5,def:0,dD:4,dB:1,preferredZone:'close',xp:50,gold:5,
   loot:[{item:'hpot',weight:50},{item:null,weight:50}]},
-giant_spider:{name:'Giant Spider',id:'giant_spider',lore:'A forest-dwelling predator that lurks in the canopy, spitting venom and descending on silk threads to ambush travelers below.',hp:18,mHP:18,atk:6,def:1,dD:6,dB:1,spd:7,aRng:10,sDist:15,xp:75,gold:8,
+giant_spider:{name:'Giant Spider',id:'giant_spider',lore:'A forest-dwelling predator that lurks in the canopy, spitting venom and descending on silk threads to ambush travelers below.',hp:18,mHP:18,atk:6,def:1,dD:6,dB:1,preferredZone:'mid',xp:75,gold:8,
   onHit:{effect:'poison',chance:40,duration:3,dmg:2},
   loot:[{item:'antidote',weight:40},{item:'hpot',weight:25},{item:null,weight:35}]},
-dire_wolf:{name:'Dire Wolf',id:'dire_wolf',lore:'A massive grey wolf, scarred and cunning. It circles its prey with unnerving patience before closing with terrifying speed.',hp:22,mHP:22,atk:7,def:1,dD:8,dB:1,spd:10,aRng:5,sDist:20,xp:90,gold:12,
+dire_wolf:{name:'Dire Wolf',id:'dire_wolf',lore:'A massive grey wolf, scarred and cunning. It circles its prey with unnerving patience before closing with terrifying speed.',hp:22,mHP:22,atk:7,def:1,dD:8,dB:1,preferredZone:'close',xp:90,gold:12,
   onHit:{effect:'bleed',chance:30,duration:3,dmg:1},
   loot:[{item:'wolf_pelt',weight:35},{item:'hpot',weight:20},{item:'mpot',weight:15},{item:null,weight:30}]},
-bog_wraith:{name:'Bog Wraith',id:'bog_wraith',lore:'A half-material spectre born of drowned souls and marsh gas. It drifts through the mist, reaching with cold, grasping tendrils.',hp:14,mHP:14,atk:5,def:0,dD:4,dB:1,spd:4,aRng:6,sDist:8,xp:60,gold:6,
+bog_wraith:{name:'Bog Wraith',id:'bog_wraith',lore:'A half-material spectre born of drowned souls and marsh gas. It drifts through the mist, reaching with cold, grasping tendrils.',hp:14,mHP:14,atk:5,def:0,dD:4,dB:1,preferredZone:'close',xp:60,gold:6,
   loot:[{item:'marsh_root',weight:35},{item:'mpot',weight:30},{item:null,weight:35}]},
-cave_crawler:{name:'Cave Crawler',id:'cave_crawler',lore:'A bloated, segmented horror that drags itself through the tunnels on dozens of pale legs. Its chitinous hide turns blades.',hp:25,mHP:25,atk:6,def:2,dD:6,dB:1,spd:3,aRng:5,sDist:10,xp:80,gold:8,
+cave_crawler:{name:'Cave Crawler',id:'cave_crawler',lore:'A bloated, segmented horror that drags itself through the tunnels on dozens of pale legs. Its chitinous hide turns blades.',hp:25,mHP:25,atk:6,def:2,dD:6,dB:1,preferredZone:'close',xp:80,gold:8,
   onHit:{effect:'slow',chance:25,duration:2,dmg:0},
   loot:[{item:'dwarven_ale',weight:40},{item:'hpot',weight:25},{item:null,weight:35}]},
-mine_shade:{name:'Mine Shade',id:'mine_shade',lore:'A flickering silhouette that darts between pillars of stone. It strikes from impossible angles, its touch numbing mind and muscle.',hp:12,mHP:12,atk:8,def:0,dD:4,dB:1,spd:8,aRng:12,sDist:18,xp:100,gold:10,
+mine_shade:{name:'Mine Shade',id:'mine_shade',lore:'A flickering silhouette that darts between pillars of stone. It strikes from impossible angles, its touch numbing mind and muscle.',hp:12,mHP:12,atk:8,def:0,dD:4,dB:1,preferredZone:'mid',xp:100,gold:10,
   onHit:{effect:'stun',chance:20,duration:1,dmg:0},
   loot:[{item:'mpot',weight:35},{item:'antidote',weight:25},{item:null,weight:40}]},
-iron_golem:{name:'Iron Golem',id:'iron_golem',lore:'A construct of living iron, forged in the old dwarven wars and left to guard the deep forge. It moves with grinding deliberation, each blow like a collapsing wall.',hp:35,mHP:35,atk:9,def:3,dD:10,dB:1,spd:4,aRng:5,sDist:8,xp:150,gold:20,
+iron_golem:{name:'Iron Golem',id:'iron_golem',lore:'A construct of living iron, forged in the old dwarven wars and left to guard the deep forge. It moves with grinding deliberation, each blow like a collapsing wall.',hp:35,mHP:35,atk:9,def:3,dD:10,dB:1,preferredZone:'close',xp:150,gold:20,
   loot:[{item:'iron_shard',weight:50},{item:'hpot',weight:25},{item:null,weight:25}]}
 };
 

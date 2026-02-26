@@ -81,23 +81,24 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .ne-d{color:var(--red)}
 .ne-y{font-size:.85rem;color:var(--text3)}
 .ne-g{color:var(--gold)}
-/* Distance */
-#dist-m{display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px}
-#dist-m.vis{display:block}
-#dist-info{display:flex;justify-content:space-between;font-size:.85rem}
-#dist-info span:first-child{color:var(--gold)}
-#dist-info span:last-child{color:var(--red)}
-#dist-track{width:100%;height:2px;background:var(--border);position:relative;margin:8px 0}
-.dist-mk{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;transform:translateY(-50%);transition:left .3s ease}
-#dist-p{background:var(--gold)}#dist-e{background:var(--red)}
-#dist-rd{text-align:center;font-size:.9rem;margin-top:4px}
-.dist-meters{color:var(--text)}.dist-hit{color:var(--text2);margin-left:4px}
-/* Movement */
-#move-btns{display:none;padding:6px 16px;gap:8px;background:var(--bg2);border-bottom:1px solid var(--border)}
-#move-btns.vis{display:flex}
-.mv-btn{flex:1;min-height:40px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:var(--fn);font-size:.85rem;cursor:pointer;transition:border-color .15s,background .15s}
-.mv-btn:active,.mv-btn:hover{border-color:var(--gold);background:rgba(201,168,76,.06)}
-.mv-btn[disabled]{opacity:.3;cursor:default;pointer-events:none}
+/* Zone Display */
+#zone-display{display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 16px}
+#zone-display.vis{display:block}
+.zone-labels{display:flex;gap:0;justify-content:center;margin-bottom:4px}
+.zone-lbl{flex:1;min-height:32px;background:transparent;border:1px solid var(--border);color:var(--text3);font-family:var(--fn);font-size:.8rem;cursor:default;text-align:center;padding:4px 8px;letter-spacing:.08em;transition:color .15s,border-color .15s}
+.zone-lbl:first-child{border-radius:4px 0 0 4px}.zone-lbl:last-child{border-radius:0 4px 4px 0}
+.zone-lbl.active{color:var(--gold);border-color:var(--gold);background:rgba(201,168,76,.08);font-weight:600}
+#zone-enemy-info{display:block;text-align:center;font-size:.85rem;color:var(--red);margin-top:4px}
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);padding:10px 20px;border-radius:6px;font-family:var(--fn);font-size:.9rem;z-index:800;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;max-width:90%}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-info{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.toast-error{background:rgba(196,64,84,.15);color:var(--red);border:1px solid var(--red)}
+.toast-success{background:rgba(90,156,106,.15);color:var(--green);border:1px solid var(--green)}
+/* CC shake */
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.cc-shake{animation:shake .3s ease}
+.cc-hint{font-size:.8rem;color:var(--red);margin-top:4px;text-align:center}
 /* Bottom bar */
 #bbar{display:none;flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);padding:8px 10px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
 #bbar.vis{display:block}
@@ -313,7 +314,7 @@ html.settings-large-text{font-size:1.1rem}
 <p id="landing-sub">Welcome, Adventurer</p>
 <div id="landing-buttons"></div>
 </div>
-<div id="landing-version">v0.7 &middot; A text adventure</div>
+<div id="landing-version">v0.8 &middot; A text adventure</div>
 </div>
 <div id="app" role="application" aria-label="The Muddy Trail text adventure game">
 <header id="hud" role="banner" aria-label="Character status">
@@ -349,14 +350,13 @@ html.settings-large-text{font-size:1.1rem}
 <div class="ccnv" id="cc-nav"><button class="ccnb" id="cc-bk" aria-label="Go back" style="display:none">Back</button><button class="ccnb pri" id="cc-nx" aria-label="Continue">Continue</button></div>
 </main>
 <div id="game" style="display:none;flex:1;flex-direction:column;overflow:hidden">
-<div id="dist-m" aria-label="Combat distance">
-<div id="dist-info"><span>You</span><span id="dist-enemy-name">Enemy</span></div>
-<div id="dist-track"><div class="dist-mk" id="dist-p" aria-label="You"></div><div class="dist-mk" id="dist-e" aria-label="Enemy"></div></div>
-<div id="dist-rd"><span class="dist-meters">15m</span> <span class="dist-hit"></span></div>
+<div id="zone-display" aria-label="Combat zone">
+<div class="zone-labels">
+<button class="zone-lbl" data-zone="close">CLOSE</button>
+<button class="zone-lbl" data-zone="mid">MID</button>
+<button class="zone-lbl" data-zone="far">FAR</button>
 </div>
-<div id="move-btns">
-<button class="mv-btn" id="mv-closer" aria-label="Move closer">&#9664; Closer</button>
-<button class="mv-btn" id="mv-further" aria-label="Move further">Further &#9654;</button>
+<span id="zone-enemy-info"></span>
 </div>
 <div id="narr-w" role="log" aria-label="Story narrative" aria-live="polite" tabindex="-1"><div id="narr-log"></div></div>
 </div>
@@ -367,6 +367,7 @@ html.settings-large-text{font-size:1.1rem}
 <div id="combat-bar">
     <button class="cbtn" id="cb-atk">Attack<span class="pct" id="cb-atk-pct"></span></button>
     <button class="cbtn" id="cb-ability" style="display:none"><span id="cb-ability-name">Ability</span><span class="pct" id="cb-ability-cost"></span></button>
+    <button class="cbtn" id="cb-move">Move</button>
     <button class="cbtn" id="cb-block">Block</button>
     <button class="cbtn" id="cb-flee">Flee<span class="pct" id="cb-flee-pct"></span></button>
     <button class="cbtn" id="cb-item">Item</button>
@@ -398,156 +399,203 @@ lt:'#8b6840',ltD:'#6b4820',cl:'#404060',clL:'#606080',
 gd:'#c9a84c',gn:'#4a7c59',gnD:'#385c44',rd:'#8b2635',
 wh:'#e8e8f0',bk:'#1a1a2e',gy:'#6b6b7b',tk:'#d8d0c0'},
 species:{
-human(){const c=PA.C,_=null;return[
-[_,_,_,_,_,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,_,_,_,_,_],
-[_,_,_,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,_,_,_,_],
-[_,_,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,_,_,_],
-[_,_,c.hr,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.hr,_,_,_],
-[_,c.hr,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,_,_,_],
-[_,_,c.sk,c.sk,c.ey,c.ey,c.sk,c.sk,c.sk,c.ey,c.ey,c.sk,c.sk,_,_,_],
-[_,_,c.sk,c.sk,c.eyD,c.wh,c.sk,c.sk,c.sk,c.eyD,c.wh,c.sk,c.sk,_,_,_],
-[_,_,c.sk,c.sk,c.sk,c.sk,c.sk,c.skD,c.sk,c.sk,c.sk,c.sk,c.sk,_,_,_],
-[_,_,c.sk,c.sk,c.sk,c.sk,c.sk,c.skD,c.sk,c.sk,c.sk,c.sk,c.sk,_,_,_],
-[_,_,_,c.sk,c.sk,c.sk,c.skD,c.skD,c.skD,c.sk,c.sk,c.sk,_,_,_,_],
-[_,_,_,c.sk,c.sk,c.skD,c.rd,c.rd,c.rd,c.skD,c.sk,c.sk,_,_,_,_],
-[_,_,_,_,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,_,_,_,_,_],
-[_,_,_,_,_,c.sk,c.skD,c.skD,c.skD,c.sk,_,_,_,_,_,_],
-[_,_,_,_,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,_,_,_,_,_],
-[_,_,_,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,c.cl,_,_,_,_],
-[_,_,_,c.cl,c.cl,c.clL,c.cl,c.cl,c.cl,c.clL,c.cl,c.cl,_,_,_,_]]},
-elf(){const c=PA.C,_=null;return[
-[_,_,_,_,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,_,_,_,_,_],
-[_,_,_,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,_,_,_,_],
-[_,_,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,c.hrL,_,_,_],
-[_,c.hrL,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.hrL,_,_],
-[c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,_],
-[_,_,c.sk,c.sk,c.ey,c.ey,c.sk,c.sk,c.sk,c.ey,c.ey,c.sk,c.sk,_,_,_],
-[_,_,c.sk,c.sk,c.gn,c.wh,c.sk,c.sk,c.sk,c.gn,c.wh,c.sk,c.sk,_,_,_],
-[_,_,c.sk,c.sk,c.sk,c.sk,c.sk,c.skD,c.sk,c.sk,c.sk,c.sk,c.sk,_,_,_],
-[_,_,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,_,_,_],
-[_,_,_,c.sk,c.sk,c.sk,c.skD,c.skD,c.skD,c.sk,c.sk,c.sk,_,_,_,_],
-[_,_,_,c.sk,c.sk,c.skD,c.skD,c.skD,c.skD,c.skD,c.sk,c.sk,_,_,_,_],
-[_,_,_,_,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,_,_,_,_,_],
-[_,_,_,_,_,c.sk,c.skD,c.skD,c.skD,c.sk,_,_,_,_,_,_],
-[_,_,_,_,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,_,_,_,_,_],
-[_,_,_,c.gnD,c.gnD,c.gn,c.gnD,c.gnD,c.gnD,c.gn,c.gnD,c.gnD,_,_,_,_],
-[_,_,_,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,_,_,_,_]]},
-orc(){const c=PA.C,_=null;return[
-[_,_,_,_,_,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,_,_,_,_,_],
-[_,_,_,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,_,_,_,_],
-[_,_,c.hr,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.hr,_,_,_],
-[_,c.hr,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,_,_,_],
-[_,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,_,_],
-[_,_,c.skG,c.skG,c.rd,c.rd,c.skG,c.skG,c.skG,c.rd,c.rd,c.skG,c.skG,_,_,_],
-[_,_,c.skG,c.skG,c.rd,c.gd,c.skG,c.skG,c.skG,c.rd,c.gd,c.skG,c.skG,_,_,_],
-[_,_,c.skG,c.skG,c.skG,c.skG,c.skG,c.gnD,c.skG,c.skG,c.skG,c.skG,c.skG,_,_,_],
-[_,_,c.skG,c.skG,c.skG,c.skG,c.gnD,c.gnD,c.gnD,c.skG,c.skG,c.skG,c.skG,_,_,_],
-[_,_,_,c.skG,c.skG,c.tk,c.skG,c.skG,c.skG,c.tk,c.skG,c.skG,_,_,_,_],
-[_,_,_,c.skG,c.tk,c.skG,c.gnD,c.gnD,c.gnD,c.skG,c.tk,c.skG,_,_,_,_],
-[_,_,_,_,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,c.skG,_,_,_,_,_],
-[_,_,_,_,_,c.skG,c.skG,c.skG,c.skG,c.skG,_,_,_,_,_,_],
-[_,_,_,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,_,_,_,_],
-[_,_,c.lt,c.lt,c.ltD,c.lt,c.lt,c.lt,c.lt,c.ltD,c.lt,c.lt,_,_,_,_],
-[_,_,c.lt,c.lt,c.lt,c.lt,c.mt,c.mt,c.lt,c.lt,c.lt,c.lt,_,_,_,_]]},
-dwarf(){const c=PA.C,_=null;return[
-[_,_,_,_,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,_,_,_,_],
-[_,_,_,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,_,_,_],
-[_,_,c.hr,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.hr,_,_,_],
-[_,c.hr,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.hr,_,_],
-[_,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,c.skR,_,_],
-[_,_,c.skR,c.skR,c.ey,c.ey,c.skR,c.skR,c.skR,c.ey,c.ey,c.skR,c.skR,_,_,_],
-[_,_,c.skR,c.skR,c.eyD,c.wh,c.skR,c.skR,c.skR,c.eyD,c.wh,c.skR,c.skR,_,_,_],
-[_,_,c.skR,c.skR,c.skR,c.skR,c.skR,c.skD,c.skR,c.skR,c.skR,c.skR,c.skR,_,_,_],
-[_,_,c.skR,c.hr,c.hr,c.skR,c.hr,c.hr,c.hr,c.skR,c.hr,c.hr,c.skR,_,_,_],
-[_,_,_,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,_,_,_,_],
-[_,_,_,_,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,c.hr,_,_,_,_,_],
-[_,_,_,_,c.hr,_,c.hr,c.hr,c.hr,_,c.hr,_,_,_,_,_],
-[_,_,_,_,_,_,_,c.hr,_,_,_,_,_,_,_,_],
-[_,_,_,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,_,_,_],
-[_,_,c.mt,c.mt,c.mtD,c.mt,c.mt,c.mt,c.mt,c.mtD,c.mt,c.mt,c.mt,_,_,_],
-[_,_,c.mt,c.mt,c.mt,c.mt,c.gd,c.gd,c.mt,c.mt,c.mt,c.mt,c.mt,_,_,_]]},
-halfling(){const c=PA.C,_=null;return[
-[_,_,_,_,_,c.hrC,c.hrC,c.hrC,c.hrC,c.hrC,_,_,_,_,_,_],
-[_,_,_,_,c.hrC,c.hrC,c.hrC,c.hrC,c.hrC,c.hrC,c.hrC,_,_,_,_,_],
-[_,_,_,c.hrC,c.hrC,c.hrC,c.hrC,c.hrC,c.hrC,c.hrC,c.hrC,c.hrC,_,_,_,_],
-[_,_,_,c.hrC,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.hrC,_,_,_,_],
-[_,_,c.hrC,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,_,_,_,_],
-[_,_,_,c.sk,c.ey,c.ey,c.sk,c.sk,c.sk,c.ey,c.ey,c.sk,_,_,_,_],
-[_,_,_,c.sk,c.gn,c.wh,c.sk,c.sk,c.sk,c.gn,c.wh,c.sk,_,_,_,_],
-[_,_,_,c.sk,c.sk,c.sk,c.sk,c.skD,c.sk,c.sk,c.sk,c.sk,_,_,_,_],
-[_,_,_,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,c.sk,_,_,_,_],
-[_,_,_,_,c.sk,c.sk,c.skD,c.skD,c.skD,c.sk,c.sk,_,_,_,_,_],
-[_,_,_,_,c.sk,c.skD,c.rd,c.rd,c.rd,c.skD,c.sk,_,_,_,_,_],
-[_,_,_,_,_,c.sk,c.sk,c.sk,c.sk,c.sk,_,_,_,_,_,_],
-[_,_,_,_,_,c.sk,c.skD,c.skD,c.sk,_,_,_,_,_,_,_],
-[_,_,_,_,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,_,_,_,_,_,_],
-[_,_,_,c.gnD,c.gnD,c.gn,c.gnD,c.gnD,c.gn,c.gnD,c.gnD,_,_,_,_,_],
-[_,_,_,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,c.gnD,_,_,_,_,_]]}
+human(){const o='#1a1a2e',s='#e0b088',h='#4a3520',e='#446688',r='#8b2635',c='#404060',_=null;return[
+[_,_,_,_,o,h,h,h,h,h,o,_,_,_,_,_],
+[_,_,_,o,h,h,h,h,h,h,h,o,_,_,_,_],
+[_,_,o,h,h,h,h,h,h,h,h,h,o,_,_,_],
+[_,_,o,s,s,s,s,s,s,s,s,s,o,_,_,_],
+[_,o,s,s,s,s,s,s,s,s,s,s,s,o,_,_],
+[_,o,s,s,e,o,s,s,s,e,o,s,s,o,_,_],
+[_,o,s,s,s,s,s,s,s,s,s,s,s,o,_,_],
+[_,_,o,s,s,s,s,s,s,s,s,s,o,_,_,_],
+[_,_,o,s,s,s,s,s,s,s,s,s,o,_,_,_],
+[_,_,_,o,s,s,s,s,s,s,s,o,_,_,_,_],
+[_,_,_,o,s,s,r,r,r,s,s,o,_,_,_,_],
+[_,_,_,_,o,s,s,s,s,s,o,_,_,_,_,_],
+[_,_,_,_,_,o,s,s,s,o,_,_,_,_,_,_],
+[_,_,_,_,o,c,c,c,c,c,o,_,_,_,_,_],
+[_,_,_,o,c,c,c,c,c,c,c,o,_,_,_,_],
+[_,_,_,o,c,c,c,c,c,c,c,o,_,_,_,_]]},
+elf(){const o='#1a1a2e',s='#e0b088',h='#c8a060',e='#5a9c6a',g='#385c44',_=null;return[
+[_,_,_,_,o,h,h,h,h,h,o,_,_,_,_,_],
+[_,_,_,o,h,h,h,h,h,h,h,o,_,_,_,_],
+[_,_,o,h,h,h,h,h,h,h,h,h,o,_,_,_],
+[_,o,s,s,s,s,s,s,s,s,s,s,s,o,_,_],
+[o,s,s,s,s,s,s,s,s,s,s,s,s,s,o,_],
+[_,o,s,s,e,o,s,s,s,e,o,s,s,o,_,_],
+[_,o,s,s,s,s,s,s,s,s,s,s,s,o,_,_],
+[_,_,o,s,s,s,s,s,s,s,s,s,o,_,_,_],
+[_,_,o,s,s,s,s,s,s,s,s,s,o,_,_,_],
+[_,_,_,o,s,s,s,s,s,s,s,o,_,_,_,_],
+[_,_,_,o,s,s,s,s,s,s,s,o,_,_,_,_],
+[_,_,_,_,o,s,s,s,s,s,o,_,_,_,_,_],
+[_,_,_,_,_,o,s,s,s,o,_,_,_,_,_,_],
+[_,_,_,_,o,g,g,g,g,g,o,_,_,_,_,_],
+[_,_,_,o,g,e,g,g,g,e,g,o,_,_,_,_],
+[_,_,_,o,g,g,g,g,g,g,g,o,_,_,_,_]]},
+orc(){const o='#1a1a2e',s='#a0c890',h='#4a3520',r='#8b2635',g='#c9a84c',t='#d8d0c0',l='#8b6840',_=null;return[
+[_,_,_,_,o,h,h,h,h,h,o,_,_,_,_,_],
+[_,_,_,o,h,h,h,h,h,h,h,o,_,_,_,_],
+[_,_,o,s,s,s,s,s,s,s,s,s,o,_,_,_],
+[_,o,s,s,s,s,s,s,s,s,s,s,s,o,_,_],
+[o,s,s,s,s,s,s,s,s,s,s,s,s,s,o,_],
+[o,s,s,s,r,g,s,s,s,r,g,s,s,s,o,_],
+[o,s,s,s,s,s,s,s,s,s,s,s,s,s,o,_],
+[_,o,s,s,s,s,s,o,s,s,s,s,s,o,_,_],
+[_,o,s,s,s,s,o,o,o,s,s,s,s,o,_,_],
+[_,_,o,s,s,t,s,s,s,t,s,s,o,_,_,_],
+[_,_,o,s,t,s,o,o,o,s,t,s,o,_,_,_],
+[_,_,_,o,s,s,s,s,s,s,s,o,_,_,_,_],
+[_,_,_,_,o,s,s,s,s,s,o,_,_,_,_,_],
+[_,_,_,o,l,l,l,l,l,l,l,o,_,_,_,_],
+[_,_,o,l,l,o,l,l,l,o,l,l,o,_,_,_],
+[_,_,o,l,l,l,l,l,l,l,l,l,o,_,_,_]]},
+dwarf(){const o='#1a1a2e',s='#d4a574',h='#4a3520',e='#446688',m='#a0a0b0',g='#c9a84c',_=null;return[
+[_,_,_,o,h,h,h,h,h,h,h,h,o,_,_,_],
+[_,_,o,h,h,h,h,h,h,h,h,h,h,o,_,_],
+[_,o,s,s,s,s,s,s,s,s,s,s,s,s,o,_],
+[_,o,s,s,s,s,s,s,s,s,s,s,s,s,o,_],
+[_,o,s,s,e,o,s,s,s,e,o,s,s,s,o,_],
+[_,o,s,s,s,s,s,o,s,s,s,s,s,s,o,_],
+[_,_,o,s,h,h,s,h,h,h,s,h,h,o,_,_],
+[_,_,o,s,h,h,h,h,h,h,h,h,s,o,_,_],
+[_,_,_,o,h,h,h,h,h,h,h,o,_,_,_,_],
+[_,_,_,_,o,h,h,h,h,h,o,_,_,_,_,_],
+[_,_,_,_,_,o,h,h,h,o,_,_,_,_,_,_],
+[_,_,_,_,_,_,o,h,o,_,_,_,_,_,_,_],
+[_,_,_,o,m,m,m,m,m,m,m,m,m,o,_,_],
+[_,_,o,m,m,o,m,m,m,o,m,m,m,o,_,_],
+[_,_,o,m,m,m,m,g,g,m,m,m,m,o,_,_],
+[_,_,o,m,m,m,m,m,m,m,m,m,m,o,_,_]]},
+halfling(){const o='#1a1a2e',s='#e0b088',h='#8b6840',e='#5a9c6a',r='#8b2635',g='#385c44',_=null;return[
+[_,_,_,_,_,o,h,h,h,h,o,_,_,_,_,_],
+[_,_,_,_,o,h,h,h,h,h,h,o,_,_,_,_],
+[_,_,_,o,h,h,h,h,h,h,h,h,o,_,_,_],
+[_,_,_,o,s,s,s,s,s,s,s,s,o,_,_,_],
+[_,_,o,s,s,s,s,s,s,s,s,s,s,o,_,_],
+[_,_,o,s,e,e,s,s,s,e,e,s,s,o,_,_],
+[_,_,o,s,o,e,s,s,s,o,e,s,s,o,_,_],
+[_,_,o,s,s,s,s,o,s,s,s,s,s,o,_,_],
+[_,_,_,o,s,s,s,s,s,s,s,s,o,_,_,_],
+[_,_,_,o,s,s,o,o,o,s,s,o,_,_,_,_],
+[_,_,_,_,o,s,r,r,r,s,o,_,_,_,_,_],
+[_,_,_,_,_,o,s,s,s,o,_,_,_,_,_,_],
+[_,_,_,_,_,o,s,s,o,_,_,_,_,_,_,_],
+[_,_,_,_,o,g,g,g,g,g,o,_,_,_,_,_],
+[_,_,_,o,g,e,g,g,e,g,g,o,_,_,_,_],
+[_,_,_,o,g,g,g,g,g,g,g,o,_,_,_,_]]}
 },
 icons:{
 pack(){const c=PA.C,_=null;return[[_,_,c.lt,c.lt,c.lt,c.lt,_,_],[_,c.lt,c.ltD,c.ltD,c.ltD,c.ltD,c.lt,_],[c.lt,c.ltD,c.lt,c.lt,c.lt,c.lt,c.ltD,c.lt],[c.lt,c.ltD,c.lt,c.gd,c.gd,c.lt,c.ltD,c.lt],[c.lt,c.ltD,c.lt,c.lt,c.lt,c.lt,c.ltD,c.lt],[c.lt,c.ltD,c.ltD,c.ltD,c.ltD,c.ltD,c.ltD,c.lt],[_,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,_],[_,_,c.lt,c.lt,c.lt,c.lt,_,_]]},
-book(){const c=PA.C,_=null;return[[_,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,_],[c.lt,c.gd,c.wh,c.wh,c.wh,c.wh,c.gd,c.lt],[c.lt,c.wh,c.lt,c.lt,c.lt,c.wh,c.wh,c.lt],[c.lt,c.wh,c.lt,c.gd,c.lt,c.wh,c.wh,c.lt],[c.lt,c.wh,c.lt,c.lt,c.lt,c.wh,c.wh,c.lt],[c.lt,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.lt],[c.lt,c.gd,c.wh,c.wh,c.wh,c.wh,c.gd,c.lt],[_,c.lt,c.lt,c.lt,c.lt,c.lt,c.lt,_]]},
 save(){const c=PA.C;return[[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt],[c.mt,c.mtD,c.mtD,c.mtD,c.mtD,c.mtD,c.mt,c.mt],[c.mt,c.mtD,c.mtD,c.mtD,c.mtD,c.mtD,c.mt,c.mt],[c.mt,c.mtD,c.mtD,c.mtD,c.mtD,c.mtD,c.mt,c.mt],[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt],[c.mt,c.mtL,c.mt,c.mtL,c.mtL,c.mt,c.mtL,c.mt],[c.mt,c.mtL,c.mt,c.mtL,c.mtL,c.mt,c.mtL,c.mt],[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt]]},
-menu(){const c=PA.C,_=null;return[[_,_,_,_,_,_,_,_],[c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh],[_,_,_,_,_,_,_,_],[c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh],[_,_,_,_,_,_,_,_],[c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh,c.wh],[_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_]]},
-person(){const c=PA.C,_=null;return[[_,_,c.gd,c.gd,c.gd,c.gd,_,_],[_,c.gd,_,_,_,_,c.gd,_],[_,c.gd,c.wh,_,_,c.wh,c.gd,_],[_,_,c.gd,c.gd,c.gd,c.gd,_,_],[_,_,_,c.gd,c.gd,_,_,_],[_,c.gd,c.gd,c.gd,c.gd,c.gd,c.gd,_],[_,_,_,c.gd,c.gd,_,_,_],[_,_,c.gd,_,_,c.gd,_,_]]},
-sword(){const c=PA.C,_=null;return[[_,_,_,_,_,_,c.wh,c.wh],[_,_,_,_,_,c.wh,c.mtL,_],[_,_,_,_,c.wh,c.mtL,_,_],[_,_,_,c.wh,c.mtL,_,_,_],[_,_,c.wh,c.wh,_,_,_,_],[_,c.gd,c.gd,_,_,_,_,_],[_,_,c.gd,c.gd,_,_,_,_],[_,_,_,_,_,_,_,_]]},
-shield(){const c=PA.C,_=null;return[[_,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,_],[c.mt,c.mt,c.mt,c.gd,c.gd,c.mt,c.mt,c.mt],[c.mt,c.mt,c.mt,c.gd,c.gd,c.mt,c.mt,c.mt],[c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt],[_,c.mt,c.mt,c.mt,c.mt,c.mt,c.mt,_],[_,_,c.mt,c.mt,c.mt,c.mt,_,_],[_,_,_,c.mt,c.mt,_,_,_],[_,_,_,_,_,_,_,_]]},
-potion(){const c=PA.C,_=null;return[[_,_,c.gy,c.gy,c.gy,c.gy,_,_],[_,_,_,c.gy,c.gy,_,_,_],[_,_,c.rd,c.rd,c.rd,c.rd,_,_],[_,c.rd,c.rd,c.rd,c.rd,c.rd,c.rd,_],[_,c.rd,c.rd,c.wh,c.rd,c.rd,c.rd,_],[_,c.rd,c.rd,c.rd,c.rd,c.rd,c.rd,_],[_,c.rd,c.rd,c.rd,c.rd,c.rd,c.rd,_],[_,_,c.rd,c.rd,c.rd,c.rd,_,_]]}
+person(){const t='#a89f8c',_=null;return[
+[_,_,_,t,t,_,_,_],
+[_,_,t,t,t,t,_,_],
+[_,_,_,t,t,_,_,_],
+[_,_,_,t,_,_,_,_],
+[_,_,t,t,t,_,_,_],
+[_,t,_,t,_,t,_,_],
+[_,_,_,t,t,_,_,_],
+[_,_,t,_,_,t,_,_]]},
+book(){const t='#a89f8c',g='#c9a84c',_=null;return[
+[_,t,t,t,t,t,t,_],
+[t,t,g,g,t,t,t,t],
+[t,t,_,_,t,t,_,t],
+[t,t,g,g,t,t,g,t],
+[t,t,_,_,t,t,_,t],
+[t,t,g,g,t,t,g,t],
+[t,t,t,t,t,t,t,t],
+[_,t,t,t,t,t,t,_]]},
+menu(){const t='#a89f8c',_=null;return[
+[_,_,_,_,_,_,_,_],
+[_,t,t,t,t,t,t,_],
+[_,_,_,_,_,_,_,_],
+[_,t,t,t,t,t,t,_],
+[_,_,_,_,_,_,_,_],
+[_,t,t,t,t,t,t,_],
+[_,_,_,_,_,_,_,_],
+[_,_,_,_,_,_,_,_]]},
+sword(){const t='#a89f8c',g='#c9a84c',w='#e8e8f0',_=null;return[
+[_,_,_,_,_,_,w,_],
+[_,_,_,_,_,w,t,_],
+[_,_,_,_,w,t,_,_],
+[_,_,_,w,t,_,_,_],
+[_,_,g,w,g,_,_,_],
+[_,_,_,g,_,_,_,_],
+[_,_,g,_,_,_,_,_],
+[_,_,_,_,_,_,_,_]]},
+shield(){const t='#a89f8c',g='#c9a84c',_=null;return[
+[_,t,t,t,t,t,t,_],
+[t,t,t,g,g,t,t,t],
+[t,t,g,g,g,g,t,t],
+[t,t,t,g,g,t,t,t],
+[_,t,t,t,t,t,t,_],
+[_,_,t,t,t,t,_,_],
+[_,_,_,t,t,_,_,_],
+[_,_,_,_,_,_,_,_]]},
+potion(){const t='#a89f8c',r='#c44054',w='#e8e8f0',_=null;return[
+[_,_,_,t,t,_,_,_],
+[_,_,_,t,t,_,_,_],
+[_,_,t,_,_,t,_,_],
+[_,t,r,r,r,r,t,_],
+[_,t,r,w,r,r,t,_],
+[_,t,r,r,r,r,t,_],
+[_,t,r,r,r,r,t,_],
+[_,_,t,t,t,t,_,_]]}
 },
 classIcons:{
 fighter(){const t='#a0a0b4',g='#c9a84c',_=null;return[
 [_,_,_,_,_,_,_,_,_,_,_,_,t,t,_,_],
-[_,_,_,_,_,_,_,_,_,_,_,t,t,_,_,_],
+[_,_,_,_,_,_,_,_,_,_,_,t,t,t,_,_],
 [_,_,_,_,_,_,_,_,_,_,t,t,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,t,t,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,t,t,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,t,t,_,_,_,_,_,_,_],
-[_,_,_,_,_,_,t,g,_,_,_,_,_,_,_,_],
-[_,_,_,_,_,t,g,t,_,_,_,_,_,_,_,_],
-[_,_,_,_,_,g,_,_,g,_,_,_,_,_,_,_],
-[_,_,_,_,g,_,_,_,_,g,_,_,_,_,_,_],
-[_,_,_,g,_,_,_,_,_,_,t,t,_,_,_,_],
-[_,_,_,_,_,_,_,_,_,t,t,t,t,_,_,_],
-[_,_,_,_,_,_,_,_,t,t,g,g,t,t,_,_],
-[_,_,_,_,_,_,_,_,t,t,g,g,t,t,_,_],
-[_,_,_,_,_,_,_,_,_,t,t,t,t,_,_,_],
-[_,_,_,_,_,_,_,_,_,_,t,t,_,_,_,_]]},
+[_,_,_,_,_,g,t,g,_,_,_,_,_,_,_,_],
+[_,_,_,_,g,_,g,_,_,_,_,_,_,_,_,_],
+[_,_,_,g,_,_,_,_,t,t,_,_,_,_,_,_],
+[_,_,_,_,_,_,_,t,t,t,t,_,_,_,_,_],
+[_,_,_,_,_,_,t,t,g,g,t,t,_,_,_,_],
+[_,_,_,_,_,_,t,t,g,g,t,t,_,_,_,_],
+[_,_,_,_,_,_,_,t,t,t,t,_,_,_,_,_],
+[_,_,_,_,_,_,_,_,t,t,_,_,_,_,_,_],
+[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
+[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
 paladin(){const t='#a0a0b4',g='#c9a84c',_=null;return[
+[_,_,_,_,_,t,t,t,t,t,t,_,_,_,_,_],
 [_,_,_,_,t,t,t,t,t,t,t,t,_,_,_,_],
-[_,_,_,t,t,t,t,t,t,t,t,t,t,_,_,_],
-[_,_,t,t,t,t,t,g,t,t,t,t,t,t,_,_],
-[_,t,t,t,t,t,g,g,g,t,t,t,t,t,t,_],
-[_,t,t,t,t,t,t,g,t,t,t,t,t,t,t,_],
-[_,t,t,t,t,t,t,g,t,t,t,t,t,t,t,_],
-[_,t,t,t,t,t,t,t,t,t,t,t,t,t,t,_],
-[_,t,t,t,t,t,t,t,t,t,t,t,t,t,t,_],
-[_,t,t,t,t,t,t,t,t,t,t,t,t,t,t,_],
+[_,_,_,t,t,t,t,g,g,t,t,t,t,_,_,_],
+[_,_,t,t,t,t,g,g,g,g,t,t,t,t,_,_],
+[_,_,t,t,t,t,t,g,g,t,t,t,t,t,_,_],
+[_,_,t,t,t,t,t,g,g,t,t,t,t,t,_,_],
+[_,_,t,t,t,t,t,t,t,t,t,t,t,t,_,_],
 [_,_,t,t,t,t,t,t,t,t,t,t,t,t,_,_],
 [_,_,_,t,t,t,t,t,t,t,t,t,t,_,_,_],
 [_,_,_,_,t,t,t,t,t,t,t,t,_,_,_,_],
 [_,_,_,_,_,t,t,t,t,t,t,_,_,_,_,_],
 [_,_,_,_,_,_,t,t,t,t,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,t,t,_,_,_,_,_,_,_],
+[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
+[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
-ranger(){const t='#a0a0b4',_=null;return[
-[_,_,_,_,_,_,_,_,_,_,_,_,_,t,t,_],
-[_,_,_,_,_,_,_,_,_,_,_,_,t,t,_,_],
-[_,_,_,t,_,_,_,_,_,_,_,t,t,_,_,_],
-[_,_,t,_,_,_,_,_,_,_,t,t,_,_,_,_],
-[_,t,_,_,_,_,_,_,_,t,t,_,_,_,_,_],
-[_,t,_,_,_,_,_,_,t,t,_,_,_,_,_,_],
-[_,t,_,_,_,_,_,t,t,_,_,_,_,_,_,_],
-[_,t,_,_,_,_,t,t,_,_,_,_,_,_,_,_],
-[_,t,_,_,_,t,t,_,_,_,_,_,_,_,_,_],
-[_,t,_,_,t,t,_,_,_,_,_,_,_,_,_,_],
-[_,_,t,t,t,_,_,_,_,_,_,_,_,_,_,_],
+ranger(){const t='#a0a0b4',g='#c9a84c',_=null;return[
+[_,_,_,_,_,_,_,_,_,_,_,_,_,t,_,_],
+[_,_,_,_,_,_,_,_,_,_,_,_,t,_,_,_],
+[_,_,_,t,_,_,_,_,_,_,_,t,_,_,_,_],
+[_,_,t,_,_,_,_,_,_,_,t,_,_,_,_,_],
+[_,t,_,_,_,_,_,_,_,t,_,_,_,_,_,_],
+[_,t,_,_,_,_,_,_,t,_,_,_,_,_,_,_],
+[_,t,_,_,_,_,_,t,_,_,_,_,_,_,_,_],
+[_,t,_,_,_,_,t,_,_,_,_,_,_,_,_,_],
+[_,t,_,_,_,t,_,_,_,_,_,_,_,_,_,_],
+[_,_,t,_,t,_,_,_,_,_,_,_,_,_,_,_],
+[_,_,_,t,t,_,_,_,_,_,_,_,_,_,_,_],
 [_,_,_,t,_,_,_,_,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
-[_,t,t,t,t,t,t,t,t,t,t,t,t,t,t,_],
-[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
-[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+[_,g,g,g,g,g,g,g,g,g,g,g,g,g,g,_],
+[_,_,_,_,_,_,_,_,_,_,_,_,_,g,_,_],
+[_,_,_,_,_,_,_,_,_,_,_,_,_,_,g,_]]},
 rogue(){const t='#a0a0b4',r='#c44054',_=null;return[
-[_,_,_,_,_,_,_,_,_,_,_,_,t,t,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,t,t,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,t,t,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,t,t,_,_,_,_,_],
@@ -560,37 +608,38 @@ rogue(){const t='#a0a0b4',r='#c44054',_=null;return[
 [_,_,t,t,_,_,t,t,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,r,_,_,_,_,_,_,_],
+[_,_,_,_,_,_,_,_,_,r,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,r,_,_,_,_,_],
-[_,_,_,_,_,_,_,_,_,_,_,_,r,_,_,_],
+[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
 wizard(){const t='#a0a0b4',g='#c9a84c',_=null;return[
-[_,_,_,_,_,_,_,t,_,_,_,_,_,_,_,_],
+[_,_,_,_,_,_,_,g,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,t,g,t,_,_,_,_,_,_,_],
 [_,_,_,_,_,t,t,t,t,t,_,_,_,_,_,_],
-[_,_,_,_,t,t,t,t,t,t,t,_,_,_,_,_],
-[_,_,_,t,t,t,t,t,t,t,t,t,_,_,_,_],
+[_,_,_,_,t,t,t,g,t,t,t,_,_,_,_,_],
+[_,_,_,t,t,t,g,t,g,t,t,t,_,_,_,_],
 [_,_,t,t,t,t,t,t,t,t,t,t,t,_,_,_],
 [_,t,t,t,t,t,t,t,t,t,t,t,t,t,_,_],
 [t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
-[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
+[_,_,_,_,_,g,_,_,_,_,g,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
-berserker(){const t='#a0a0b4',_=null;return[
+berserker(){const t='#a0a0b4',r='#c44054',_=null;return[
 [_,_,_,t,_,_,_,_,_,_,_,_,t,_,_,_],
 [_,_,t,t,_,_,_,_,_,_,_,_,t,t,_,_],
 [_,_,t,_,_,_,_,_,_,_,_,_,_,t,_,_],
 [_,_,_,_,_,t,t,t,t,t,t,_,_,_,_,_],
 [_,_,_,_,t,t,t,t,t,t,t,t,_,_,_,_],
-[_,_,_,t,t,_,t,t,t,t,_,t,t,_,_,_],
-[_,_,_,t,t,t,_,t,t,_,t,t,t,_,_,_],
+[_,_,_,t,t,r,t,t,t,t,r,t,t,_,_,_],
+[_,_,_,t,t,t,r,t,t,r,t,t,t,_,_,_],
 [_,_,_,t,t,t,t,t,t,t,t,t,t,_,_,_],
 [_,_,_,t,t,t,t,t,t,t,t,t,t,_,_,_],
-[_,_,_,_,t,t,_,_,_,t,t,_,_,_,_,_],
+[_,_,_,_,t,t,t,_,t,t,t,_,_,_,_,_],
 [_,_,_,_,_,t,t,_,t,t,_,_,_,_,_,_],
 [_,_,_,_,_,_,t,t,t,_,_,_,_,_,_,_],
 [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
@@ -644,32 +693,32 @@ halfling:{name:'Halfling',desc:'Small, fast, and dangerously resourceful. Halfli
 const WT_NAMES=['Light','Medium','Heavy'];
 const CL={
 fighter:{name:'Fighter',desc:'No tricks, no magic. Just steel and the skill to use it.',
-  ability:{name:'Power Strike',desc:'Next melee attack deals double damage.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:2},requirement:'melee_range'},
-  wpn:{name:'Sword',t:'melee',wt:1,rng:5,dD:8,dB:0,desc:'Melee 5m, 1d8'},oh:null,
+  ability:{name:'Power Strike',desc:'Next melee attack deals double damage.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:2},requirement:'close_zone'},
+  wpn:{name:'Sword',t:'melee',wt:1,dD:8,dB:0,desc:'Melee, 1d8'},oh:null,
   arm:{name:'Chainmail',dB:2,wt:1,desc:'+2 defense (Medium)'},bp:[]},
 paladin:{name:'Paladin',desc:'Faith is my shield. Duty is my blade.',
   ability:{name:'Holy Light',desc:'Heal self for 8 HP.',cost:5,type:'heal',effect:{healAmt:8},requirement:null},
-  wpn:{name:'Sword',t:'melee',wt:1,rng:5,dD:8,dB:0,desc:'Melee 5m, 1d8'},
+  wpn:{name:'Sword',t:'melee',wt:1,dD:8,dB:0,desc:'Melee, 1d8'},
   oh:{name:'Wooden Shield',t:'shield',wt:1,blk:2,desc:'+2 block (Medium)'},
   arm:{name:'Chainmail',dB:2,wt:1,desc:'+2 defense (Medium)'},bp:[]},
 ranger:{name:'Ranger',desc:'One arrow. One kill. That\'s all it takes if you\'re patient.',
-  ability:{name:'Aimed Shot',desc:'Next ranged attack gains +20% hit, ignores close-range penalty.',cost:3,type:'buff',trigger:'ranged_hit',effect:{hitBonus:20,ignoreClosePenalty:true},requirement:'ranged_equipped'},
-  wpn:{name:'Shortbow',t:'ranged',wt:0,rng:30,minR:10,dD:6,dB:0,desc:'Ranged 10-30m, 1d6',ammo:10},
+  ability:{name:'Aimed Shot',desc:'Next ranged attack gains +20% hit, ignores zone penalties.',cost:3,type:'buff',trigger:'ranged_hit',effect:{hitBonus:20,ignoreZonePenalty:true},requirement:'mid_or_far_zone'},
+  wpn:{name:'Shortbow',t:'ranged',wt:0,dD:6,dB:0,desc:'Ranged, 1d6',ammo:10},
   oh:{name:'Quiver',t:'quiver',wt:0,desc:'10 arrows',arrows:10},
-  arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[{name:'Dagger',t:'melee',wt:0,rng:5,dD:4,dB:2,desc:'Melee 5m, 1d4+2'}]},
+  arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[{name:'Dagger',t:'melee',wt:0,dD:4,dB:2,desc:'Melee, 1d4+2'}]},
 rogue:{name:'Rogue',desc:'Fair fights are for people who can\'t plan ahead.',
-  ability:{name:'Backstab',desc:'Triple damage if first turn or moved this turn.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:3,condDmgMult:1},conditions:['first_turn','moved_this_turn'],requirement:'melee_range'},
-  wpn:{name:'Dagger',t:'melee',wt:0,rng:5,dD:4,dB:2,desc:'Melee 5m, 1d4+2'},
+  ability:{name:'Backstab',desc:'Triple damage if first turn or moved this turn.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:3,condDmgMult:1},conditions:['first_turn','moved_this_turn'],requirement:'close_zone'},
+  wpn:{name:'Dagger',t:'melee',wt:0,dD:4,dB:2,desc:'Melee, 1d4+2'},
   oh:{name:'Lantern',t:'light',wt:0,desc:'Illuminates dark areas'},
   arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[]},
 wizard:{name:'Wizard',desc:'While you were learning to swing a sword, I was reading. And reading wins.',
-  ability:{name:'Arcane Bolt',desc:'Ranged magic attack: 2d6 damage, uses Smarts to hit.',cost:3,type:'attack',effect:{dmgDice:[6,6],range:[5,25],statOverride:'smarts'},requirement:'spellbook_equipped'},
-  wpn:{name:'Staff',t:'melee',wt:0,rng:5,dD:4,dB:0,desc:'Melee 5m, 1d4'},
+  ability:{name:'Arcane Bolt',desc:'Ranged magic attack: 2d6 damage, uses Smarts to hit.',cost:3,type:'attack',effect:{dmgDice:[6,6],statOverride:'smarts'},requirement:'spellbook_equipped'},
+  wpn:{name:'Staff',t:'melee',wt:0,dD:4,dB:0,desc:'Melee, 1d4'},
   oh:{name:'Spellbook',t:'spellbook',wt:0,desc:'Required for Arcane Bolt'},
   arm:{name:'Robes',dB:0,wt:0,desc:'+0 defense (Light)'},bp:[]},
 berserker:{name:'Berserker',desc:'You think pain stops me? Pain makes me STRONGER.',
   ability:{name:'Aggro',desc:'+2 melee dmg, +10% hit, +1 incoming dmg for 3 turns.',cost:5,type:'buff',trigger:'sustained',effect:{dmgBonus:2,hitBonus:10,incomingDmgBonus:1,duration:3},requirement:null},
-  wpn:{name:'Greataxe',t:'melee',wt:2,rng:5,dD:10,dB:0,desc:'Melee 5m, 1d10',twoHand:true},
+  wpn:{name:'Greataxe',t:'melee',wt:2,dD:10,dB:0,desc:'Melee, 1d10',twoHand:true},
   oh:null,
   arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[]}
 };
@@ -684,12 +733,19 @@ maxHP(r){return r.stats.health*4},
 maxMP(r){let b=r.stats.mana*4;if(r.subspecies==='brightelf'||r.subspecies==='ashborn')b+=4;return b},
 totalWt(r){return(r.wpn?r.wpn.wt||0:0)+(r.oh?r.oh.wt||0:0)+(r.arm?r.arm.wt||0:0)},
 effMov(r){let m=r.stats.movement-this.totalWt(r);if(r.subspecies==='quickfoot')m+=2;return Math.max(1,m)},
-combatMove(r){return Math.max(2,this.effMov(r)*2)},
-meleeHit(r,eDef){return this.pct(55+(r.stats.melee-5)*5-eDef*3)},
-rangedHit(r,eDef){return this.pct(55+(r.stats.ranged-5)*5-eDef*3)},
+ZONES:['close','mid','far'],
+zoneHitMod(zone,wpnType){
+  if(wpnType==='ranged'){if(zone==='close')return -15;if(zone==='far')return -10}
+  return 0},
+meleeHit(r,eDef,zone){
+  let h=55+(r.stats.melee-5)*5-eDef*3;
+  return this.pct(h)},
+rangedHit(r,eDef,zone){
+  let h=55+(r.stats.ranged-5)*5-eDef*3+this.zoneHitMod(zone||'mid','ranged');
+  return this.pct(h)},
 enemyHit(eAtk,pDef){return this.pct(55+(eAtk-5)*5-pDef*3)},
 playerDef(r){return r.arm?r.arm.dB:0},
-flee(r,dist){return this.pct(30+dist*1.5+(this.effMov(r)-5)*5)},
+flee(r){return this.pct(30+(this.effMov(r)-5)*5)},
 search(r,diff){return this.pct(50+(r.stats.sight-5)*7+(diff||0))},
 speech(r,diff){return this.pct(50+(r.stats.speech-5)*7+(diff||0))},
 smarts(r,diff){return this.pct(50+(r.stats.smarts-5)*7+(diff||0))},
@@ -700,7 +756,8 @@ rangedDmgMod(r){return r.stats.ranged-5},
 abilityCost(r,ability){let c=ability.cost;if(r.stats.smarts>=7)c=Math.max(1,c-1);return c},
 arcaneBoltHit(r,eDef){return this.pct(55+(r.stats.smarts-5)*5-eDef*3)},
 roll100(){return Math.floor(Math.random()*100)+1},
-rollDice(sides){return Math.floor(Math.random()*sides)+1}
+rollDice(sides){return Math.floor(Math.random()*sides)+1},
+safeDmg(d){return isFinite(d)&&d>0?Math.floor(d):1}
 };
 
 // === GAME STATE ===
@@ -723,22 +780,24 @@ newRun(nm,sp,subsp,cl,humanBonus){
 },
 recalcDerived(){if(!this.run)return;this.run.mHP=CALC.maxHP(this.run);this.run.mMP=CALC.maxMP(this.run);if(this.run.hp>this.run.mHP)this.run.hp=this.run.mHP;if(this.run.mp>this.run.mMP)this.run.mp=this.run.mMP},
 _saveFail:false,
-saveA(){if(this.run)try{localStorage.setItem('activeRun',JSON.stringify(this.run));this._saveFail=false}catch(e){if(!this._saveFail){this._saveFail=true;console.warn('Auto-save failed:',e)}}},
-loadA(){try{const d=localStorage.getItem('activeRun');if(d){const p=JSON.parse(d);if(!p||!p.stats)return'incompatible';this.run=p;return true}}catch(e){}return false},
+_validateSave(p){return p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof p.level==='number'&&typeof p.hp==='number'&&typeof p.mHP==='number'},
+saveA(){if(this.run)try{localStorage.setItem('activeRun',JSON.stringify(this.run));this._saveFail=false}catch(e){if(!this._saveFail){this._saveFail=true;console.warn('Auto-save failed:',e);
+  if(e.name==='QuotaExceededError')showToast('Save failed \u2014 storage may be full.','error');else showToast('Auto-save failed.','error')}}},
+loadA(){try{const d=localStorage.getItem('activeRun');if(d){const p=JSON.parse(d);if(!this._validateSave(p))return'incompatible';this.run=p;return true}}catch(e){showToast('Save data corrupted. Starting fresh.','error')}return false},
 clearA(){this.run=null;try{localStorage.removeItem('activeRun')}catch(e){}},
-mSave(s){if(!this.run)return false;try{let sv=JSON.parse(localStorage.getItem('manualSaves')||'["","",""]');sv[s]=JSON.stringify({...this.run,savedAt:new Date().toISOString()});localStorage.setItem('manualSaves',JSON.stringify(sv));return true}catch(e){return false}},
-mLoad(s){try{let sv=JSON.parse(localStorage.getItem('manualSaves')||'["","",""]');if(sv[s]){const p=JSON.parse(sv[s]);if(!p||!p.stats)return'incompatible';this.run=p;this.saveA();return true}}catch(e){}return false},
+mSave(s){if(!this.run)return false;try{let sv=JSON.parse(localStorage.getItem('manualSaves')||'["","",""]');sv[s]=JSON.stringify({...this.run,savedAt:new Date().toISOString()});localStorage.setItem('manualSaves',JSON.stringify(sv));return true}catch(e){if(e.name==='QuotaExceededError')showToast('Save failed \u2014 storage full.','error');return false}},
+mLoad(s){try{let sv=JSON.parse(localStorage.getItem('manualSaves')||'["","",""]');if(sv[s]){const p=JSON.parse(sv[s]);if(!this._validateSave(p))return'incompatible';this.run=p;this.saveA();return true}}catch(e){showToast('Save slot corrupted.','error')}return false},
 getMSaves(){try{let sv=JSON.parse(localStorage.getItem('manualSaves')||'["","",""]');return sv.map(s=>{if(!s)return null;try{const p=JSON.parse(s);return p&&p.stats?p:null}catch(e){return null}})}catch(e){return[null,null,null]}},
-qSave(){if(!this.run)return false;try{localStorage.setItem('quickSave',JSON.stringify({...this.run,savedAt:new Date().toISOString()}));return true}catch(e){return false}},
-qLoad(){try{const d=localStorage.getItem('quickSave');if(d){const p=JSON.parse(d);if(!p||!p.stats)return'incompatible';this.run=p;this.saveA();return true}}catch(e){}return false},
-getQS(){try{const d=localStorage.getItem('quickSave');if(!d)return null;const p=JSON.parse(d);return p&&p.stats?p:null}catch(e){return null}},
+qSave(){if(!this.run)return false;try{localStorage.setItem('quickSave',JSON.stringify({...this.run,savedAt:new Date().toISOString()}));return true}catch(e){if(e.name==='QuotaExceededError')showToast('Quick save failed \u2014 storage full.','error');return false}},
+qLoad(){try{const d=localStorage.getItem('quickSave');if(d){const p=JSON.parse(d);if(!this._validateSave(p))return'incompatible';this.run=p;this.saveA();return true}}catch(e){showToast('Quick save corrupted.','error')}return false},
+getQS(){try{const d=localStorage.getItem('quickSave');if(!d)return null;const p=JSON.parse(d);return this._validateSave(p)?p:null}catch(e){return null}},
 getJM(){try{return JSON.parse(localStorage.getItem('journalMeta')||'{}')}catch(e){return{}}},
 setJM(u){const m=this.getJM();Object.assign(m,u);try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}},
 getSettings(){try{return JSON.parse(localStorage.getItem('gameSettings')||'{}')}catch(e){return{}}},
 setSettings(s){try{localStorage.setItem('gameSettings',JSON.stringify(s));const root=document.documentElement;root.classList.toggle('settings-high-contrast',!!s.highContrast);root.classList.toggle('settings-large-text',!!s.largeText)}catch(e){}},
 recEnc(id){if(!this.run)return;this.run.bSeen[id]=(this.run.bSeen[id]||0)+1;
   const m=this.getJM();if(!m.bestiary)m.bestiary={};
-  if(!m.bestiary[id]){const e=ENEMIES[id];m.bestiary[id]={name:e.name,lore:e.lore,hp:e.mHP,atk:e.atk,def:e.def,dmg:`1d${e.dD}+${e.dB}`,spd:e.spd,rng:e.aRng}}
+  if(!m.bestiary[id]){const e=ENEMIES[id];m.bestiary[id]={name:e.name,lore:e.lore,hp:e.mHP,atk:e.atk,def:e.def,dmg:`1d${e.dD}+${e.dB}`,zone:e.preferredZone||'close'}}
   try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}this.saveA()},
 recDef(id){if(!this.run)return;this.run.bDef[id]=(this.run.bDef[id]||0)+1;this.saveA()},
 addXP(amt){if(!this.run)return{};this.run.xp+=amt;let lv=false,lvls=[];
@@ -749,53 +808,86 @@ addXP(amt){if(!this.run)return{};this.run.xp+=amt;let lv=false,lvls=[];
 
 // === COMBAT ===
 const CMB={
-start(ek){const t=ENEMIES[ek],e={...t,hp:t.mHP};
-  GS.run.cs={enemy:e,dist:e.sDist,turns:0,fled:false,over:false,won:false,movedThisTurn:false,activeBuff:null};
+start(ek){
+  const t=ENEMIES[ek];
+  if(!t){console.error('Missing enemy:',ek);showToast('Combat error: unknown enemy.','error');return null}
+  const e={...t,hp:t.mHP};
+  GS.run.cs={enemy:e,playerZone:'mid',turnCount:0,fled:false,over:false,won:false,
+    movedThisTurn:false,freeMovedThisCombat:false,activeBuff:null,blocking:false,pBlk:0};
   GS.run.traitState.advantageUsed=false;GS.run.traitState.vanishUsed=false;GS.run.traitState.hidden=false;
   GS.recEnc(ek);GS.saveA();return GS.run.cs},
 gs(){return GS.run?GS.run.cs:null},
-pMove(dir){
-  const cs=this.gs();if(!cs||cs.over||cs.movedThisTurn)return[];
-  const r=GS.run,ms=[];
-  let moveAmt=CALC.combatMove(r);
-  if(r.debuffs&&r.debuffs.find(d=>d.type==='slow')){moveAmt=Math.max(1,Math.floor(moveAmt/2));ms.push({t:'Slowed! Movement halved.',c:'y'})}
-  if(dir==='closer'){if(cs.dist<=5){ms.push({t:"Already at close range!",c:'y'});return ms}
-    cs.dist=Math.max(5,cs.dist-moveAmt);ms.push({t:`You advance to ${cs.dist}m.`,c:'c'})}
-  else{if(cs.dist>=30){ms.push({t:"Can't retreat further!",c:'y'});return ms}
-    cs.dist=Math.min(30,cs.dist+moveAmt);ms.push({t:`You back away to ${cs.dist}m.`,c:'c'})}
-  cs.movedThisTurn=true;GS.saveA();return ms},
+_validZone(z){return z==='close'||z==='mid'||z==='far'},
+hasFreeMove(r,cs){
+  if(r.debuffs&&r.debuffs.find(d=>d.type==='slow'))return false;
+  if(r.subspecies==='quickfoot')return true;
+  if(r.classes&&r.classes[0]==='rogue')return 'toward_close';
+  if(CALC.effMov(r)>=7&&!cs.freeMovedThisCombat)return 'once';
+  return false},
+moveZone(dir){
+  const cs=this.gs();if(!cs||cs.over)return{ms:[],costAction:true};
+  if(!this._validZone(cs.playerZone)){cs.playerZone='mid';console.warn('Invalid zone reset to mid')}
+  const r=GS.run,ms=[],zones=CALC.ZONES,zi=zones.indexOf(cs.playerZone);
+  const fm=this.hasFreeMove(r,cs);
+  const isFree=fm===true||(fm==='toward_close'&&dir==='closer')||(fm==='once');
+  if(dir==='closer'){
+    if(zi<=0){ms.push({t:'Already at Close range!',c:'y'});return{ms,costAction:false}}
+    cs.playerZone=zones[zi-1];
+    ms.push({t:`You advance to ${cs.playerZone.toUpperCase()} range.`,c:'c'})}
+  else{
+    if(zi>=zones.length-1){ms.push({t:"Can't retreat further!",c:'y'});return{ms,costAction:false}}
+    cs.playerZone=zones[zi+1];
+    ms.push({t:`You fall back to ${cs.playerZone.toUpperCase()} range.`,c:'c'})}
+  cs.movedThisTurn=true;
+  if(fm==='once')cs.freeMovedThisCombat=true;
+  if(!isFree)ms.push({t:'(Movement costs your action)',c:'y'});
+  GS.saveA();return{ms,costAction:!isFree}},
 pAct(act){
   const cs=this.gs();if(!cs||cs.over)return[];const r=GS.run,ms=[];let eActs=true;
+  if(!this._validZone(cs.playerZone)){cs.playerZone='mid';console.warn('Invalid zone reset to mid')}
+  if(cs.enemy.hp<=0){cs.over=true;cs.won=true;GS.saveA();return ms}
+  if(r.hp<=0){cs.over=true;cs.won=false;GS.saveA();return ms}
   if(!r.debuffs)r.debuffs=[];
+  cs.turnCount++;
+  ms.push({t:`— Turn ${cs.turnCount} —`,c:'y'});
+  cs.blocking=false;
   for(let i=r.debuffs.length-1;i>=0;i--){const d=r.debuffs[i];
     const label=d.type.charAt(0).toUpperCase()+d.type.slice(1);
-    if(d.dmg>0){r.hp-=d.dmg;if(r.hp<0)r.hp=0;ms.push({t:`${label} deals ${d.dmg} damage! (${r.hp}/${r.mHP} HP)`,c:'d'})}
+    if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);r.hp=Math.max(0,r.hp-dd);ms.push({t:`${label} deals ${dd} damage! (${r.hp}/${r.mHP} HP)`,c:'d'})}
     else if(d.type!=='stun'){ms.push({t:`${label} afflicts you.`,c:'y'})}
-    d.remaining--;if(d.remaining<=0){r.debuffs.splice(i,1);ms.push({t:`The ${d.type} fades.`,c:'y'})}
+    d.remaining=Math.max(0,d.remaining-1);
+    if(d.remaining<=0){r.debuffs.splice(i,1);ms.push({t:`The ${d.type} fades.`,c:'y'})}
     else ms.push({t:`${label}: ${d.remaining} turn${d.remaining!==1?'s':''} remaining.`,c:'y'})}
   if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'});GS.saveA();return ms}
   const stunIdx=r.debuffs.findIndex(d=>d.type==='stun');
   if(stunIdx!==-1){r.debuffs.splice(stunIdx,1);ms.push({t:'You are stunned! Your action is lost!',c:'d'});
     const eMs=this.eTurn();ms.push(...eMs);GS.saveA();return ms}
   const clDef=CL[r.classes[0]];const ab=clDef?clDef.ability:null;
+  const zone=cs.playerZone;
   switch(act){
+  case'move_closer':case'move_further':{
+    const dir=act==='move_closer'?'closer':'further';
+    const res=this.moveZone(dir);
+    ms.push(...res.ms);
+    if(res.costAction){
+      if(cs.enemy.hp<=0){cs.over=true;cs.won=true;eActs=false;ms.push({t:`The ${cs.enemy.name} falls! Victory!`,c:'s'});GS.recDef(cs.enemy.id);cs.activeBuff=null}
+      if(eActs&&!cs.over){ms.push(...this.eTurn());this._tickBuff(cs,ms)}
+      if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'})}
+      cs.pBlk=0;GS.saveA();return ms}
+    break}
   case'attack':{
-    const w=r.wpn;if(!w){ms.push({t:'You have no weapon equipped!',c:'d'});return ms}
-    if(w.t==='melee'&&cs.dist>w.rng){ms.push({t:`Too far for ${w.name}. Need ${w.rng}m, at ${cs.dist}m.`,c:'y'});return ms}
-    if(w.t==='ranged'){
-      if(w.ammo!==undefined&&w.ammo<=0){ms.push({t:'No arrows remain!',c:'d'});return ms}
-      if(cs.dist>w.rng){ms.push({t:`Out of range (${w.rng}m max). Distance: ${cs.dist}m.`,c:'y'});return ms}
-      if(w.ammo!==undefined){w.ammo--;if(r.oh&&r.oh.t==='quiver'){r.oh.arrows=w.ammo;r.oh.desc=w.ammo+' arrow'+(w.ammo!==1?'s':'')}}}
+    const w=r.wpn;if(!w){ms.push({t:'You have no weapon equipped!',c:'d'});GS.saveA();return ms}
     const isMelee=w.t==='melee';
-    let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
-    // Aimed Shot buff: +hit, ignore close penalty
+    if(isMelee&&zone!=='close'){ms.push({t:`Must be at CLOSE range for ${w.name}!`,c:'y'});GS.saveA();return ms}
+    if(w.t==='ranged'&&w.ammo!==undefined&&w.ammo<=0){ms.push({t:'No arrows remain!',c:'d'});GS.saveA();return ms}
+    if(w.t==='ranged'&&w.ammo!==undefined){w.ammo--;if(r.oh&&r.oh.t==='quiver'){r.oh.arrows=w.ammo;r.oh.desc=w.ammo+' arrow'+(w.ammo!==1?'s':'')}}
+    let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def,zone):CALC.rangedHit(r,cs.enemy.def,zone);
     const buff=cs.activeBuff;
-    if(buff&&buff.trigger==='ranged_hit'&&!isMelee&&buff.effect.hitBonus)hitPct=CALC.pct(hitPct+buff.effect.hitBonus);
-    // Aggro sustained buff: +hit
+    if(buff&&buff.trigger==='ranged_hit'&&!isMelee&&buff.effect.hitBonus){
+      hitPct=CALC.pct(hitPct+buff.effect.hitBonus);
+      if(buff.effect.ignoreZonePenalty){const pen=CALC.zoneHitMod(zone,'ranged');
+        if(pen<0){hitPct=CALC.pct(hitPct-pen);ms.push({t:'Aimed Shot negates zone penalty!',c:'s'})}}}
     if(buff&&buff.trigger==='sustained'&&buff.effect.hitBonus&&isMelee)hitPct=CALC.pct(hitPct+buff.effect.hitBonus);
-    if(w.t==='ranged'&&cs.dist<(w.minR||10)){
-      if(buff&&buff.trigger==='ranged_hit'&&buff.effect.ignoreClosePenalty){ms.push({t:'Aimed Shot ignores close-range penalty!',c:'s'})}
-      else{hitPct=CALC.pct(hitPct-15);ms.push({t:'Too close for a clean shot! (-15% penalty)',c:'y'})}}
     let roll=CALC.roll100();
     if(r.subspecies==='duskelf'&&!r.traitState.advantageUsed){
       const roll2=CALC.roll100();ms.push({t:'Twilight Instinct! Rolling twice: '+roll+', '+roll2,c:'y'});
@@ -803,36 +895,30 @@ pAct(act){
     if(r.traitState.hidden){ms.push({t:'You strike from the shadows!',c:'s'});r.traitState.hidden=false}
     if(roll<=hitPct){
       let dmg=CALC.rollDice(w.dD)+(w.dB||0)+(isMelee?CALC.meleeDmgMod(r):CALC.rangedDmgMod(r));
-      // Aggro sustained buff: +dmg
       if(buff&&buff.trigger==='sustained'&&buff.effect.dmgBonus&&isMelee){dmg+=buff.effect.dmgBonus;ms.push({t:`Aggro: +${buff.effect.dmgBonus} damage!`,c:'s'})}
-      // Power Strike: multiply damage
       if(buff&&buff.trigger==='melee_hit'&&isMelee&&buff.effect.dmgMult&&!buff.conditions){
         dmg*=buff.effect.dmgMult;ms.push({t:`Power Strike! ${buff.effect.dmgMult}\u00d7 damage!`,c:'s'});cs.activeBuff=null}
-      // Backstab: conditional multiplier
       if(buff&&buff.trigger==='melee_hit'&&isMelee&&buff.conditions){
-        const condMet=cs.turns===0||cs.movedThisTurn;
+        const condMet=cs.turnCount<=1||cs.movedThisTurn;
         if(condMet){dmg*=buff.effect.dmgMult;ms.push({t:`Backstab! ${buff.effect.dmgMult}\u00d7 damage!`,c:'s'})}
         else{ms.push({t:'Backstab conditions not met \u2014 normal damage.',c:'y'})}
         cs.activeBuff=null}
-      // Aimed Shot: consume on ranged hit
       if(buff&&buff.trigger==='ranged_hit'&&!isMelee){ms.push({t:'Aimed Shot strikes true!',c:'s'});cs.activeBuff=null}
-      // Vanish double damage
       if(r.traitState.hidden===false&&GS.run.traitState._wasHidden){dmg*=2;delete GS.run.traitState._wasHidden;ms.push({t:'Double damage from Vanish!',c:'s'})}
-      if(dmg<1)dmg=1;cs.enemy.hp-=dmg;
-      ms.push({t:`You strike the ${cs.enemy.name} with your ${w.name} for ${dmg} damage! (${hitPct}% chance)`,c:'c'});
+      dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
+      ms.push({t:`You swing your ${w.name}. ${hitPct}% \u2192 HIT. ${dmg} damage \u2192 ${cs.enemy.name} (${cs.enemy.hp} HP).`,c:'s'});
       if(w.t==='ranged'&&w.ammo!==undefined)ms.push({t:`(${w.ammo} arrows left)`,c:'y'})
-    }else{ms.push({t:`Your ${w.name} misses the ${cs.enemy.name}! (${hitPct}% chance)`,c:'f'});
-      // Consume single-use buffs on miss too (except sustained)
+    }else{ms.push({t:`Your ${w.name} misses! ${hitPct}% \u2192 MISS`,c:'d'});
       if(buff&&buff.trigger!=='sustained')cs.activeBuff=null}
     break}
   case'ability':{
-    if(!ab){ms.push({t:'You have no class ability.',c:'y'});return ms}
+    if(!ab){ms.push({t:'You have no class ability.',c:'y'});GS.saveA();return ms}
     const cost=CALC.abilityCost(r,ab);
-    if(r.mp<cost){ms.push({t:`Not enough MP! Need ${cost} MP for ${ab.name}.`,c:'y'});return ms}
-    // Check requirements
-    if(ab.requirement==='melee_range'&&cs.dist>5){ms.push({t:`Must be in melee range (5m) for ${ab.name}. Currently ${cs.dist}m.`,c:'y'});return ms}
-    if(ab.requirement==='ranged_equipped'&&(!r.wpn||r.wpn.t!=='ranged')){ms.push({t:`Need a ranged weapon for ${ab.name}.`,c:'y'});return ms}
-    if(ab.requirement==='spellbook_equipped'&&(!r.oh||r.oh.t!=='spellbook')){ms.push({t:`Need a Spellbook equipped for ${ab.name}.`,c:'y'});return ms}
+    if(r.mp<cost){ms.push({t:`Not enough MP! Need ${cost} MP for ${ab.name}.`,c:'y'});GS.saveA();return ms}
+    if(ab.requirement==='close_zone'&&zone!=='close'){ms.push({t:`Must be at CLOSE range for ${ab.name}.`,c:'y'});GS.saveA();return ms}
+    if(ab.requirement==='mid_or_far_zone'&&zone==='close'){ms.push({t:`Must be at MID or FAR range for ${ab.name}.`,c:'y'});GS.saveA();return ms}
+    if(ab.requirement==='ranged_equipped'&&(!r.wpn||r.wpn.t!=='ranged')){ms.push({t:`Need a ranged weapon for ${ab.name}.`,c:'y'});GS.saveA();return ms}
+    if(ab.requirement==='spellbook_equipped'&&(!r.oh||r.oh.t!=='spellbook')){ms.push({t:`Need a Spellbook equipped for ${ab.name}.`,c:'y'});GS.saveA();return ms}
     r.mp-=cost;
     if(ab.type==='buff'){
       if(ab.trigger==='sustained'){
@@ -841,14 +927,12 @@ pAct(act){
         ms.push({t:`${ab.name}: ${ab.effect.duration} turns remaining.`,c:'y'})}
       else{
         cs.activeBuff={name:ab.name,trigger:ab.trigger,effect:{...ab.effect},conditions:ab.conditions||null};
-        let label=ab.name;
-        if(ab.conditions){const condMet=cs.turns===0||cs.movedThisTurn;label+=condMet?' (3\u00d7 dmg)':' (1\u00d7 dmg)'}
-        ms.push({t:`${label} ready! (${cost} MP)`,c:'s'})}
+        let lbl=ab.name;
+        if(ab.conditions){const condMet=cs.turnCount<=1||cs.movedThisTurn;lbl+=condMet?' (3\u00d7)':' (1\u00d7)'}
+        ms.push({t:`${lbl} ready! (${cost} MP)`,c:'s'})}
       break}
     if(ab.type==='attack'){
-      // Arcane Bolt
       const eff=ab.effect;
-      if(cs.dist<eff.range[0]||cs.dist>eff.range[1]){ms.push({t:`Out of range for ${ab.name}. Need ${eff.range[0]}-${eff.range[1]}m.`,c:'y'});r.mp+=cost;return ms}
       let hitPct=CALC.arcaneBoltHit(r,cs.enemy.def);
       let roll=CALC.roll100();
       if(r.subspecies==='duskelf'&&!r.traitState.advantageUsed){
@@ -856,70 +940,112 @@ pAct(act){
         roll=Math.min(roll,roll2);r.traitState.advantageUsed=true}
       if(roll<=hitPct){
         let dmg=0;for(const d of eff.dmgDice)dmg+=CALC.rollDice(d);
-        if(dmg<1)dmg=1;cs.enemy.hp-=dmg;
-        ms.push({t:`Arcane Bolt strikes the ${cs.enemy.name} for ${dmg} damage! (${hitPct}% chance)`,c:'c'})}
-      else ms.push({t:`Arcane Bolt fizzles past the ${cs.enemy.name}! (${hitPct}% chance)`,c:'f'});
+        dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
+        ms.push({t:`Arcane Bolt strikes the ${cs.enemy.name} for ${dmg} damage! (${hitPct}%)`,c:'s'})}
+      else ms.push({t:`Arcane Bolt fizzles past the ${cs.enemy.name}! (${hitPct}%)`,c:'d'});
       break}
     if(ab.type==='heal'){
       const h=Math.min(ab.effect.healAmt,r.mHP-r.hp);r.hp+=h;
       ms.push({t:`${ab.name}! Restored ${h} HP. (${r.hp}/${r.mHP} HP, ${cost} MP)`,c:'s'});break}
     break}
   case'block':{
-    const oh=r.oh;if(!oh||oh.t!=='shield'){ms.push({t:'You brace yourself, but the block is weak without a shield.',c:'f'});cs.pBlk=1}
-    else{ms.push({t:`You raise your ${oh.name}, ready to deflect.`,c:'c'});cs.pBlk=oh.blk||2}break}
+    cs.blocking=true;
+    const oh=r.oh;
+    if(oh&&oh.t==='shield'){ms.push({t:`You raise your ${oh.name}. Incoming damage halved!`,c:'c'})}
+    else{ms.push({t:'You brace yourself. Incoming damage halved!',c:'c'})}
+    break}
   case'use_potion':case'use_hpot':case'use_mpot':case'use_antidote':case'use_item':{
     let it=null;
     if(act==='use_hpot')it=r.bp.find(i=>i.t==='consumable'&&i.heal);
     else if(act==='use_mpot')it=r.bp.find(i=>i.t==='consumable'&&i.mana);
     else if(act==='use_antidote')it=r.bp.find(i=>i.t==='consumable'&&i.cure);
     else it=r.bp.find(i=>i.t==='consumable'&&(i.heal||i.mana||i.cure));
-    if(!it){ms.push({t:'No usable items!',c:'y'});return ms}
+    if(!it){ms.push({t:'No usable items!',c:'y'});GS.saveA();return ms}
     const msg=useConsumable(it,r);ms.push({t:msg,c:'s'});break}
-  case'flee':{const fleePct=CALC.flee(r,cs.dist);const roll=CALC.roll100();
-    if(roll<=fleePct){ms.push({t:`You turn and run! (${fleePct}% chance, rolled ${roll})`,c:'s'});cs.fled=true;cs.over=true;eActs=false}
-    else ms.push({t:`You try to flee but can't escape! (${fleePct}% chance, rolled ${roll})`,c:'d'});break}
+  case'flee':{
+    if(zone==='close'&&r.subspecies!=='quickfoot'){ms.push({t:'Too close to flee! Move to MID or FAR first.',c:'y'});GS.saveA();return ms}
+    const fleePct=CALC.flee(r);const roll=CALC.roll100();
+    if(roll<=fleePct){ms.push({t:`You turn and run! (${fleePct}% \u2192 rolled ${roll})`,c:'s'});cs.fled=true;cs.over=true;eActs=false}
+    else{ms.push({t:`You try to flee but can't escape! (${fleePct}% \u2192 rolled ${roll})`,c:'d'});
+      ms.push({t:'The enemy gets a free attack!',c:'d'});ms.push(...this._enemyAttack(cs,r))}
+    break}
   case'vanish':{
-    if(r.subspecies!=='shadowstep'){ms.push({t:'You can\u2019t do that.',c:'y'});return ms}
-    if(r.traitState.vanishUsed){ms.push({t:'Vanish already used this combat!',c:'y'});return ms}
-    if(r.mp<2){ms.push({t:'Not enough MP! Need 2 MP.',c:'y'});return ms}
+    if(r.subspecies!=='shadowstep'){ms.push({t:'You can\u2019t do that.',c:'y'});GS.saveA();return ms}
+    if(r.traitState.vanishUsed){ms.push({t:'Vanish already used this combat!',c:'y'});GS.saveA();return ms}
+    if(r.mp<2){ms.push({t:'Not enough MP! Need 2 MP.',c:'y'});GS.saveA();return ms}
     r.mp-=2;r.traitState.vanishUsed=true;r.traitState.hidden=true;GS.run.traitState._wasHidden=true;
     ms.push({t:'You melt into the shadows... (2 MP spent)',c:'s'});ms.push({t:'Your next attack will deal double damage!',c:'y'});break}
-  default:ms.push({t:'You hesitate.',c:'f'})}
+  default:ms.push({t:'You hesitate.',c:'d'})}
   if(cs.enemy.hp<=0){cs.over=true;cs.won=true;eActs=false;
-    ms.push({t:`The ${cs.enemy.name} dissolves into a bubbling puddle. Victory!`,c:'s'});GS.recDef(cs.enemy.id);cs.activeBuff=null}
-  if(eActs&&!cs.over){cs.turns++;ms.push(...this.eTurn());
-    // Aggro turn counter
-    if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'){
-      cs.activeBuff.turnsLeft--;
-      if(cs.activeBuff.turnsLeft<=0){ms.push({t:'The red haze fades from your vision.',c:'y'});cs.activeBuff=null}
-      else ms.push({t:`${cs.activeBuff.name}: ${cs.activeBuff.turnsLeft} turn${cs.activeBuff.turnsLeft!==1?'s':''} remaining.`,c:'y'})}}
+    ms.push({t:`The ${cs.enemy.name} falls! Victory!`,c:'s'});GS.recDef(cs.enemy.id);cs.activeBuff=null}
+  if(eActs&&!cs.over){ms.push(...this.eTurn());this._tickBuff(cs,ms)}
   if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'})}
   cs.pBlk=0;cs.movedThisTurn=false;GS.saveA();return ms},
+_tickBuff(cs,ms){
+  if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'){
+    cs.activeBuff.turnsLeft--;
+    if(cs.activeBuff.turnsLeft<=0){ms.push({t:'The red haze fades from your vision.',c:'y'});cs.activeBuff=null}
+    else ms.push({t:`${cs.activeBuff.name}: ${cs.activeBuff.turnsLeft} turn${cs.activeBuff.turnsLeft!==1?'s':''} remaining.`,c:'y'})}},
+_enemyAttack(cs,r){
+  const e=cs.enemy,ms=[];
+  if(e.hp<=0||r.hp<=0)return ms;
+  const pDef=CALC.playerDef(r);
+  const hitPct=CALC.enemyHit(e.atk,pDef);const roll=CALC.roll100();
+  if(roll<=hitPct){
+    let d=CALC.safeDmg(CALC.rollDice(e.dD)+(e.dB||0));
+    if(cs.blocking){d=Math.max(1,Math.floor(d/2));ms.push({t:`Block halves the blow! ${d} damage.`,c:'d'})}
+    else ms.push({t:`The ${e.name} lashes out for ${d} damage!`,c:'d'});
+    if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'&&cs.activeBuff.effect.incomingDmgBonus){
+      d+=cs.activeBuff.effect.incomingDmgBonus;ms.push({t:`Aggro: +${cs.activeBuff.effect.incomingDmgBonus} incoming damage!`,c:'y'})}
+    if(r.subspecies==='stoneblood'&&d>1){d--;ms.push({t:'Stone Skin absorbs 1 damage!',c:'y'})}
+    if(r.subspecies==='fireblood'){d++;ms.push({t:'Volcanic Fury: you take 1 extra damage!',c:'y'})}
+    if(r.traitState.hidden){r.traitState.hidden=false;delete GS.run.traitState._wasHidden;ms.push({t:'You are revealed by the attack!',c:'y'})}
+    d=CALC.safeDmg(d);r.hp=Math.max(0,r.hp-d);
+    if(e.onHit){if(!r.debuffs)r.debuffs=[];
+      const oh=e.onHit;if(CALC.roll100()<=oh.chance&&r.subspecies!=='stoneblood'){
+        const elabel=oh.effect.charAt(0).toUpperCase()+oh.effect.slice(1);
+        const existing=r.debuffs.find(db=>db.type===oh.effect);
+        if(!existing){r.debuffs.push({type:oh.effect,dmg:oh.dmg,remaining:Math.max(0,oh.duration)});
+          ms.push({t:`You are afflicted with ${oh.effect}! (${oh.duration} turns${oh.dmg>0?', '+oh.dmg+' dmg/turn':''})`,c:'d'})}
+        else{existing.remaining=Math.max(0,oh.duration);ms.push({t:`${elabel} refreshed!`,c:'d'})}}}}
+  else ms.push({t:`The ${e.name} lunges but misses!`,c:'d'});
+  return ms},
 eTurn(){const cs=this.gs(),r=GS.run,e=cs.enemy,ms=[];
-  if(cs.dist>e.aRng){const mv=Math.min(e.spd,cs.dist-e.aRng);cs.dist-=mv;ms.push({t:`The ${e.name} oozes ${mv}m closer. (${cs.dist}m)`,c:'f'})}
-  if(cs.dist<=e.aRng){
-    const pDef=CALC.playerDef(r);
-    const hitPct=CALC.enemyHit(e.atk,pDef);const roll=CALC.roll100();
-    if(roll<=hitPct){let d=CALC.rollDice(e.dD)+(e.dB||0);
-      if(cs.pBlk){const bl=Math.min(d-1,cs.pBlk);d-=bl;if(d<1)d=1;ms.push({t:`The ${e.name} strikes! Your block absorbs some. ${d} damage!`,c:'d'})}
-      else ms.push({t:`The ${e.name} lashes out for ${d} damage!`,c:'d'});
-      // Aggro: extra incoming damage
-      if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'&&cs.activeBuff.effect.incomingDmgBonus){
-        d+=cs.activeBuff.effect.incomingDmgBonus;ms.push({t:`Aggro: +${cs.activeBuff.effect.incomingDmgBonus} incoming damage!`,c:'y'})}
-      if(r.subspecies==='stoneblood'&&d>1){d--;ms.push({t:'Stone Skin absorbs 1 damage!',c:'y'})}
-      if(r.subspecies==='fireblood'){d++;ms.push({t:'Volcanic Fury: you take 1 extra damage!',c:'y'})}
-      if(r.traitState.hidden){r.traitState.hidden=false;delete GS.run.traitState._wasHidden;ms.push({t:'You are revealed by the attack!',c:'y'})}
-      r.hp-=d;if(r.hp<0)r.hp=0;
-      if(e.onHit&&roll<=hitPct){if(!r.debuffs)r.debuffs=[];
-        const oh=e.onHit;if(CALC.roll100()<=oh.chance&&!(r.subspecies==='stoneblood')){
-          const elabel=oh.effect.charAt(0).toUpperCase()+oh.effect.slice(1);
-          const existing=r.debuffs.find(db=>db.type===oh.effect);
-          if(!existing){r.debuffs.push({type:oh.effect,dmg:oh.dmg,remaining:oh.duration});
-            ms.push({t:`You are afflicted with ${oh.effect}! (${oh.duration} turns, ${oh.dmg} dmg/turn)`,c:'d'})}
-          else{existing.remaining=oh.duration;ms.push({t:`${elabel} refreshed!`,c:'d'})}}}}
-    else ms.push({t:`The ${e.name} lunges but misses!`,c:'f'})}
+  if(e.hp<=0||r.hp<=0)return ms;
+  const zone=cs.playerZone;const pref=e.preferredZone||'close';
+  const zones=CALC.ZONES,zi=zones.indexOf(zone);
+  if(pref==='close'&&zone!=='close'){
+    cs.playerZone=zones[Math.max(0,zi-1)];
+    ms.push({t:`The ${e.name} closes in! Now at ${cs.playerZone.toUpperCase()} range.`,c:'d'});
+    return ms}
+  if(pref==='mid'){
+    if(zone==='close'){cs.playerZone='mid';
+      ms.push({t:`The ${e.name} pulls back to MID range.`,c:'d'});return ms}
+    if(zone==='far'){ms.push(...this._enemyAttack(cs,r));return ms}}
+  ms.push(...this._enemyAttack(cs,r));
   return ms}
 };
+
+// === TOAST SYSTEM ===
+function showToast(message,type){
+  let el=document.getElementById('toast');
+  if(el)el.remove();
+  el=document.createElement('div');el.id='toast';el.className='toast toast-'+type;
+  el.textContent=message;el.setAttribute('role','alert');
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),300)},3000)}
+
+// === GLOBAL ERROR BOUNDARY ===
+window.onerror=function(msg,url,line,col,error){
+  console.error('Game error:',{msg,url,line,col,error});
+  showToast('Something went wrong. Progress auto-saved.','error');
+  try{if(GS.run)GS.saveA()}catch(e){}
+  return true};
+window.addEventListener('unhandledrejection',function(event){
+  console.error('Unhandled promise:',event.reason);
+  showToast('Something went wrong. Progress auto-saved.','error');
+  try{if(GS.run)GS.saveA()}catch(e){}});
 
 // === UI CONTROLLER ===
 const UI={
@@ -932,12 +1058,11 @@ init(){
     bchar:$('b-char'),bj:$('b-jrn'),bmenu:$('b-menu'),
     batk:$('b-atk'),bdef:$('b-def'),bitem:$('b-item'),atkLbl:$('atk-lbl'),
     cc:$('cc'),gm:$('game'),nw:$('narr-w'),nl:$('narr-log'),
-    dm:$('dist-m'),dr:$('dist-rd'),dp:$('dist-p'),de:$('dist-e'),dename:$('dist-enemy-name'),
-    mvBtns:$('move-btns'),mvCloser:$('mv-closer'),mvFurther:$('mv-further'),
+    zoneDisplay:$('zone-display'),
     bb:$('bbar'),exploreBar:$('explore-bar'),combatBar:$('combat-bar'),
     bacts:$('b-acts'),
     cbAtk:$('cb-atk'),cbAbility:$('cb-ability'),cbAbilityName:$('cb-ability-name'),cbAbilityCost:$('cb-ability-cost'),
-    cbBlock:$('cb-block'),cbFlee:$('cb-flee'),cbItem:$('cb-item'),
+    cbBlock:$('cb-block'),cbFlee:$('cb-flee'),cbItem:$('cb-item'),cbMove:$('cb-move'),
     cbAtkPct:$('cb-atk-pct'),cbFleePct:$('cb-flee-pct'),
     ni:$('ninp'),cbk:$('cc-bk'),cnx:$('cc-nx'),ccStep:$('cc-step'),
     tc:$('title-card'),tcn:$('tc-name'),tcs:$('tc-sub'),
@@ -966,16 +1091,13 @@ bind(){
   this.el.cbBlock.onclick=()=>SE.doCombatAction('block');
   this.el.cbFlee.onclick=()=>SE.doCombatAction('flee');
   this.el.cbItem.onclick=()=>SE.doCombatAction('use_potion');
-  const doMove=(dir)=>{if(this._busy)return;const ms=CMB.pMove(dir);ms.forEach(m=>this.addN(m.t,m.c));this.updateHUD();
-    const ca=CMB.gs();if(ca){this.updateDist(ca.dist,!ca.over);this.updateCombatUI()}};
-  this.el.mvCloser.onclick=()=>doMove('closer');
-  this.el.mvFurther.onclick=()=>doMove('back');
+  this.el.cbMove.onclick=()=>SE.doCombatAction('move_closer');
   this.el.asb.onclick=()=>this.closeActionSheet();
   this.el.dsl.onclick=()=>SE.deathLoad();
   this.el.dsn.onclick=()=>SE.deathNewRun();
   this.el.dst.onclick=()=>SE.deathTitle();
   document.onkeydown=e=>{
-    if((e.key==='q'||e.key==='Q')&&document.activeElement.tagName!=='INPUT'&&GS.run){if(GS.qSave())this.addN('Game quick saved.','y');else this.addN('Quick save failed.','d')}
+    if((e.key==='q'||e.key==='Q')&&document.activeElement.tagName!=='INPUT'&&GS.run){if(GS.qSave()){this.addN('Game quick saved.','y');showToast('Quick saved!','success')}else{this.addN('Quick save failed.','d');showToast('Quick save failed!','error')}}
     if(e.key==='Escape'){ML.closeAll();this.closeActionSheet()}};
 },
 vvp(){if(window.visualViewport){const a=()=>{$('app').style.height=window.visualViewport.height+'px'};window.visualViewport.addEventListener('resize',a);window.visualViewport.addEventListener('scroll',a)}},
@@ -1008,36 +1130,50 @@ showGame(){this.el.cc.style.display='none';const g=this.el.gm;g.style.display='f
   this.el.hud.classList.add('vis');this.el.bb.classList.add('vis');this.setCombatMode(false);this.updateHUD()},
 showCC(){this.el.cc.style.display='flex';this.el.gm.style.display='none';this.el.hud.classList.remove('vis');this.el.bb.classList.remove('vis');CC.reset()},
 setCombatMode(on){
-  if(on){this.el.hud.classList.add('combat-mode');this.el.bb.classList.add('combat-mode');this.updateCombatUI()}
-  else{this.el.hud.classList.remove('combat-mode');this.el.bb.classList.remove('combat-mode')}
+  if(on){this.el.hud.classList.add('combat-mode');this.el.bb.classList.add('combat-mode');this.updateCombatUI();this.updateZoneDisplay(true)}
+  else{this.el.hud.classList.remove('combat-mode');this.el.bb.classList.remove('combat-mode');this.updateZoneDisplay(false)}
 },
 updateCombatUI(){
   const cs=CMB.gs(),r=GS.run;if(!cs||cs.over)return;
-  const w=r.wpn;if(w){const isMelee=w.t==='melee';let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
+  const zone=cs.playerZone;
+  const w=r.wpn;if(w){const isMelee=w.t==='melee';
+    let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def,zone):CALC.rangedHit(r,cs.enemy.def,zone);
     if(cs.activeBuff&&cs.activeBuff.trigger==='ranged_hit'&&!isMelee&&cs.activeBuff.effect.hitBonus)hitPct=CALC.pct(hitPct+cs.activeBuff.effect.hitBonus);
     if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'&&cs.activeBuff.effect.hitBonus&&isMelee)hitPct=CALC.pct(hitPct+cs.activeBuff.effect.hitBonus);
-    this.el.atkLbl.textContent=hitPct+'%';this.el.cbAtkPct.textContent=hitPct+'%'}
-  const fleePct=CALC.flee(r,cs.dist);this.el.cbFleePct.textContent=fleePct+'%';
-  const moveAmt=CALC.combatMove(r);
-  this.el.mvCloser.textContent='◄ Closer '+moveAmt+'m';this.el.mvFurther.textContent='Further '+moveAmt+'m ►';
-  this.el.mvCloser.disabled=cs.movedThisTurn||cs.dist<=5;this.el.mvFurther.disabled=cs.movedThisTurn||cs.dist>=30;
-  this.el.dename.textContent=cs.enemy.name;
-  // Ability button
+    this.el.atkLbl.textContent=hitPct+'%';this.el.cbAtkPct.textContent=hitPct+'%';
+    if(isMelee&&zone!=='close')this.el.cbAtk.disabled=true;else this.el.cbAtk.disabled=false}
+  const fleePct=CALC.flee(r);this.el.cbFleePct.textContent=fleePct+'%';
+  this.el.cbFlee.disabled=zone==='close'&&r.subspecies!=='quickfoot';
+  const zi=CALC.ZONES.indexOf(zone);
+  this.el.cbMove.textContent=zi>0?'\u25c4 Closer':'Further \u25ba';
+  this.el.cbMove.onclick=()=>SE.doCombatAction(zi>0?'move_closer':'move_further');
   const clDef=CL[r.classes[0]];const ab=clDef?clDef.ability:null;
   if(ab){
     const cost=CALC.abilityCost(r,ab);
     let canUse=r.mp>=cost;
-    if(ab.requirement==='melee_range'&&cs.dist>5)canUse=false;
+    if(ab.requirement==='close_zone'&&zone!=='close')canUse=false;
+    if(ab.requirement==='mid_or_far_zone'&&zone==='close')canUse=false;
     if(ab.requirement==='ranged_equipped'&&(!r.wpn||r.wpn.t!=='ranged'))canUse=false;
     if(ab.requirement==='spellbook_equipped'&&(!r.oh||r.oh.t!=='spellbook'))canUse=false;
     this.el.cbAbility.style.display='';
     let btnLabel=ab.name;
-    if(ab.conditions){const condMet=cs.turns===0||cs.movedThisTurn;btnLabel+=condMet?' (3\u00d7)':' (1\u00d7)'}
+    if(ab.conditions){const condMet=cs.turnCount<=1||cs.movedThisTurn;btnLabel+=condMet?' (3\u00d7)':' (1\u00d7)'}
     if(ab.trigger==='sustained'&&cs.activeBuff&&cs.activeBuff.trigger==='sustained')btnLabel+=' ON';
     this.el.cbAbilityName.textContent=btnLabel;
     this.el.cbAbilityCost.textContent=cost+'MP';
     this.el.cbAbility.disabled=!canUse;
   }else{this.el.cbAbility.style.display='none'}
+  this.updateZoneDisplay(true);
+},
+updateZoneDisplay(show){
+  const zd=this.el.zoneDisplay;if(!zd)return;
+  if(!show){zd.classList.remove('vis');return}
+  const cs=CMB.gs();if(!cs||cs.over){zd.classList.remove('vis');return}
+  zd.classList.add('vis');
+  const lbls=zd.querySelectorAll('.zone-lbl');
+  lbls.forEach(l=>{const z=l.dataset.zone;l.classList.toggle('active',z===cs.playerZone)});
+  const info=zd.querySelector('#zone-enemy-info');
+  if(info)info.textContent=cs.enemy.name+' ('+cs.enemy.hp+'/'+cs.enemy.mHP+' HP)';
 },
 updateHUD(){const r=GS.run;if(!r)return;
   PA.renderPortrait(this.el.hp,r.species);
@@ -1063,16 +1199,6 @@ addN(text,type=''){const e=document.createElement('div');e.className='ne';
 clearN(){this.el.nl.innerHTML=''},
 restoreN(){this.clearN();if(GS.run&&GS.run.nlog)GS.run.nlog.forEach(n=>{const e=document.createElement('div');e.className='ne';const cls={h:'ne-h',f:'ne-f',c:'ne-c',s:'ne-s',d:'ne-d',y:'ne-y',g:'ne-g'};if(cls[n.c])e.classList.add(cls[n.c]);e.textContent=n.t;this.el.nl.appendChild(e)});this.scroll()},
 scroll(){requestAnimationFrame(()=>{this.el.nw.scrollTop=this.el.nw.scrollHeight})},
-updateDist(d,show){
-  if(show){this.el.dm.classList.add('vis');this.el.mvBtns.classList.add('vis');
-    this.el.dp.style.left='5%';
-    const eLeft=Math.min(90,Math.max(10,10+(d-5)*(80/25)));this.el.de.style.left=eLeft+'%';
-    const cs=CMB.gs(),r=GS.run;let hitInfo='';
-    if(cs&&r&&r.wpn){const isMelee=r.wpn.t==='melee';const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);hitInfo=' · '+hitPct+'% to hit'}
-    this.el.dr.innerHTML='<span class="dist-meters">'+d+'m</span><span class="dist-hit">'+hitInfo+'</span>';
-    this.updateCombatUI();
-  } else {this.el.dm.classList.remove('vis');this.el.mvBtns.classList.remove('vis')}
-},
 pulseJ(){this.el.bj.classList.add('pulse');setTimeout(()=>this.el.bj.classList.remove('pulse'),3100)},
 _wait(ms){return new Promise(r=>setTimeout(r,REDUCED_MOTION?0:ms))},
 addEl(el){this.el.nl.appendChild(el);this.scroll()},
@@ -1105,6 +1231,7 @@ renderExits(sceneId){
   const scene=SCENE_DATA[sceneId];if(!scene||!scene.exits)return;
   const r=GS.run,exits=scene.exits;
   const keys=Object.keys(exits).filter(k=>{const ex=exits[k];
+    if(ex.scene&&!SCENE_DATA[ex.scene]){console.warn('Exit references missing scene:',ex.scene);return false}
     return ex.discovered||!!r.ss['exit_'+sceneId+'_'+k]});
   if(!keys.length)return;
   const wrap=document.createElement('div');wrap.className='nav-exits';
@@ -1128,11 +1255,16 @@ renderSceneActions(sceneId){
 openActionSheet(){
   const cs=CMB.gs(),r=GS.run;this.el.asl.innerHTML='';
   if(cs&&!cs.over){
+    const zone=cs.playerZone;
     const w=r.wpn;let atkDesc='No weapon';
-    if(w){const isMelee=w.t==='melee';const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
-      atkDesc=w.name+' \u2014 '+hitPct+'% to hit'}
-    const acts=[{l:'Attack \u2014 '+atkDesc,cmd:'attack'},{l:'Block',sub:'Reduce incoming damage',cmd:'block'},
-      {l:'Flee \u2014 '+CALC.flee(r,cs.dist)+'%',cmd:'flee'}];
+    if(w){const isMelee=w.t==='melee';const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def,zone):CALC.rangedHit(r,cs.enemy.def,zone);
+      atkDesc=w.name+' \u2014 '+hitPct+'% to hit'+(isMelee&&zone!=='close'?' (need CLOSE)':'')}
+    const zi=CALC.ZONES.indexOf(zone);
+    const acts=[{l:'Attack \u2014 '+atkDesc,cmd:'attack'},
+      {l:'Move Closer',sub:'Advance one zone',cmd:'move_closer',dis:zi<=0},
+      {l:'Move Further',sub:'Fall back one zone',cmd:'move_further',dis:zi>=2},
+      {l:'Block',sub:'Halve incoming damage this turn',cmd:'block'},
+      {l:'Flee \u2014 '+CALC.flee(r)+'%',sub:zone==='close'?'(need MID or FAR)':'',cmd:'flee',dis:zone==='close'&&r.subspecies!=='quickfoot'}];
     const hpot=r.bp.find(i=>i.t==='consumable'&&i.heal);if(hpot)acts.push({l:'Use '+hpot.name,cmd:'use_hpot'});
     const mpot=r.bp.find(i=>i.t==='consumable'&&i.mana);if(mpot)acts.push({l:'Use '+mpot.name,cmd:'use_mpot'});
     const anti=r.bp.find(i=>i.t==='consumable'&&i.cure);if(anti)acts.push({l:'Use '+anti.name,sub:'Cures '+anti.cure,cmd:'use_antidote'});
@@ -1142,6 +1274,7 @@ openActionSheet(){
       acts.push({l:'Vanish \u2014 2 MP',sub:'Hide, next attack deals double',cmd:'vanish'});
     acts.forEach(a=>{const b=document.createElement('button');b.className='as-btn';
       b.innerHTML=a.l+(a.sub?'<span class="as-btn-sub">'+a.sub+'</span>':'');
+      if(a.dis)b.disabled=true;
       b.onclick=()=>{this.closeActionSheet();SE.doCombatAction(a.cmd)};this.el.asl.appendChild(b)});
   } else {
     const mkA=(label,fn)=>{const b=document.createElement('button');b.className='as-btn';b.textContent=label;
@@ -1271,7 +1404,7 @@ openChar(tab){
   const wt=CALC.totalWt(r);if(wt>0)eh+='<div style="font-size:.8rem;color:var(--text3);margin-top:8px">Weight penalty: -'+wt+' Movement</div>';
   panels.equip.innerHTML=eh;
   panels.equip.querySelectorAll('[data-unequip]').forEach(btn=>{
-    btn.onclick=()=>{const k=btn.dataset.unequip;if(r.bp.length>=6){alert('Backpack full!');return}r.bp.push(r[k]);r[k]=null;GS.recalcDerived();GS.saveA();ML.openChar('equip');UI.updateHUD()}});
+    btn.onclick=()=>{const k=btn.dataset.unequip;if(r.bp.length>=6){showToast('Backpack full!','error');return}r.bp.push(r[k]);r[k]=null;GS.recalcDerived();GS.saveA();ML.openChar('equip');UI.updateHUD()}});
 
   // Backpack tab
   let bh='';
@@ -1358,7 +1491,7 @@ openMenu(){
   const howBtn=document.createElement('button');howBtn.className='slb';howBtn.textContent='How to play';howBtn.style.cssText='margin-top:12px;width:100%';
   howBtn.onclick=()=>{b.innerHTML='<h3 class="mt" style="margin-bottom:12px">How to play</h3><p style="margin-bottom:12px;color:var(--text2)">Tap <strong>Actions</strong> to see what you can do: move to new locations, talk to NPCs, search, use items, or save. In combat, use the bar to attack, block, move distance, or flee. Your journal (unlocked when you find the guide) holds combat rules, bestiary, and world lore.</p>';b.appendChild(backBtn('Back to menu'))};b.appendChild(howBtn);
   const chgBtn=document.createElement('button');chgBtn.className='slb';chgBtn.textContent='Changelog';chgBtn.style.cssText='margin-top:8px;width:100%';
-  chgBtn.onclick=()=>{b.innerHTML='<h3 class="mt" style="margin-bottom:12px">Changelog</h3><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.7</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Second adventure: The Iron Hollows (continue with your character after The Muddy Trail)</li><li>3 new enemies: Cave Crawler (slow), Mine Shade (stun), Iron Golem (boss)</li><li>2 new items: Dwarven Ale (cures bleed), Iron Shard</li><li>New NPC: Torgun the Lost Miner (heals, gives intel)</li><li>9 new scenes in the Iron Hollows</li><li>Slow &amp; stun status effects</li><li>Data validation script (node validate.js)</li><li>Accessibility: keyboard focus, ARIA roles, improved contrast</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.6</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Gold economy: earn gold from combat, sell items from backpack</li><li>Merchant NPC: Garrett the Peddler at Trail\u2019s End (buy/sell potions)</li><li>New item: Marsh Root (heals 5 HP, sellable)</li><li>Items now have sell values</li><li>Bleed status effect from Dire Wolf</li><li>Generic debuff system: any effect type ticks automatically</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.5</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Extra scene branch: Whispering Bog (optional side path from midway)</li><li>New enemy: Bog Wraith</li><li>Gather Herbs search in post_bog grants Mana Potion</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.4</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>New enemies: Giant Spider (poison) and Dire Wolf</li><li>New items: Mana Potion, Antidote, Wolf Pelt</li><li>Weighted loot drops from enemies</li><li>Poison status effect with Antidote cure</li><li>Extended trail: 4 new scenes with spider and wolf encounters</li><li>Richer NPC dialogue for Aldric and Mira</li><li>Combat item overhaul: use any consumable in combat</li><li>Game data extracted to data.js for easier modding</li><li>Code cleanup: removed legacy CSS vars, unified consumable logic</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.3</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Choice-only play: no typing; use Actions and scene buttons</li><li>New warm color palette</li><li>Menu: How to play, Changelog, Settings (high contrast, larger text)</li></ul>';b.appendChild(backBtn('Back to menu'))};b.appendChild(chgBtn);
+  chgBtn.onclick=()=>{b.innerHTML='<h3 class="mt" style="margin-bottom:12px">Changelog</h3><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.8</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Zone-based combat: Close/Mid/Far zones replace meter distance</li><li>Movement costs your action (free move for Quickfoot, Rogues, high Movement)</li><li>Block halves incoming damage instead of flat reduction</li><li>Failed flee gives enemy a free attack</li><li>Melee requires Close range; ranged has zone penalties</li><li>Turn counter in combat log</li><li>Toast notification system for errors and feedback</li><li>Global error boundary with auto-save</li><li>Save/load validation and corruption recovery</li><li>Character creation input validation with visual feedback</li><li>Scene navigation safety guards</li><li>Redesigned pixel art: icons, species portraits, class icons</li><li>Gameplay balance audit for zone system</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.7</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Second adventure: The Iron Hollows</li><li>3 new enemies, 2 new items, new NPC</li><li>Slow &amp; stun status effects</li><li>Accessibility improvements</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.6</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Gold economy: earn gold from combat, sell items from backpack</li><li>Merchant NPC: Garrett the Peddler at Trail\u2019s End (buy/sell potions)</li><li>New item: Marsh Root (heals 5 HP, sellable)</li><li>Items now have sell values</li><li>Bleed status effect from Dire Wolf</li><li>Generic debuff system: any effect type ticks automatically</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.5</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Extra scene branch: Whispering Bog (optional side path from midway)</li><li>New enemy: Bog Wraith</li><li>Gather Herbs search in post_bog grants Mana Potion</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.4</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>New enemies: Giant Spider (poison) and Dire Wolf</li><li>New items: Mana Potion, Antidote, Wolf Pelt</li><li>Weighted loot drops from enemies</li><li>Poison status effect with Antidote cure</li><li>Extended trail: 4 new scenes with spider and wolf encounters</li><li>Richer NPC dialogue for Aldric and Mira</li><li>Combat item overhaul: use any consumable in combat</li><li>Game data extracted to data.js for easier modding</li><li>Code cleanup: removed legacy CSS vars, unified consumable logic</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.3</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Choice-only play: no typing; use Actions and scene buttons</li><li>New warm color palette</li><li>Menu: How to play, Changelog, Settings (high contrast, larger text)</li></ul>';b.appendChild(backBtn('Back to menu'))};b.appendChild(chgBtn);
   const setBtn=document.createElement('button');setBtn.className='slb';setBtn.textContent='Settings';setBtn.style.cssText='margin-top:8px;width:100%';
   setBtn.onclick=()=>{const st=GS.getSettings();b.innerHTML='<h3 class="mt" style="margin-bottom:12px">Settings</h3>';
     const row=(label,checked,key)=>{const wrap=document.createElement('div');wrap.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px';
@@ -1405,12 +1538,17 @@ showStep(n){
   let totalSteps=6;if(this.sp==='human')totalSteps=6;else if(this.sp&&SP[this.sp]&&!SP[this.sp].subspecies)totalSteps=5;
   UI.el.ccStep.textContent='Step '+n+' of '+totalSteps;
   if(n===1)requestAnimationFrame(()=>UI.el.ni.focus());if(n===6)this.buildSum()},
+_shake(el){el.classList.remove('cc-shake');void el.offsetWidth;el.classList.add('cc-shake')},
+_clearHints(){document.querySelectorAll('.cc-hint').forEach(h=>h.remove())},
+_addHint(parent,msg){this._clearHints();const h=document.createElement('div');h.className='cc-hint';h.textContent=msg;parent.appendChild(h)},
 async next(){
-  if(this.step===1&&!UI.el.ni.value.trim()){UI.el.ni.focus();return}
-  if(this.step===2&&!this.sp)return;
-  if(this.step===3&&!this.subsp)return;
-  if(this.step===4&&this.humanBonus.length<2)return;
-  if(this.step===5&&!this.cl)return;
+  this._clearHints();
+  if(this.step===1){const v=UI.el.ni.value.trim();
+    if(!v||v.length<1||v.length>20){this._shake(UI.el.ni);this._addHint($('ccs1'),'Enter a name (1\u201320 characters).');UI.el.ni.focus();return}}
+  if(this.step===2&&!this.sp){this._addHint($('ccs2'),'Select a species to continue.');return}
+  if(this.step===3&&!this.subsp){this._addHint($('ccs3'),'Select a lineage to continue.');return}
+  if(this.step===4&&this.humanBonus.length<2){this._addHint($('ccs4'),'Assign both bonus points to continue.');return}
+  if(this.step===5&&!this.cl){this._addHint($('ccs5'),'Select a class to continue.');return}
   if(this.step===6){
     const nm=UI.el.ni.value.trim();
     GS.newRun(nm,this.sp,this.subsp,this.cl,this.sp==='human'?this.humanBonus:null);
@@ -1503,10 +1641,10 @@ _prevScene:null,
 async enter(id){
   const r=GS.run,prevId=r.scene;
   if(id===prevId&&!(SCENE_DATA[id]&&SCENE_DATA[id].events.combat))return;
+  const scene=SCENE_DATA[id];
+  if(!scene){UI.addN("You can't go that way.",'y');console.warn('Undefined scene:',id);return}
   this._prevScene=prevId;
-  r.scene=id;r.cs=null;GS.saveA();UI.updateDist(0,false);UI.setCombatMode(false);
-
-  const scene=SCENE_DATA[id];if(!scene)return;
+  r.scene=id;r.cs=null;GS.saveA();UI.setCombatMode(false);
   const firstVisit=!r.ss['visited_'+id];
 
   if(scene.events.combat){await this._startCombat(id,scene);return}
@@ -1522,12 +1660,12 @@ async enter(id){
 
   r.ss['visited_'+id]=true;GS.saveA();
   UI.clearN();UI.addN(scene.description);
-  scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)UI.addN(n.desc,'f')});
+  if(scene.npcs)scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)UI.addN(n.desc,'f');else console.warn('Unknown NPC:',nid)});
   UI.renderNPCButtons(id);
   UI.renderSceneActions(id);
   UI.renderExits(id);
-  if(scene.events.onEnter)scene.events.onEnter(r);
-  if(firstVisit&&scene.events.onFirstVisit)scene.events.onFirstVisit(r);
+  if(scene.events&&scene.events.onEnter)scene.events.onEnter(r);
+  if(firstVisit&&scene.events&&scene.events.onFirstVisit)scene.events.onFirstVisit(r);
   UI.el.nw.style.opacity='1';UI.updateHUD();
   requestAnimationFrame(()=>{const first=UI.el.nw.querySelector('button');if(first)first.focus()});
 },
@@ -1541,8 +1679,9 @@ async _startCombat(id,scene){
   UI.addN('A '+eName+' lurches from the undergrowth, blocking your path!','d');
   await UI._wait(300);
   const cs=CMB.start(eKey);
-  UI.updateDist(cs.dist,true);UI.setCombatMode(true);
-  UI.addN('Combat begins! Distance: '+cs.dist+'m.','y');
+  if(!cs){UI.addN('The shadows disperse. Nothing attacks.','f');UI.updateHUD();return}
+  UI.setCombatMode(true);
+  UI.addN('Combat begins! You are at '+cs.playerZone.toUpperCase()+' range.','y');
   UI.updateHUD();
 },
 
@@ -1550,19 +1689,19 @@ async doCombatAction(cmd){
   if(UI._busy)return;
   UI.setCombatBusy(true);
   const allMs=CMB.pAct(cmd);
-  const playerMs=[],enemyMs=[];let foundEnemy=false;
+  const playerMs=[],enemyMs=[];let sep=false;
   allMs.forEach(m=>{
-    if(!foundEnemy&&!m.t.startsWith('The '))playerMs.push(m);
-    else{foundEnemy=true;enemyMs.push(m)}});
+    if(!sep&&!m.t.startsWith('The '))playerMs.push(m);
+    else{sep=true;enemyMs.push(m)}});
   if(!enemyMs.length){playerMs.length=0;playerMs.push(...allMs)}
-  for(const m of playerMs){UI.addN(m.t,m.c);await UI._wait(150)}
-  await UI._wait(REDUCED_MOTION?0:400);
-  for(const m of enemyMs){UI.addN(m.t,m.c);await UI._wait(150)}
+  for(const m of playerMs){UI.addN(m.t,m.c)}
+  if(enemyMs.length)await UI._wait(REDUCED_MOTION?0:400);
+  for(const m of enemyMs){UI.addN(m.t,m.c)}
   if(enemyMs.length)await UI._wait(REDUCED_MOTION?0:300);
   UI.updateHUD();
   const ca=CMB.gs();
   if(ca){
-    UI.updateDist(ca.dist,!ca.over);UI.updateCombatUI();
+    UI.updateCombatUI();
     if(ca.over){
       if(ca.fled){this._handleFlee();return}
       if(ca.won)this.onWin();
@@ -1574,7 +1713,7 @@ async doCombatAction(cmd){
 },
 
 async _handleFlee(){
-  UI.setCombatMode(false);UI.updateDist(0,false);
+  UI.setCombatMode(false);
   UI.addN('You turn and sprint down the trail. The creature doesn\'t give chase.','s');
   await UI._wait(300);
   if(this._prevScene)this.enter(this._prevScene);
@@ -1582,8 +1721,8 @@ async _handleFlee(){
 
 resume(){
   const cs=CMB.gs();
-  if(cs&&!cs.over){UI.updateDist(cs.dist,true);UI.setCombatMode(true)}
-  else{UI.updateDist(0,false);UI.setCombatMode(false)}
+  if(cs&&!cs.over){UI.setCombatMode(true)}
+  else{UI.setCombatMode(false)}
   UI.updateHUD();
 },
 

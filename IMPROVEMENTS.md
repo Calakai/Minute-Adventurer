@@ -4,6 +4,23 @@ Planned batches of work. Check off as completed.
 
 ---
 
+## Done (batch 6 — v0.8)
+
+- [x] **Zone-based combat** — Replaced meter distance with Close/Mid/Far zones. Melee requires Close; ranged works from any zone with penalties at Close (-15%) and Far (-10%). Movement between zones costs an action.
+- [x] **Free movement exceptions** — Quickfoot Halflings, Rogues (toward Close), and characters with Movement >= 7 get one free zone move per combat.
+- [x] **Block rework** — Block now halves incoming damage for one round instead of flat reduction.
+- [x] **Flee rework** — Fleeing only possible from Mid/Far zones; failed flee gives enemy a free attack.
+- [x] **Enemy zone AI** — Melee enemies close in; ranged enemies retreat to Mid if at Close. Enemies use `preferredZone` field.
+- [x] **Combat pacing** — 0.4s pause between player/enemy turns; double-click prevention on combat buttons.
+- [x] **Toast notifications** — `showToast(message, type)` system with auto-dismiss, slide-up animation, info/error/success variants.
+- [x] **Global error boundary** — `window.onerror` and `unhandledrejection` handlers with auto-save.
+- [x] **Save/load hardening** — `_validateSave()` integrity check, quota error handling, corruption recovery with toast feedback.
+- [x] **Character creation validation** — Name trimming/length check with shake animation, visual hints for missing selections.
+- [x] **Combat edge-case guards** — HP/damage clamping (`CALC.safeDmg`), NaN protection, dead entity checks, invalid zone reset, missing enemy graceful exit.
+- [x] **Scene navigation safety** — Guarded `SE.enter()` against undefined scenes, filtered exits for missing destinations, logged unknown NPCs.
+- [x] **Pixel art redesign** — Redesigned 6 HUD icons, 5 species portraits, and 6 class icons with clearer silhouettes, 6-color max, 1px outlines.
+- [x] **Gameplay balance audit** — Verified 5 combat scenarios, all 9 subspecies traits, and all 6 class abilities work correctly with zone system.
+
 ## Done (batch 5 — v0.7)
 
 - [x] **Second adventure** — Iron Hollows: 9 new scenes, 3 enemies (Cave Crawler, Mine Shade, Iron Golem), 2 items (Dwarven Ale, Iron Shard), NPC Torgun. Player continues with existing character.
@@ -87,7 +104,7 @@ Run periodically (e.g. before a release or after a batch of features).
 ### Optional automation
 
 - [ ] If introducing a build step later: run a simple lint or size check.
-- [ ] Manual smoke test: new run -> trailhead -> midway -> (optional: whispering_bog -> post_bog -> midway) -> ooze -> post_ooze -> spider_ambush -> post_spider -> wolf_den -> post_wolf -> trail_end -> continue to Iron Hollows -> ih_entrance -> ih_tunnels -> ih_crawler_lair -> ih_post_crawler -> ih_shade_hall -> ih_post_shade -> ih_forge -> ih_post_golem -> ih_exit; save/load; combat actions; poison/antidote/bleed/slow/stun; gold/buy/sell with Garrett.
+- [ ] Manual smoke test: new run -> trailhead -> midway -> (optional: whispering_bog -> post_bog -> midway) -> ooze -> post_ooze -> spider_ambush -> post_spider -> wolf_den -> post_wolf -> trail_end -> continue to Iron Hollows -> ih_entrance -> ih_tunnels -> ih_crawler_lair -> ih_post_crawler -> ih_shade_hall -> ih_post_shade -> ih_forge -> ih_post_golem -> ih_exit; save/load; zone-based combat (close/mid/far movement, block, flee); debuffs (poison/bleed/slow/stun); gold/buy/sell with Garrett; toast notifications; error recovery.
 
 ---
 
