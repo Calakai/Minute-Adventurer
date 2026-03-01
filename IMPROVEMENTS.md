@@ -66,11 +66,22 @@ Planned batches of work. Check off as completed.
 
 ---
 
+## Done (batch 7 — v0.9)
+
+- [x] **Combat overhaul** — Enemy HP bars with animated fill and color transitions (green/amber/red). Tier badges on enemy names. Screen shake and red/gold flash on hit. Floating damage/miss popups. Variable suspense delay between player and enemy turns scaled by tier.
+- [x] **Enemy tiers** — 5-tier system (Common, Uncommon, Dangerous, Elite, Boss) assigned to all 7 enemies. Tier badge colors: text3, text, gold, red, purple. Tier data on ENEMIES in data.js.
+- [x] **Multi-wave encounters** — `scene.events.combat` now supports arrays for sequential waves. HP/MP carry over. Loot collected per wave. Victory only after all waves cleared. Backward compatible with single-string combat fields.
+- [x] **Quick Resolve** — When player level >= tier*3+2, a "Quick Resolve" button appears at combat start. Auto-calculates outcome with minimal damage, grants full XP/gold/loot. Skips turn-by-turn for trivial fights.
+- [x] **Hearthstone Tavern** — New hub scene (`tavern_hub`) accessible from trailhead, trail_end, ih_entrance, ih_exit. NPC Brynn the Innkeeper (heals, directs to bounty board).
+- [x] **Bounty Board** — 7 bounties across all 5 tiers in `BOUNTIES` data. Board shows up to 5 randomly selected bounties weighted by player level. Accept → combat in `bounty_arena` → reward + return to tavern. Refresh button re-rolls available bounties.
+- [x] **Quest system** — 7 one-off quests in `QUESTS` data with progress tracking. Accept from bounty board, progress tracked automatically via `_trackQuestProgress()`. Completion rewards (gold, XP, items) with toast notification. State persisted in `activeQuests`, `completedQuests`, `questProgress`.
+- [x] **Bounty combat** — Generic `bounty_arena` scene with dynamic description and enemy. Non-lethal defeat (HP set to 1, returned to tavern). Victory triggers `completeBounty()` with bonus rewards on top of normal combat drops.
+- [x] **Save compatibility** — `_validateSave()` backfills `activeQuests`, `completedQuests`, `questProgress`, `activeBounty`, `bountyBoard` for old saves.
+
 ## Future work
 
 - [ ] **Third adventure** — Another continuation beyond Iron Hollows.
 - [ ] **More items/enemies** — Expand loot variety and encounter diversity.
-- [ ] **Quest log** — Track objectives across adventures.
 
 ---
 
@@ -104,7 +115,7 @@ Run periodically (e.g. before a release or after a batch of features).
 ### Optional automation
 
 - [ ] If introducing a build step later: run a simple lint or size check.
-- [ ] Manual smoke test: new run -> trailhead -> midway -> (optional: whispering_bog -> post_bog -> midway) -> ooze -> post_ooze -> spider_ambush -> post_spider -> wolf_den -> post_wolf -> trail_end -> continue to Iron Hollows -> ih_entrance -> ih_tunnels -> ih_crawler_lair -> ih_post_crawler -> ih_shade_hall -> ih_post_shade -> ih_forge -> ih_post_golem -> ih_exit; save/load; zone-based combat (close/mid/far movement, block, flee); debuffs (poison/bleed/slow/stun); gold/buy/sell with Garrett; toast notifications; error recovery.
+- [ ] Manual smoke test: new run -> trailhead -> tavern_hub (talk to Brynn, check bounty board, accept bounty, complete bounty, accept quest) -> trailhead -> midway -> (optional: whispering_bog -> post_bog -> midway) -> ooze -> post_ooze -> spider_ambush -> post_spider -> wolf_den -> post_wolf -> trail_end -> continue to Iron Hollows -> ih_entrance -> ih_tunnels -> ih_crawler_lair -> ih_post_crawler -> ih_shade_hall -> ih_post_shade -> ih_forge -> ih_post_golem -> ih_exit; save/load; zone-based combat (close/mid/far movement, block, flee); debuffs (poison/bleed/slow/stun); gold/buy/sell with Garrett; toast notifications; error recovery; enemy HP bars + tier badges; visual FX (damage popups, screen shake, flash); quick resolve for trivial fights; bounty board gameplay loop.
 
 ---
 

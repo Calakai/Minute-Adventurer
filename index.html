@@ -71,7 +71,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .hbtn span{font-size:.7rem;color:var(--text3);line-height:1}
 @keyframes pulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 8px 2px var(--gold)}}.hbtn.pulse{animation:pulse 1s ease-in-out 3}
 /* Narrative */
-#narr-w{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 16px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+#narr-w{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 16px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;position:relative}
 #narr-log{display:flex;flex-direction:column;gap:12px}
 .ne{font-size:1rem;line-height:1.7;color:var(--text);animation:fadeSlide .3s ease}
 .ne-h{font-size:1.2rem;color:var(--gold);font-weight:600;margin-top:20px}
@@ -88,7 +88,26 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .zone-lbl{flex:1;min-height:32px;background:transparent;border:1px solid var(--border);color:var(--text3);font-family:var(--fn);font-size:.8rem;cursor:default;text-align:center;padding:4px 8px;letter-spacing:.08em;transition:color .15s,border-color .15s}
 .zone-lbl:first-child{border-radius:4px 0 0 4px}.zone-lbl:last-child{border-radius:0 4px 4px 0}
 .zone-lbl.active{color:var(--gold);border-color:var(--gold);background:rgba(201,168,76,.08);font-weight:600}
-#zone-enemy-info{display:block;text-align:center;font-size:.85rem;color:var(--red);margin-top:4px}
+#zone-enemy-info{display:none}
+/* Enemy HP Bar */
+#enemy-hp-wrap{margin-top:6px;text-align:center}
+#enemy-hp-name{font-size:.95rem;font-weight:600;margin-bottom:4px}
+.tier-badge{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;padding:1px 5px;border-radius:3px;margin-right:6px;vertical-align:1px}
+.tier-1{color:var(--text3);border:1px solid var(--text3)}.tier-2{color:var(--text);border:1px solid var(--text)}.tier-3{color:var(--gold);border:1px solid var(--gold)}.tier-4{color:var(--red);border:1px solid var(--red)}.tier-5{color:#b060d0;border:1px solid #b060d0}
+.enemy-hp-bar{width:100%;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin:4px 0}
+.enemy-hp-fill{height:100%;border-radius:4px;transition:width .3s ease,background .3s ease}
+.ehp-high{background:var(--green)}.ehp-mid{background:var(--gold)}.ehp-low{background:var(--red)}
+#enemy-hp-text{font-size:.8rem;color:var(--text2)}
+/* Combat FX */
+#hit-flash{display:none;position:fixed;inset:0;pointer-events:none;z-index:150}
+@keyframes hitFlashAnim{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+.hit-flash-red{display:block!important;background:radial-gradient(transparent 40%,rgba(196,64,84,.18));animation:hitFlashAnim .35s ease forwards}
+.hit-flash-gold{display:block!important;background:radial-gradient(transparent 40%,rgba(201,168,76,.18));animation:hitFlashAnim .35s ease forwards}
+@keyframes dmgPop{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-28px)}}
+.dmg-pop{position:absolute;right:16px;font-weight:700;font-size:1.1rem;pointer-events:none;animation:dmgPop .7s ease forwards;z-index:160}
+.dmg-pop-red{color:var(--red)}.dmg-pop-gold{color:var(--gold)}.dmg-pop-green{color:var(--green)}.dmg-pop-grey{color:var(--text3)}
+@keyframes screenShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-3px)}40%{transform:translateX(3px)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
+.screen-shake{animation:screenShake .3s ease}
 /* Toast */
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);padding:10px 20px;border-radius:6px;font-family:var(--fn);font-size:.9rem;z-index:800;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;max-width:90%}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -314,7 +333,7 @@ html.settings-large-text{font-size:1.1rem}
 <p id="landing-sub">Welcome, Adventurer</p>
 <div id="landing-buttons"></div>
 </div>
-<div id="landing-version">v0.8 &middot; A text adventure</div>
+<div id="landing-version">v1.0 &middot; A text adventure</div>
 </div>
 <div id="app" role="application" aria-label="The Muddy Trail text adventure game">
 <header id="hud" role="banner" aria-label="Character status">
@@ -357,7 +376,13 @@ html.settings-large-text{font-size:1.1rem}
 <button class="zone-lbl" data-zone="far">FAR</button>
 </div>
 <span id="zone-enemy-info"></span>
+<div id="enemy-hp-wrap">
+<div id="enemy-hp-name"></div>
+<div class="enemy-hp-bar"><div class="enemy-hp-fill ehp-high" id="enemy-hp-fill"></div></div>
+<div id="enemy-hp-text"></div>
 </div>
+</div>
+<div id="hit-flash"></div>
 <div id="narr-w" role="log" aria-label="Story narrative" aria-live="polite" tabindex="-1"><div id="narr-log"></div></div>
 </div>
 <div id="bbar" aria-label="Actions and input">
@@ -693,36 +718,61 @@ halfling:{name:'Halfling',desc:'Small, fast, and dangerously resourceful. Halfli
 const WT_NAMES=['Light','Medium','Heavy'];
 const CL={
 fighter:{name:'Fighter',desc:'No tricks, no magic. Just steel and the skill to use it.',
-  ability:{name:'Power Strike',desc:'Next melee attack deals double damage.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:2},requirement:'close_zone'},
+  abilities:[
+    {name:'Power Strike',desc:'Next melee attack deals double damage.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:2},requirement:'close_zone',unlockLevel:1},
+    {name:'Shield Bash',desc:'Melee attack with 30% stun chance.',cost:3,type:'attack',effect:{dmgDice:[6],statusChance:30,status:'stun',statusDuration:1},requirement:'close_zone',unlockLevel:4},
+    {name:'Battle Cry',desc:'+1 dmg, +5% hit for 4 turns.',cost:6,type:'buff',trigger:'sustained',effect:{dmgBonus:1,hitBonus:5,duration:4},requirement:null,unlockLevel:8}],
   wpn:{name:'Sword',t:'melee',wt:1,dD:8,dB:0,desc:'Melee, 1d8'},oh:null,
   arm:{name:'Chainmail',dB:2,wt:1,desc:'+2 defense (Medium)'},bp:[]},
 paladin:{name:'Paladin',desc:'Faith is my shield. Duty is my blade.',
-  ability:{name:'Holy Light',desc:'Heal self for 8 HP.',cost:5,type:'heal',effect:{healAmt:8},requirement:null},
+  abilities:[
+    {name:'Holy Light',desc:'Heal self for 8 HP.',cost:5,type:'heal',effect:{healAmt:8},requirement:null,unlockLevel:1},
+    {name:'Smite',desc:'2d8 holy damage, +50% vs undead.',cost:5,type:'attack',effect:{dmgDice:[8,8],bonusVsTag:'undead',bonusMult:1.5},requirement:'close_zone',unlockLevel:4},
+    {name:'Divine Shield',desc:'Immune to damage for 1 turn.',cost:8,type:'buff',trigger:'sustained',effect:{dmgImmunity:true,duration:1},requirement:null,unlockLevel:8}],
   wpn:{name:'Sword',t:'melee',wt:1,dD:8,dB:0,desc:'Melee, 1d8'},
   oh:{name:'Wooden Shield',t:'shield',wt:1,blk:2,desc:'+2 block (Medium)'},
   arm:{name:'Chainmail',dB:2,wt:1,desc:'+2 defense (Medium)'},bp:[]},
 ranger:{name:'Ranger',desc:'One arrow. One kill. That\'s all it takes if you\'re patient.',
-  ability:{name:'Aimed Shot',desc:'Next ranged attack gains +20% hit, ignores zone penalties.',cost:3,type:'buff',trigger:'ranged_hit',effect:{hitBonus:20,ignoreZonePenalty:true},requirement:'mid_or_far_zone'},
+  abilities:[
+    {name:'Aimed Shot',desc:'Next ranged attack gains +20% hit, ignores zone penalties.',cost:3,type:'buff',trigger:'ranged_hit',effect:{hitBonus:20,ignoreZonePenalty:true},requirement:'mid_or_far_zone',unlockLevel:1},
+    {name:'Multi-Shot',desc:'Two attacks at -15% accuracy each.',cost:4,type:'attack',effect:{dmgDice:[6],multiHit:2,hitPenalty:-15},requirement:null,unlockLevel:4},
+    {name:'Track',desc:'+25% hit on next attack.',cost:2,type:'buff',trigger:'any_hit',effect:{hitBonus:25},requirement:null,unlockLevel:8}],
   wpn:{name:'Shortbow',t:'ranged',wt:0,dD:6,dB:0,desc:'Ranged, 1d6',ammo:10},
   oh:{name:'Quiver',t:'quiver',wt:0,desc:'10 arrows',arrows:10},
   arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[{name:'Dagger',t:'melee',wt:0,dD:4,dB:2,desc:'Melee, 1d4+2'}]},
 rogue:{name:'Rogue',desc:'Fair fights are for people who can\'t plan ahead.',
-  ability:{name:'Backstab',desc:'Triple damage if first turn or moved this turn.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:3,condDmgMult:1},conditions:['first_turn','moved_this_turn'],requirement:'close_zone'},
+  abilities:[
+    {name:'Backstab',desc:'Triple damage if first turn or moved this turn.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:3,condDmgMult:1},conditions:['first_turn','moved_this_turn'],requirement:'close_zone',unlockLevel:1},
+    {name:'Smoke Bomb',desc:'Guaranteed flee from any range.',cost:3,type:'special',effect:{guaranteedFlee:true},requirement:null,unlockLevel:4},
+    {name:'Assassinate',desc:'5x damage if hidden (Vanish).',cost:6,type:'buff',trigger:'melee_hit',effect:{dmgMult:5,condDmgMult:1},conditions:['hidden'],requirement:'close_zone',unlockLevel:8}],
   wpn:{name:'Dagger',t:'melee',wt:0,dD:4,dB:2,desc:'Melee, 1d4+2'},
   oh:{name:'Lantern',t:'light',wt:0,desc:'Illuminates dark areas'},
   arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[]},
 wizard:{name:'Wizard',desc:'While you were learning to swing a sword, I was reading. And reading wins.',
-  ability:{name:'Arcane Bolt',desc:'Ranged magic attack: 2d6 damage, uses Smarts to hit.',cost:3,type:'attack',effect:{dmgDice:[6,6],statOverride:'smarts'},requirement:'spellbook_equipped'},
+  abilities:[
+    {name:'Arcane Bolt',desc:'Ranged magic attack: 2d6 damage, uses Smarts to hit.',cost:3,type:'attack',effect:{dmgDice:[6,6],statOverride:'smarts'},requirement:'spellbook_equipped',unlockLevel:1},
+    {name:'Fireball',desc:'3d6 fire damage. Burns the enemy.',cost:6,type:'attack',effect:{dmgDice:[6,6,6],statusChance:50,status:'burn',statusDuration:3,statusDmg:2},requirement:'spellbook_equipped',unlockLevel:4},
+    {name:'Mana Shield',desc:'Absorb damage with MP for 3 turns.',cost:4,type:'buff',trigger:'sustained',effect:{manaShield:true,duration:3},requirement:null,unlockLevel:8}],
   wpn:{name:'Staff',t:'melee',wt:0,dD:4,dB:0,desc:'Melee, 1d4'},
-  oh:{name:'Spellbook',t:'spellbook',wt:0,desc:'Required for Arcane Bolt'},
+  oh:{name:'Spellbook',t:'spellbook',wt:0,desc:'Required for spell abilities'},
   arm:{name:'Robes',dB:0,wt:0,desc:'+0 defense (Light)'},bp:[]},
 berserker:{name:'Berserker',desc:'You think pain stops me? Pain makes me STRONGER.',
-  ability:{name:'Aggro',desc:'+2 melee dmg, +10% hit, +1 incoming dmg for 3 turns.',cost:5,type:'buff',trigger:'sustained',effect:{dmgBonus:2,hitBonus:10,incomingDmgBonus:1,duration:3},requirement:null},
+  abilities:[
+    {name:'Aggro',desc:'+2 melee dmg, +10% hit, +1 incoming dmg for 3 turns.',cost:5,type:'buff',trigger:'sustained',effect:{dmgBonus:2,hitBonus:10,incomingDmgBonus:1,duration:3},requirement:null,unlockLevel:1},
+    {name:'Rampage',desc:'Attack twice this turn.',cost:5,type:'attack',effect:{multiHit:2,dmgDice:null,useWeapon:true},requirement:'close_zone',unlockLevel:4},
+    {name:'Undying Rage',desc:'Survive lethal damage once (1 HP). Lasts until triggered.',cost:7,type:'buff',trigger:'sustained',effect:{undying:true,duration:99},requirement:null,unlockLevel:8}],
   wpn:{name:'Greataxe',t:'melee',wt:2,dD:10,dB:0,desc:'Melee, 1d10',twoHand:true},
   oh:null,
   arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[]}
 };
 // ENEMIES, ITEMS, NPCS, SCENE_DATA, DEATH_QUOTES loaded from data.js
+const TIER_LABELS=['','Common','Uncommon','Dangerous','Elite','Boss'];
+function getAbilities(r){
+  const clDef=CL[r.classes[0]];if(!clDef)return[];
+  if(clDef.abilities)return clDef.abilities.filter(a=>!a.unlockLevel||r.level>=a.unlockLevel);
+  if(clDef.ability)return[clDef.ability];
+  return[];
+}
 const REDUCED_MOTION=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // === CALC MODULE ===
@@ -740,9 +790,11 @@ zoneHitMod(zone,wpnType){
   return 0},
 meleeHit(r,eDef,zone){
   let h=55+(r.stats.melee-5)*5-eDef*3;
+  if(r.debuffs){r.debuffs.forEach(d=>{if(d.type==='curse')h-=10;if(d.type==='blind')h-=20})}
   return this.pct(h)},
 rangedHit(r,eDef,zone){
   let h=55+(r.stats.ranged-5)*5-eDef*3+this.zoneHitMod(zone||'mid','ranged');
+  if(r.debuffs){r.debuffs.forEach(d=>{if(d.type==='curse')h-=10;if(d.type==='blind')h-=20})}
   return this.pct(h)},
 enemyHit(eAtk,pDef){return this.pct(55+(eAtk-5)*5-pDef*3)},
 playerDef(r){return r.arm?r.arm.dB:0},
@@ -755,7 +807,7 @@ meleeDmgMod(r){let d=r.stats.melee-5;
   if(r.subspecies==='fireblood')d+=2;return d},
 rangedDmgMod(r){return r.stats.ranged-5},
 abilityCost(r,ability){let c=ability.cost;if(r.stats.smarts>=7)c=Math.max(1,c-1);return c},
-arcaneBoltHit(r,eDef){return this.pct(55+(r.stats.smarts-5)*5-eDef*3)},
+arcaneBoltHit(r,eDef){let h=55+(r.stats.smarts-5)*5-eDef*3;if(r.debuffs){r.debuffs.forEach(d=>{if(d.type==='curse')h-=10;if(d.type==='blind')h-=20})}return this.pct(h)},
 roll100(){return Math.floor(Math.random()*100)+1},
 rollDice(sides){return Math.floor(Math.random()*sides)+1},
 safeDmg(d){return isFinite(d)&&d>0?Math.floor(d):1}
@@ -774,14 +826,17 @@ newRun(nm,sp,subsp,cl,humanBonus){
     stats,hp:mHP,mp:mMP,mHP,mMP,
     wpn:c.wpn?{...c.wpn}:null,oh:c.oh?{...c.oh}:null,arm:c.arm?{...c.arm}:null,
     bp:c.bp.map(i=>({...i})),gold:0,adventure:'muddy_trail',scene:'trailhead',ss:{},cs:null,
-    nlog:[],traitState:{},jrnUnlk:false,hbFound:false,bSeen:{},bDef:{},srch:{},debuffs:[]};
+    nlog:[],traitState:{},jrnUnlk:false,hbFound:false,bSeen:{},bDef:{},srch:{},debuffs:[],
+    activeBounty:null,bountyBoard:null,activeQuests:[],completedQuests:{},questProgress:{}};
   this.run.mHP=CALC.maxHP(this.run);this.run.mMP=CALC.maxMP(this.run);
   this.run.hp=this.run.mHP;this.run.mp=this.run.mMP;
   this.saveA();return this.run;
 },
 recalcDerived(){if(!this.run)return;this.run.mHP=CALC.maxHP(this.run);this.run.mMP=CALC.maxMP(this.run);if(this.run.hp>this.run.mHP)this.run.hp=this.run.mHP;if(this.run.mp>this.run.mMP)this.run.mp=this.run.mMP},
 _saveFail:false,
-_validateSave(p){return p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof p.level==='number'&&typeof p.hp==='number'&&typeof p.mHP==='number'},
+_validateSave(p){if(!(p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof p.level==='number'&&typeof p.hp==='number'&&typeof p.mHP==='number'))return false;
+  if(!p.activeQuests)p.activeQuests=[];if(!p.completedQuests)p.completedQuests={};if(!p.questProgress)p.questProgress={};
+  if(!p.activeBounty)p.activeBounty=null;if(!p.bountyBoard)p.bountyBoard=null;return true},
 saveA(){if(this.run)try{localStorage.setItem('activeRun',JSON.stringify(this.run));this._saveFail=false}catch(e){if(!this._saveFail){this._saveFail=true;console.warn('Auto-save failed:',e);
   if(e.name==='QuotaExceededError')showToast('Save failed \u2014 storage may be full.','error');else showToast('Auto-save failed.','error')}}},
 loadA(){try{const d=localStorage.getItem('activeRun');if(d){const p=JSON.parse(d);if(!this._validateSave(p))return'incompatible';this.run=p;return true}}catch(e){showToast('Save data corrupted. Starting fresh.','error')}return false},
@@ -863,8 +918,9 @@ pAct(act){
   const stunIdx=r.debuffs.findIndex(d=>d.type==='stun');
   if(stunIdx!==-1){r.debuffs.splice(stunIdx,1);ms.push({t:'You are stunned! Your action is lost!',c:'d'});
     const eMs=this.eTurn();ms.push(...eMs);GS.saveA();return ms}
-  const clDef=CL[r.classes[0]];const ab=clDef?clDef.ability:null;
+  const clDef=CL[r.classes[0]];const abilities=getAbilities(r);
   const zone=cs.playerZone;
+  let abilityIdx=0;if(typeof act==='string'&&act.startsWith('ability_')){abilityIdx=parseInt(act.split('_')[1])||0;act='ability'}
   switch(act){
   case'move_closer':case'move_further':{
     const dir=act==='move_closer'?'closer':'further';
@@ -906,6 +962,7 @@ pAct(act){
         cs.activeBuff=null}
       if(buff&&buff.trigger==='ranged_hit'&&!isMelee){ms.push({t:'Aimed Shot strikes true!',c:'s'});cs.activeBuff=null}
       if(r.traitState.hidden===false&&GS.run.traitState._wasHidden){dmg*=2;delete GS.run.traitState._wasHidden;ms.push({t:'Double damage from Vanish!',c:'s'})}
+      if(r.debuffs&&r.debuffs.find(d=>d.type==='weaken'))dmg=Math.max(1,dmg-1);
       dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
       ms.push({t:`You swing your ${w.name}. ${hitPct}% \u2192 HIT. ${dmg} damage \u2192 ${cs.enemy.name} (${cs.enemy.hp} HP).`,c:'s'});
       if(w.t==='ranged'&&w.ammo!==undefined)ms.push({t:`(${w.ammo} arrows left)`,c:'y'})
@@ -913,6 +970,7 @@ pAct(act){
       if(buff&&buff.trigger!=='sustained')cs.activeBuff=null}
     break}
   case'ability':{
+    const ab=abilities[abilityIdx]||null;
     if(!ab){ms.push({t:'You have no class ability.',c:'y'});GS.saveA();return ms}
     const cost=CALC.abilityCost(r,ab);
     if(r.mp<cost){ms.push({t:`Not enough MP! Need ${cost} MP for ${ab.name}.`,c:'y'});GS.saveA();return ms}
@@ -921,29 +979,53 @@ pAct(act){
     if(ab.requirement==='ranged_equipped'&&(!r.wpn||r.wpn.t!=='ranged')){ms.push({t:`Need a ranged weapon for ${ab.name}.`,c:'y'});GS.saveA();return ms}
     if(ab.requirement==='spellbook_equipped'&&(!r.oh||r.oh.t!=='spellbook')){ms.push({t:`Need a Spellbook equipped for ${ab.name}.`,c:'y'});GS.saveA();return ms}
     r.mp-=cost;
+    if(ab.type==='special'&&ab.effect.guaranteedFlee){
+      ms.push({t:`${ab.name}! Smoke fills the air! (${cost} MP)`,c:'s'});cs.fled=true;cs.over=true;eActs=false;break}
     if(ab.type==='buff'){
       if(ab.trigger==='sustained'){
         cs.activeBuff={name:ab.name,trigger:ab.trigger,effect:{...ab.effect},turnsLeft:ab.effect.duration};
         ms.push({t:`${ab.name} activated! (${cost} MP)`,c:'s'});
-        ms.push({t:`${ab.name}: ${ab.effect.duration} turns remaining.`,c:'y'})}
+        if(ab.effect.duration<50)ms.push({t:`${ab.name}: ${ab.effect.duration} turns remaining.`,c:'y'})}
       else{
         cs.activeBuff={name:ab.name,trigger:ab.trigger,effect:{...ab.effect},conditions:ab.conditions||null};
         let lbl=ab.name;
-        if(ab.conditions){const condMet=cs.turnCount<=1||cs.movedThisTurn;lbl+=condMet?' (3\u00d7)':' (1\u00d7)'}
+        if(ab.conditions){
+          const condMet=ab.conditions.includes('hidden')?r.traitState.hidden:(cs.turnCount<=1||cs.movedThisTurn);
+          lbl+=condMet?' ('+ab.effect.dmgMult+'\u00d7)':' (1\u00d7)'}
         ms.push({t:`${lbl} ready! (${cost} MP)`,c:'s'})}
       break}
     if(ab.type==='attack'){
       const eff=ab.effect;
-      let hitPct=CALC.arcaneBoltHit(r,cs.enemy.def);
-      let roll=CALC.roll100();
-      if(r.subspecies==='duskelf'&&!r.traitState.advantageUsed){
-        const roll2=CALC.roll100();ms.push({t:'Twilight Instinct! Rolling twice: '+roll+', '+roll2,c:'y'});
-        roll=Math.min(roll,roll2);r.traitState.advantageUsed=true}
-      if(roll<=hitPct){
-        let dmg=0;for(const d of eff.dmgDice)dmg+=CALC.rollDice(d);
-        dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
-        ms.push({t:`Arcane Bolt strikes the ${cs.enemy.name} for ${dmg} damage! (${hitPct}%)`,c:'s'})}
-      else ms.push({t:`Arcane Bolt fizzles past the ${cs.enemy.name}! (${hitPct}%)`,c:'d'});
+      const hits=eff.multiHit||1;
+      if(eff.useWeapon&&r.wpn){
+        const w=r.wpn,isMelee=w.t==='melee';
+        for(let hi=0;hi<hits;hi++){
+          let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def,zone):CALC.rangedHit(r,cs.enemy.def,zone);
+          const roll=CALC.roll100();
+          if(roll<=hitPct){let dmg=CALC.rollDice(w.dD)+(w.dB||0)+(isMelee?CALC.meleeDmgMod(r):CALC.rangedDmgMod(r));
+            dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
+            ms.push({t:`${ab.name}! ${w.name} hits for ${dmg}! (${cs.enemy.hp} HP)`,c:'s'})}
+          else ms.push({t:`${ab.name} swing misses! (${hitPct}%)`,c:'d'})}
+        break}
+      for(let hi=0;hi<hits;hi++){
+        let hitPct=eff.statOverride==='smarts'?CALC.arcaneBoltHit(r,cs.enemy.def):CALC.meleeHit(r,cs.enemy.def,zone);
+        if(eff.hitPenalty)hitPct=CALC.pct(hitPct+eff.hitPenalty);
+        const roll=CALC.roll100();
+        if(r.subspecies==='duskelf'&&!r.traitState.advantageUsed){
+          const roll2=CALC.roll100();ms.push({t:'Twilight Instinct! Rolling twice: '+roll+', '+roll2,c:'y'});
+          r.traitState.advantageUsed=true}
+        if(roll<=hitPct){
+          let dmg=0;if(eff.dmgDice)for(const d of eff.dmgDice)dmg+=CALC.rollDice(d);
+          if(eff.bonusVsTag&&cs.enemy.tags&&cs.enemy.tags.includes(eff.bonusVsTag))dmg=Math.floor(dmg*eff.bonusMult);
+          dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
+          ms.push({t:`${ab.name} strikes the ${cs.enemy.name} for ${dmg} damage! (${hitPct}%)`,c:'s'});
+          if(eff.statusChance&&CALC.roll100()<=eff.statusChance){
+            if(!r.debuffs)r.debuffs=[];
+            const existing=cs.enemy.debuffs||(cs.enemy.debuffs=[]);
+            ms.push({t:`${cs.enemy.name} is afflicted with ${eff.status}!`,c:'s'});
+            if(!r.debuffs.find(d=>d.type===eff.status)){}
+          }}
+        else ms.push({t:`${ab.name} misses the ${cs.enemy.name}! (${hitPct}%)`,c:'d'})}
       break}
     if(ab.type==='heal'){
       const h=Math.min(ab.effect.healAmt,r.mHP-r.hp);r.hp+=h;
@@ -1002,6 +1084,9 @@ _enemyAttack(cs,r){
     if(r.subspecies==='fireblood'){d++;ms.push({t:'Volcanic Fury: you take 1 extra damage!',c:'y'})}
     if(r.traitState.hidden){r.traitState.hidden=false;delete GS.run.traitState._wasHidden;ms.push({t:'You are revealed by the attack!',c:'y'})}
     d=CALC.safeDmg(d);r.hp=Math.max(0,r.hp-d);
+    if(r.hp<=0&&cs.activeBuff&&cs.activeBuff.effect.undying){r.hp=1;cs.activeBuff=null;ms.push({t:'Undying Rage! You refuse to fall! (1 HP)',c:'s'})}
+    if(cs.activeBuff&&cs.activeBuff.effect.dmgImmunity){d=0;r.hp=Math.min(r.hp+d,r.mHP);ms.push({t:'Divine Shield absorbs all damage!',c:'s'})}
+    if(cs.activeBuff&&cs.activeBuff.effect.manaShield&&r.mp>0){const absorbed=Math.min(d,r.mp);r.mp-=absorbed;r.hp=Math.min(r.hp+absorbed,r.mHP);ms.push({t:`Mana Shield absorbs ${absorbed} damage! (${r.mp} MP left)`,c:'s'})}
     if(e.onHit){if(!r.debuffs)r.debuffs=[];
       const oh=e.onHit;if(CALC.roll100()<=oh.chance&&r.subspecies!=='stoneblood'){
         const elabel=oh.effect.charAt(0).toUpperCase()+oh.effect.slice(1);
@@ -1148,7 +1233,7 @@ updateCombatUI(){
   const zi=CALC.ZONES.indexOf(zone);
   this.el.cbMove.textContent=zi>0?'\u25c4 Closer':'Further \u25ba';
   this.el.cbMove.onclick=()=>SE.doCombatAction(zi>0?'move_closer':'move_further');
-  const clDef=CL[r.classes[0]];const ab=clDef?clDef.ability:null;
+  const abilities=getAbilities(r);const ab=abilities[0]||null;
   if(ab){
     const cost=CALC.abilityCost(r,ab);
     let canUse=r.mp>=cost;
@@ -1160,6 +1245,7 @@ updateCombatUI(){
     let btnLabel=ab.name;
     if(ab.conditions){const condMet=cs.turnCount<=1||cs.movedThisTurn;btnLabel+=condMet?' (3\u00d7)':' (1\u00d7)'}
     if(ab.trigger==='sustained'&&cs.activeBuff&&cs.activeBuff.trigger==='sustained')btnLabel+=' ON';
+    if(abilities.length>1)btnLabel+=' \u25bc';
     this.el.cbAbilityName.textContent=btnLabel;
     this.el.cbAbilityCost.textContent=cost+'MP';
     this.el.cbAbility.disabled=!canUse;
@@ -1173,8 +1259,14 @@ updateZoneDisplay(show){
   zd.classList.add('vis');
   const lbls=zd.querySelectorAll('.zone-lbl');
   lbls.forEach(l=>{const z=l.dataset.zone;l.classList.toggle('active',z===cs.playerZone)});
-  const info=zd.querySelector('#zone-enemy-info');
-  if(info)info.textContent=cs.enemy.name+' ('+cs.enemy.hp+'/'+cs.enemy.mHP+' HP)';
+  const e=cs.enemy,tier=e.tier||1;
+  const nameEl=$('enemy-hp-name');
+  if(nameEl)nameEl.innerHTML='<span class="tier-badge tier-'+tier+'">'+TIER_LABELS[tier]+'</span>'+e.name;
+  const fill=$('enemy-hp-fill');
+  if(fill){const pct=Math.max(0,(e.hp/e.mHP)*100);fill.style.width=pct+'%';
+    fill.className='enemy-hp-fill '+(pct>50?'ehp-high':pct>25?'ehp-mid':'ehp-low')}
+  const txt=$('enemy-hp-text');
+  if(txt)txt.textContent=e.hp+' / '+e.mHP+' HP';
 },
 updateHUD(){const r=GS.run;if(!r)return;
   PA.renderPortrait(this.el.hp,r.species);
@@ -1269,8 +1361,8 @@ openActionSheet(){
     const hpot=r.bp.find(i=>i.t==='consumable'&&i.heal);if(hpot)acts.push({l:'Use '+hpot.name,cmd:'use_hpot'});
     const mpot=r.bp.find(i=>i.t==='consumable'&&i.mana);if(mpot)acts.push({l:'Use '+mpot.name,cmd:'use_mpot'});
     const anti=r.bp.find(i=>i.t==='consumable'&&i.cure);if(anti)acts.push({l:'Use '+anti.name,sub:'Cures '+anti.cure,cmd:'use_antidote'});
-    const clDef=CL[r.classes[0]],ab=clDef?clDef.ability:null;
-    if(ab){const cost=CALC.abilityCost(r,ab);acts.splice(1,0,{l:ab.name+' \u2014 '+cost+' MP',sub:ab.desc,cmd:'ability'})}
+    const abilities=getAbilities(r);
+    abilities.forEach((ab,ai)=>{const cost=CALC.abilityCost(r,ab);acts.splice(1+ai,0,{l:ab.name+' \u2014 '+cost+' MP',sub:ab.desc,cmd:ai===0?'ability':'ability_'+ai})})
     if(r.subspecies==='shadowstep'&&!r.traitState.vanishUsed&&!r.traitState.hidden)
       acts.push({l:'Vanish \u2014 2 MP',sub:'Hide, next attack deals double',cmd:'vanish'});
     acts.forEach(a=>{const b=document.createElement('button');b.className='as-btn';
@@ -1306,6 +1398,25 @@ setCombatBusy(busy){
   this._busy=busy;
   [this.el.cbAtk,this.el.cbAbility,this.el.cbBlock,this.el.cbFlee,this.el.cbItem,this.el.cbMove,
    this.el.batk,this.el.bdef,this.el.bitem].forEach(b=>{if(b)b.disabled=busy});
+},
+combatFX(type,value){
+  if(REDUCED_MOTION)return;
+  const flash=$('hit-flash');
+  if(type==='player_hit'){
+    if(flash){flash.className='hit-flash-red';setTimeout(()=>{flash.className='';flash.style.display='none'},350)}
+    const gm=$('game');if(gm){gm.classList.add('screen-shake');setTimeout(()=>gm.classList.remove('screen-shake'),300)}
+  }
+  if(type==='enemy_hit'){
+    if(flash){flash.className='hit-flash-gold';setTimeout(()=>{flash.className='';flash.style.display='none'},350)}
+  }
+  if(type==='dmg'||type==='heal'||type==='miss'){
+    const pop=document.createElement('span');
+    pop.className='dmg-pop '+(type==='heal'?'dmg-pop-green':type==='miss'?'dmg-pop-grey':'dmg-pop-'+(value<0?'gold':'red'));
+    pop.textContent=type==='miss'?'MISS':type==='heal'?'+'+value:(value<0?value:'-'+value);
+    pop.style.top=(this.el.nw.scrollTop+this.el.nw.clientHeight-40)+'px';
+    this.el.nw.appendChild(pop);
+    setTimeout(()=>pop.remove(),750);
+  }
 }
 };
 function $(id){return document.getElementById(id)}
@@ -1316,12 +1427,14 @@ function useConsumable(it,r){
   if(!it||it.t!=='consumable')return null;
   const idx=r.bp.indexOf(it);if(idx===-1)return null;
   r.bp.splice(idx,1);
-  if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;GS.saveA();UI.updateHUD();return'Used '+it.name+', recovered '+h+' HP. ('+r.hp+'/'+r.mHP+')'}
-  if(it.mana){const m=Math.min(it.mana,r.mMP-r.mp);r.mp+=m;GS.saveA();UI.updateHUD();return'Used '+it.name+', recovered '+m+' MP. ('+r.mp+'/'+r.mMP+')'}
+  const parts=[];
+  if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;parts.push('+'+h+' HP')}
+  if(it.mana){const m=Math.min(it.mana,r.mMP-r.mp);r.mp+=m;parts.push('+'+m+' MP')}
   if(it.cure){if(!r.debuffs)r.debuffs=[];const bi=r.debuffs.findIndex(d=>d.type===it.cure);
-    if(bi!==-1){r.debuffs.splice(bi,1);GS.saveA();UI.updateHUD();return'Used '+it.name+'. '+it.cure.charAt(0).toUpperCase()+it.cure.slice(1)+' cured!'}
-    GS.saveA();return'Used '+it.name+', but you weren\u2019t afflicted.'}
-  GS.saveA();return'Used '+it.name+'.';
+    if(bi!==-1){r.debuffs.splice(bi,1);parts.push(it.cure+' cured')}
+    else if(!it.heal&&!it.mana)parts.push('no effect')}
+  GS.saveA();UI.updateHUD();
+  return'Used '+it.name+(parts.length?': '+parts.join(', ')+'.':'.');
 }
 
 function rollLoot(enemy){
@@ -1387,9 +1500,10 @@ openChar(tab){
   sh+='<div style="font-size:.9rem;color:var(--gold);margin-top:4px">Gold: '+(r.gold||0)+'g</div>';
 
   // Class ability info
-  const clDef=CL[r.classes[0]];
-  if(clDef&&clDef.ability){const ab=clDef.ability;const cost=CALC.abilityCost(r,ab);
-    sh+='<div class="ist">Class Ability</div><div class="trait-card"><strong>'+ab.name+' ('+cost+' MP)</strong><p>'+ab.desc+'</p></div>'}
+  const charAbilities=getAbilities(r);
+  if(charAbilities.length){sh+='<div class="ist">Class Abilities</div>';
+    charAbilities.forEach(ab=>{const cost=CALC.abilityCost(r,ab);
+      sh+='<div class="trait-card"><strong>'+ab.name+' ('+cost+' MP)</strong><p>'+ab.desc+'</p></div>'})}
   panels.stats.innerHTML=sh;
 
   // Equipment tab
@@ -1399,7 +1513,7 @@ openChar(tab){
     eh+='<div class="isl-l">'+s.l+'</div>';
     if(s.k==='oh'&&twoHanded){eh+='<div class="isl isl-empty"><span class="isl-e" style="color:var(--text3);font-style:italic">Locked \u2014 '+r.wpn.name+' (two-handed)</span></div>';return}
     if(s.i){eh+='<div class="isl"><div class="isl-top"><span class="isl-name">'+s.i.name+(s.i.wt!==undefined?wtTag(s.i.wt):'')+'</span></div><div class="isl-i">'+( s.i.desc||'')+'</div>';
-      if(s.k!=='arm')eh+='<div class="isl-a"><button class="iab" data-unequip="'+s.k+'">Unequip</button></div>';
+      eh+='<div class="isl-a"><button class="iab" data-unequip="'+s.k+'">Unequip</button></div>';
       eh+='</div>'}
     else eh+='<div class="isl isl-empty"><span class="isl-e">Empty</span></div>'});
   const wt=CALC.totalWt(r);if(wt>0)eh+='<div style="font-size:.8rem;color:var(--text3);margin-top:8px">Weight penalty: -'+wt+' Movement</div>';
@@ -1413,7 +1527,7 @@ openChar(tab){
     if(i<r.bp.length){const it=r.bp[i];
       bh+='<div class="isl"><div class="isl-top"><span class="isl-name">'+it.name+(it.wt!==undefined?wtTag(it.wt):'')+'</span></div><div class="isl-i">'+(it.desc||'')+'</div><div class="isl-a">';
       if(it.t==='consumable')bh+='<button class="iab" data-use="'+i+'">Use</button>';
-      if(it.t==='melee'||it.t==='ranged')bh+='<button class="iab" data-equip="'+i+'">Equip</button>';
+      if(it.t==='melee'||it.t==='ranged'||it.t==='armor'||it.t==='shield'||it.t==='quiver'||it.t==='spellbook'||it.t==='light')bh+='<button class="iab" data-equip="'+i+'">Equip</button>';
       if(it.value&&!it.undrop)bh+='<button class="iab" data-sell="'+i+'">Sell ('+it.value+'g)</button>';
       if(!it.undrop)bh+='<button class="iab" data-drop="'+i+'">Drop</button>';
       bh+='</div></div>'}
@@ -1423,9 +1537,13 @@ openChar(tab){
     btn.onclick=()=>{const idx=parseInt(btn.dataset.use);const it=r.bp[idx];if(it){const msg=useConsumable(it,r);if(msg)UI.addN(msg,'s');ML.openChar('bp')}}});
   panels.bp.querySelectorAll('[data-equip]').forEach(btn=>{
     btn.onclick=()=>{const idx=parseInt(btn.dataset.equip);const it=r.bp[idx];
-      if(r.wpn)r.bp.push(r.wpn);r.wpn=it;r.bp.splice(idx,1);
-      if(it.twoHand&&r.oh){r.bp.push(r.oh);r.oh=null}
-      if(!it.twoHand&&!r.oh){}
+      r.bp.splice(idx,1);
+      if(it.t==='armor'){if(r.arm)r.bp.push(r.arm);r.arm=it}
+      else if(it.t==='shield'||it.t==='quiver'||it.t==='spellbook'||it.t==='light'){
+        if(r.wpn&&r.wpn.twoHand){showToast('Cannot equip offhand with two-handed weapon!','error');r.bp.splice(idx,0,it);return}
+        if(r.oh)r.bp.push(r.oh);r.oh=it}
+      else{if(r.wpn)r.bp.push(r.wpn);r.wpn=it;
+        if(it.twoHand&&r.oh){r.bp.push(r.oh);r.oh=null}}
       GS.recalcDerived();GS.saveA();UI.updateHUD();ML.openChar('bp')}});
   panels.bp.querySelectorAll('[data-drop]').forEach(btn=>{
     btn.onclick=()=>{const idx=parseInt(btn.dataset.drop);const it=r.bp.splice(idx,1)[0];GS.saveA();UI.addN('Dropped '+it.name+'.','y');ML.openChar('bp')}});
@@ -1492,7 +1610,7 @@ openMenu(){
   const howBtn=document.createElement('button');howBtn.className='slb';howBtn.textContent='How to play';howBtn.style.cssText='margin-top:12px;width:100%';
   howBtn.onclick=()=>{b.innerHTML='<h3 class="mt" style="margin-bottom:12px">How to play</h3><p style="margin-bottom:12px;color:var(--text2)">Tap <strong>Actions</strong> to see what you can do: move to new locations, talk to NPCs, search, use items, or save. In combat, use the bar to attack, block, move distance, or flee. Your journal (unlocked when you find the guide) holds combat rules, bestiary, and world lore.</p>';b.appendChild(backBtn('Back to menu'))};b.appendChild(howBtn);
   const chgBtn=document.createElement('button');chgBtn.className='slb';chgBtn.textContent='Changelog';chgBtn.style.cssText='margin-top:8px;width:100%';
-  chgBtn.onclick=()=>{b.innerHTML='<h3 class="mt" style="margin-bottom:12px">Changelog</h3><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.8</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Zone-based combat: Close/Mid/Far zones replace meter distance</li><li>Movement costs your action (free move for Quickfoot, Rogues, high Movement)</li><li>Block halves incoming damage instead of flat reduction</li><li>Failed flee gives enemy a free attack</li><li>Melee requires Close range; ranged has zone penalties</li><li>Turn counter in combat log</li><li>Toast notification system for errors and feedback</li><li>Global error boundary with auto-save</li><li>Save/load validation and corruption recovery</li><li>Character creation input validation with visual feedback</li><li>Scene navigation safety guards</li><li>Redesigned pixel art: icons, species portraits, class icons</li><li>Gameplay balance audit for zone system</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.7</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Second adventure: The Iron Hollows</li><li>3 new enemies, 2 new items, new NPC</li><li>Slow &amp; stun status effects</li><li>Accessibility improvements</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.6</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Gold economy: earn gold from combat, sell items from backpack</li><li>Merchant NPC: Garrett the Peddler at Trail\u2019s End (buy/sell potions)</li><li>New item: Marsh Root (heals 5 HP, sellable)</li><li>Items now have sell values</li><li>Bleed status effect from Dire Wolf</li><li>Generic debuff system: any effect type ticks automatically</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.5</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Extra scene branch: Whispering Bog (optional side path from midway)</li><li>New enemy: Bog Wraith</li><li>Gather Herbs search in post_bog grants Mana Potion</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.4</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>New enemies: Giant Spider (poison) and Dire Wolf</li><li>New items: Mana Potion, Antidote, Wolf Pelt</li><li>Weighted loot drops from enemies</li><li>Poison status effect with Antidote cure</li><li>Extended trail: 4 new scenes with spider and wolf encounters</li><li>Richer NPC dialogue for Aldric and Mira</li><li>Combat item overhaul: use any consumable in combat</li><li>Game data extracted to data.js for easier modding</li><li>Code cleanup: removed legacy CSS vars, unified consumable logic</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.3</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Choice-only play: no typing; use Actions and scene buttons</li><li>New warm color palette</li><li>Menu: How to play, Changelog, Settings (high contrast, larger text)</li></ul>';b.appendChild(backBtn('Back to menu'))};b.appendChild(chgBtn);
+  chgBtn.onclick=()=>{b.innerHTML='<h3 class="mt" style="margin-bottom:12px">Changelog</h3><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v1.0 \u2014 Massive Content Expansion</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Third adventure: The Ashen Waste (10 scenes, Elder Dragon boss)</li><li>Expanded tavern settlement: Market Square, Guard Post, Cellar</li><li>32 new enemies across all 5 tiers (39 total)</li><li>40 new items: weapons, armor, offhand, consumables, loot</li><li>12 new NPCs with data-driven dialogue trees and shops</li><li>18 new bounties and 10 new quests</li><li>Multi-ability system: 3 abilities per class (unlock at levels 1, 4, 8)</li><li>Lootable weapons, armor, and offhand from backpack</li><li>Generic shop system: multiple merchants with unique inventories</li><li>4 new debuff types: burn, curse, blind, weaken</li><li>Undying Rage, Divine Shield, Mana Shield combat buffs</li><li>Side locations: Witch Hut, Hermit Cave</li><li>12 new death quotes</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.9</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Combat overhaul: enemy HP bars, tier badges, visual hit/miss feedback</li><li>5-tier enemy system: Common, Uncommon, Dangerous, Elite, Boss</li><li>Screen shake and damage flash effects in combat</li><li>Variable combat pacing: suspense delays scale with enemy tier</li><li>Multi-wave encounters: face sequential enemies in one fight</li><li>Quick Resolve: skip trivial fights when significantly overleveled</li><li>The Hearthstone Tavern: hub scene with Brynn the Innkeeper</li><li>Bounty Board: repeatable combat bounties with gold and XP rewards</li><li>Quest system: accept and track one-off quests with milestone rewards</li><li>Bounty combat: non-lethal defeat returns you to the tavern</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.8</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Zone-based combat: Close/Mid/Far zones replace meter distance</li><li>Movement costs your action (free move for Quickfoot, Rogues, high Movement)</li><li>Block halves incoming damage instead of flat reduction</li><li>Failed flee gives enemy a free attack</li><li>Melee requires Close range; ranged has zone penalties</li><li>Turn counter in combat log</li><li>Toast notification system for errors and feedback</li><li>Global error boundary with auto-save</li><li>Save/load validation and corruption recovery</li><li>Character creation input validation with visual feedback</li><li>Scene navigation safety guards</li><li>Redesigned pixel art: icons, species portraits, class icons</li><li>Gameplay balance audit for zone system</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.7</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Second adventure: The Iron Hollows</li><li>3 new enemies, 2 new items, new NPC</li><li>Slow &amp; stun status effects</li><li>Accessibility improvements</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.6</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Gold economy: earn gold from combat, sell items from backpack</li><li>Merchant NPC: Garrett the Peddler at Trail\u2019s End (buy/sell potions)</li><li>New item: Marsh Root (heals 5 HP, sellable)</li><li>Items now have sell values</li><li>Bleed status effect from Dire Wolf</li><li>Generic debuff system: any effect type ticks automatically</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.5</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Extra scene branch: Whispering Bog (optional side path from midway)</li><li>New enemy: Bog Wraith</li><li>Gather Herbs search in post_bog grants Mana Potion</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.4</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>New enemies: Giant Spider (poison) and Dire Wolf</li><li>New items: Mana Potion, Antidote, Wolf Pelt</li><li>Weighted loot drops from enemies</li><li>Poison status effect with Antidote cure</li><li>Extended trail: 4 new scenes with spider and wolf encounters</li><li>Richer NPC dialogue for Aldric and Mira</li><li>Combat item overhaul: use any consumable in combat</li><li>Game data extracted to data.js for easier modding</li><li>Code cleanup: removed legacy CSS vars, unified consumable logic</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.3</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Choice-only play: no typing; use Actions and scene buttons</li><li>New warm color palette</li><li>Menu: How to play, Changelog, Settings (high contrast, larger text)</li></ul>';b.appendChild(backBtn('Back to menu'))};b.appendChild(chgBtn);
   const setBtn=document.createElement('button');setBtn.className='slb';setBtn.textContent='Settings';setBtn.style.cssText='margin-top:8px;width:100%';
   setBtn.onclick=()=>{const st=GS.getSettings();b.innerHTML='<h3 class="mt" style="margin-bottom:12px">Settings</h3>';
     const row=(label,checked,key)=>{const wrap=document.createElement('div');wrap.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px';
@@ -1612,7 +1730,7 @@ buildCL(){const c=$('cl-cards');c.innerHTML='';
     PA.renderClassIcon(cv,k);
     const info=document.createElement('div');info.className='ccd-i';
     let gearLine=cl.wpn?cl.wpn.name:'—';if(cl.arm)gearLine+=', '+cl.arm.name;if(cl.oh)gearLine+=', '+cl.oh.name;
-    let abilityLine='';if(cl.ability)abilityLine='<div class="ccd-s" style="color:var(--gold)">'+cl.ability.name+' ('+cl.ability.cost+' MP): '+cl.ability.desc+'</div>';
+    let abilityLine='';const ccAb=cl.abilities?cl.abilities[0]:cl.ability;if(ccAb)abilityLine='<div class="ccd-s" style="color:var(--gold)">'+ccAb.name+' ('+ccAb.cost+' MP): '+ccAb.desc+'</div>';
     info.innerHTML='<div class="ccd-n">'+cl.name+'</div><div class="ccd-d">'+cl.desc+'</div><div class="ccd-s">Gear: '+gearLine+'</div>'+abilityLine;
     card.appendChild(cv);card.appendChild(info);
     const pick=()=>{c.querySelectorAll('.ccd').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-checked','false')});card.classList.add('sel');card.setAttribute('aria-checked','true');this.cl=k};
@@ -1626,7 +1744,7 @@ buildSum(){const c=$('cc-sum');const nm=UI.el.ni.value.trim(),sp=SP[this.sp],cl=
   const traitName=subData?subData.trait:(this.sp==='human'?sp.trait:'');
   const traitDesc=subData?subData.traitDesc:(this.sp==='human'?sp.traitDesc:'');
   let h=[['Name',nm],['Species',sp.name+(subData?' — '+subData.name:'')],['Class',cl.name],['Max HP',mHP],['Max MP',mMP]];
-  if(cl.ability)h.push(['Ability',cl.ability.name+' ('+cl.ability.cost+' MP)']);
+  const sumAb=cl.abilities?cl.abilities[0]:cl.ability;if(sumAb)h.push(['Ability',sumAb.name+' ('+sumAb.cost+' MP)']);
   if(traitName)h.push(['Trait',traitName]);
   let html=h.map(([l,v])=>'<div class="csr"><span class="csl">'+l+'</span><span class="csv">'+v+'</span></div>').join('');
   html+='<div class="ist" style="margin-top:10px">Stats</div>';
@@ -1676,29 +1794,66 @@ async _startCombat(id,scene){
   UI.addN(scene.description);
   UI.addN('Something stirs in the shadows ahead\u2026','f');
   await UI._wait(500);
-  const eKey=scene.events.combat,eName=ENEMIES[eKey]?ENEMIES[eKey].name:'a creature';
+  const combat=scene.events.combat;
+  const waves=Array.isArray(combat)?combat:[combat];
+  r._combatWaves=waves;r._combatWaveIdx=0;
+  const eKey=waves[0],eName=ENEMIES[eKey]?ENEMIES[eKey].name:'a creature';
   UI.addN('A '+eName+' lurches from the undergrowth, blocking your path!','d');
+  if(waves.length>1)UI.addN('You sense more foes waiting behind it\u2026','y');
   await UI._wait(300);
   const cs=CMB.start(eKey);
   if(!cs){UI.addN('The shadows disperse. Nothing attacks.','f');UI.updateHUD();return}
   UI.setCombatMode(true);
   UI.addN('Combat begins! You are at '+cs.playerZone.toUpperCase()+' range.','y');
+  if(waves.length>1)UI.addN('Wave 1 of '+waves.length,'y');
+  const eTier=ENEMIES[eKey]?ENEMIES[eKey].tier||1:1;
+  if(r.level>=(eTier*3+2)&&waves.length===1){
+    const qr=document.createElement('div');qr.style.cssText='margin-top:8px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
+    qr.innerHTML='<div style="font-size:.85rem;color:var(--text2);margin-bottom:6px">This foe poses little threat.</div>';
+    const qb=document.createElement('button');qb.className='nav-btn';qb.textContent='Quick Resolve';
+    qb.onclick=async()=>{qr.remove();UI.setCombatBusy(true);
+      const enemy=cs.enemy;const dmgTaken=CALC.rollDice(enemy.dD);r.hp=Math.max(1,r.hp-dmgTaken);
+      enemy.hp=0;cs.over=true;cs.won=true;GS.recDef(enemy.id);GS.saveA();
+      UI.addN('You dispatch the '+enemy.name+' with ease. Took '+dmgTaken+' damage.','s');
+      UI.setCombatMode(false);await UI._wait(300);this.onWin()};
+    qr.appendChild(qb);UI.addEl(qr);
+  }
   UI.updateHUD();
 },
 
 async doCombatAction(cmd){
   if(UI._busy)return;
   UI.setCombatBusy(true);
+  const cs0=CMB.gs();
+  const eHPBefore=cs0?cs0.enemy.hp:0;
+  const pHPBefore=GS.run?GS.run.hp:0;
   const allMs=CMB.pAct(cmd);
+  const cs1=CMB.gs();
+  const eHPAfter=cs1?cs1.enemy.hp:0;
+  const pHPAfter=GS.run?GS.run.hp:0;
+  const eDmgDealt=eHPBefore-eHPAfter;
+  const pDmgTaken=pHPBefore-pHPAfter;
   const playerMs=[],enemyMs=[];let sep=false;
   allMs.forEach(m=>{
     if(!sep&&!m.t.startsWith('The '))playerMs.push(m);
     else{sep=true;enemyMs.push(m)}});
   if(!enemyMs.length){playerMs.length=0;playerMs.push(...allMs)}
   for(const m of playerMs){UI.addN(m.t,m.c)}
-  if(enemyMs.length)await UI._wait(REDUCED_MOTION?0:400);
+  UI.updateZoneDisplay(true);
+  if(eDmgDealt>0)UI.combatFX('enemy_hit');
+  if(eDmgDealt>0)UI.combatFX('dmg',-eDmgDealt);
+  const hasPlayerMiss=playerMs.some(m=>m.t.includes('MISS'));
+  if(hasPlayerMiss)UI.combatFX('miss');
+  if(enemyMs.length){
+    const tier=cs1&&cs1.enemy?cs1.enemy.tier||1:1;
+    const suspenseDelay=Math.min(800,300+tier*80);
+    await UI._wait(REDUCED_MOTION?0:suspenseDelay);
+  }
   for(const m of enemyMs){UI.addN(m.t,m.c)}
-  if(enemyMs.length)await UI._wait(REDUCED_MOTION?0:300);
+  if(pDmgTaken>0){UI.combatFX('player_hit');UI.combatFX('dmg',pDmgTaken)}
+  const hasEnemyMiss=enemyMs.some(m=>m.t.includes('misses'));
+  if(hasEnemyMiss)UI.combatFX('miss');
+  if(enemyMs.length)await UI._wait(REDUCED_MOTION?0:250);
   UI.updateHUD();
   const ca=CMB.gs();
   if(ca){
@@ -1747,6 +1902,9 @@ handleAction(cmd){
     else if(nid==='mira')this.mira();
     else if(nid==='garrett')this.garrett();
     else if(nid==='torgun')this.torgun();
+    else if(nid==='brynn')this.brynn();
+    else if(NPCS[nid]&&NPCS[nid].dialogue)this.talkNPC(nid);
+    else if(NPCS[nid])UI.addN(NPCS[nid].desc,'f');
     return;
   }
   if(cmd==='talk'){
@@ -1804,13 +1962,41 @@ handleAction(cmd){
       else{UI.addN('A flask among the rubble, but your backpack is full!','d');r.ss.ihGolemSearch=false}GS.saveA()}
     else UI.addN('Nothing more among the iron.','f');return}
   if(cmd==='leave_hollows'){this.runComplete();return}
+  if(cmd==='leave_waste'){this.runComplete();return}
   if(cmd==='rest'){this.runComplete();return}
+  if(cmd==='search_ash_ruins'){
+    if(!r.ss.ashRuinsSearch){r.ss.ashRuinsSearch=true;
+      if(r.bp.length<6){r.bp.push({...ITEMS.ghpot});UI.addN('You pry open the visor. Inside: a Greater Health Potion, miraculously intact.','s')}
+      else{UI.addN('Something useful in the armor, but your backpack is full!','d');r.ss.ashRuinsSearch=false}GS.saveA()}
+    else UI.addN('Nothing more in the ruins.','f');return}
+  if(cmd==='bounty_board'){this.openBountyBoard();return}
 },
 
 async onWin(){
-  UI.setCombatMode(false);UI.updateDist(0,false);
+  UI.setCombatMode(false);
   const cs=GS.run.cs,r=GS.run;if(!cs||!cs.enemy)return;
   const enemy=cs.enemy,xp=enemy.xp||0;
+  const waves=r._combatWaves||[];
+  const waveIdx=(r._combatWaveIdx||0)+1;
+  if(waveIdx<waves.length){
+    r._combatWaveIdx=waveIdx;
+    const goldDrop=enemy.gold||0;if(goldDrop){if(!r.gold)r.gold=0;r.gold+=goldDrop}
+    if(xp)GS.addXP(xp);
+    const loot=rollLoot(enemy);if(loot&&r.bp.length<6)r.bp.push(loot);
+    GS.saveA();UI.updateHUD();
+    UI.addN('The '+enemy.name+' falls!','s');
+    if(loot&&r.bp.length<=6)UI.addN('Looted: '+loot.name,'y');
+    await UI._wait(600);
+    const nextKey=waves[waveIdx],nextName=ENEMIES[nextKey]?ENEMIES[nextKey].name:'another foe';
+    UI.addN('Another foe emerges \u2014 a '+nextName+'!','d');
+    await UI._wait(400);
+    const cs2=CMB.start(nextKey);
+    if(!cs2){UI.addN('The shadows disperse.','f');UI.updateHUD();return}
+    UI.setCombatMode(true);
+    UI.addN('Wave '+(waveIdx+1)+' of '+waves.length+' \u2014 '+cs2.playerZone.toUpperCase()+' range.','y');
+    UI.updateHUD();UI.setCombatBusy(false);return;
+  }
+  r._combatWaves=null;r._combatWaveIdx=0;
   await UI._wait(500);
 
   const card=document.createElement('div');card.className='vic-card';
@@ -1854,7 +2040,10 @@ async onWin(){
 
   UI.addEl(card);UI.updateHUD();
   await UI._wait(500);
-  const nextMap={gray_ooze:'post_ooze',giant_spider:'post_spider',dire_wolf:'post_wolf',bog_wraith:'post_bog',cave_crawler:'ih_post_crawler',mine_shade:'ih_post_shade',iron_golem:'ih_post_golem'};
+  if(r.activeBounty&&r.scene==='bounty_arena'){
+    this.completeBounty();return}
+  const nextMap={gray_ooze:'post_ooze',giant_spider:'post_spider',dire_wolf:'post_wolf',bog_wraith:'post_bog',cave_crawler:'ih_post_crawler',mine_shade:'ih_post_shade',iron_golem:'ih_post_golem',
+    ember_beetle:'ash_post_road',fungal_horror:'ash_post_swamp',corrupted_knight:'ash_post_ruins',ash_wyrm:'ash_post_tower',elder_dragon:'ash_exit'};
   const nextScene=nextMap[enemy.id]||null;
   if(nextScene){
     const goBtn=document.createElement('button');goBtn.className='nav-btn';goBtn.style.marginTop='12px';
@@ -1864,7 +2053,13 @@ async onWin(){
 },
 
 async onDeath(){
-  UI.setCombatMode(false);UI.updateDist(0,false);
+  UI.setCombatMode(false);
+  const r=GS.run;
+  if(r.activeBounty&&r.scene==='bounty_arena'){
+    r.hp=1;GS.saveA();UI.updateHUD();
+    UI.addN('You fall, but drag yourself to safety\u2026','d');
+    await UI._wait(800);
+    this.failBounty();return}
   UI.addN('Everything fades to black\u2026','d');
   await UI._wait(1000);
   UI.showDeathScreen();
@@ -1981,9 +2176,206 @@ torgun(){
       else ML.openDlg('TORGUN','The Lost Miner','"An Iron Golem. The old forge-masters built it to guard the deep forge. It\u2019s been down here for centuries, still patrolling. Nothing we had could scratch it. But you look tougher than my lot."',
         [{text:'"I\u2019ll find a way."'}],()=>{UI.addN('Torgun offers a weary smile. You feel restored.','s');UI.addN('HP and MP fully restored. Status effects cleared.','y')})})},
 
+brynn(){
+  const r=GS.run;
+  if(r.ss.brynn){
+    ML.openDlg('BRYNN','The Innkeeper','"Welcome back. The board\u2019s been updated if you\u2019re looking for work. Or just sit by the fire \u2014 no charge for that."',
+      [{text:'"I\u2019ll check the board."'},{text:'"Heal me up."'},{text:'"Just resting."'}],
+      (i)=>{if(i===0){ML.closeAll();this.openBountyBoard()}
+        else if(i===1){r.hp=r.mHP;r.mp=r.mMP;if(r.debuffs)r.debuffs=[];GS.saveA();UI.updateHUD();
+          ML.openDlg('BRYNN','The Innkeeper','"There. Warm food and a clean bandage do wonders."',[{text:'"Thanks, Brynn."'}],()=>{UI.addN('HP and MP fully restored. Status effects cleared.','s')})}
+        else{}});return}
+  ML.openDlg('BRYNN','The Innkeeper',
+    '"Well met, traveler. I\u2019m Brynn. This place has stood since before the hollows were sealed. I keep the fire lit and the bounty board updated. If you\u2019re looking for coin or glory, you\u2019ve come to the right crossroads."',
+    [{text:'"Tell me about the bounties."'},{text:'"Heal me up, if you would."'},{text:'"I\u2019ll be on my way."'}],
+    (i)=>{r.ss.brynn=true;GS.saveA();
+      if(i===0){ML.closeAll();this.openBountyBoard()}
+      else if(i===1){r.hp=r.mHP;r.mp=r.mMP;if(r.debuffs)r.debuffs=[];GS.saveA();UI.updateHUD();
+        ML.openDlg('BRYNN','The Innkeeper','"Rest easy. The hearth heals all."',[{text:'"Thank you."'}],()=>{UI.addN('HP and MP fully restored. Status effects cleared.','s')})}
+      else{}})},
+
+talkNPC(nid){
+  const r=GS.run,npc=NPCS[nid];if(!npc||!npc.dialogue)return;
+  const dlg=npc.dialogue;
+  const key=r.ss[nid]?'returning':'initial';
+  const node=dlg[key]||dlg.initial;
+  if(!node)return;
+  r.ss[nid]=true;GS.saveA();
+  this._showDlgNode(nid,npc,node);
+},
+_showDlgNode(nid,npc,node){
+  if(!node)return;
+  if(node.effect)this._dlgEffect(node.effect,nid);
+  if(!node.options||!node.options.length){
+    ML.openDlg(npc.name.toUpperCase(),npc.title,node.text,[{text:'Continue'}],()=>{});return}
+  ML.openDlg(npc.name.toUpperCase(),npc.title,node.text,
+    node.options.map(o=>({text:o.text})),
+    (i)=>{const opt=node.options[i];
+      if(opt.next){const nextNode=NPCS[nid].dialogue[opt.next];
+        if(nextNode)this._showDlgNode(nid,npc,nextNode)}});
+},
+_dlgEffect(eff,nid){
+  const r=GS.run;
+  if(eff==='heal'){r.hp=r.mHP;r.mp=r.mMP;if(r.debuffs)r.debuffs=[];GS.saveA();UI.updateHUD();UI.addN('HP and MP fully restored. Status effects cleared.','s')}
+  else if(eff==='bounty_board'){ML.closeAll();this.openBountyBoard()}
+  else if(eff==='shop'){ML.closeAll();this.openShop(nid)}
+  else if(eff.startsWith('give_item:')){const itemKey=eff.split(':')[1];
+    if(itemKey&&ITEMS[itemKey]&&r.bp.length<6){r.bp.push({...ITEMS[itemKey]});GS.saveA();UI.updateHUD();UI.addN('Received '+ITEMS[itemKey].name+'!','s')}
+    else if(r.bp.length>=6)UI.addN('Your backpack is full!','d')}
+},
+openShop(nid){
+  const r=GS.run,npc=NPCS[nid];if(!npc||!npc.shop)return;
+  const b=$('m-dlg-b');b.innerHTML='';
+  $('dlg-t').textContent=npc.name.toUpperCase();
+  b.innerHTML+='<div class="dlg-name">'+npc.name.toUpperCase()+'</div><div class="dlg-title">'+npc.title+'</div>';
+  b.innerHTML+='<div class="dtx" style="margin-bottom:12px">Gold: <span style="color:var(--gold)">'+(r.gold||0)+'g</span> \u00b7 Backpack: '+r.bp.length+'/6</div>';
+  b.innerHTML+='<div class="ist">Wares</div>';
+  npc.shop.stock.forEach(s=>{
+    const it=ITEMS[s.key];if(!it)return;
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
+    row.innerHTML='<div><strong style="color:var(--text)">'+it.name+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
+    const btn=document.createElement('button');btn.className='iab';btn.textContent='Buy ('+s.price+'g)';
+    btn.disabled=(r.gold||0)<s.price||r.bp.length>=6;
+    btn.onclick=()=>{if((r.gold||0)<s.price||r.bp.length>=6)return;
+      r.gold-=s.price;r.bp.push({...ITEMS[s.key]});GS.saveA();UI.updateHUD();
+      UI.addN('Bought '+it.name+' for '+s.price+'g.','s');this.openShop(nid)};
+    row.appendChild(btn);b.appendChild(row)});
+  b.innerHTML+='<div class="ist" style="margin-top:12px">Sell</div>';
+  const sellable=r.bp.map((it,i)=>({it,i})).filter(x=>x.it.value&&!x.it.undrop);
+  if(!sellable.length)b.innerHTML+='<div style="font-size:.85rem;color:var(--text3);font-style:italic">Nothing to sell.</div>';
+  sellable.forEach(({it})=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
+    row.innerHTML='<div><strong style="color:var(--text)">'+it.name+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
+    const btn=document.createElement('button');btn.className='iab';btn.textContent='Sell ('+it.value+'g)';
+    btn.onclick=()=>{r.bp.splice(r.bp.indexOf(it),1);if(!r.gold)r.gold=0;r.gold+=it.value;GS.saveA();UI.updateHUD();
+      UI.addN('Sold '+it.name+' for '+it.value+'g.','s');this.openShop(nid)};
+    row.appendChild(btn);b.appendChild(row)});
+  const doneBtn=document.createElement('button');doneBtn.className='mbtn';doneBtn.textContent='Done';doneBtn.style.marginTop='12px';
+  doneBtn.onclick=()=>ML.closeAll();b.appendChild(doneBtn);
+  ML.open('m-dlg');
+  const modal=$('m-dlg');const mx=modal.querySelector('.mx');if(mx)mx.style.display='';
+},
+_generateBountyBoard(){
+  const r=GS.run,lvl=r.level;
+  const pool=Object.entries(BOUNTIES).filter(([,b])=>{
+    if(lvl<=3)return b.tier<=2;if(lvl<=6)return b.tier<=3;return true});
+  const shuffled=pool.sort(()=>Math.random()-0.5);
+  return shuffled.slice(0,Math.min(5,shuffled.length)).map(([id,b])=>({id,...b}));
+},
+
+openBountyBoard(){
+  const r=GS.run;
+  if(!r.bountyBoard||!r.bountyBoard.length)r.bountyBoard=this._generateBountyBoard();
+  if(!r.activeQuests)r.activeQuests=[];
+  if(!r.completedQuests)r.completedQuests={};
+  if(!r.questProgress)r.questProgress={};
+  GS.saveA();
+  const b=$('m-dlg-b');b.innerHTML='';
+  $('dlg-t').textContent='BOUNTY BOARD';
+  b.innerHTML+='<div class="dlg-name">BOUNTY BOARD</div><div class="dlg-title">The Hearthstone Tavern</div>';
+  b.innerHTML+='<div class="dtx" style="margin-bottom:8px">Gold: <span style="color:var(--gold)">'+(r.gold||0)+'g</span> \u00b7 Level '+r.level+'</div>';
+  b.innerHTML+='<div class="ist">Bounties</div>';
+  r.bountyBoard.forEach(bn=>{
+    const enemy=ENEMIES[bn.enemy];if(!enemy)return;
+    const row=document.createElement('div');
+    row.style.cssText='padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
+    row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="color:var(--text)">'+bn.name+'</strong><span class="tier-badge tier-'+bn.tier+'">'+TIER_LABELS[bn.tier]+'</span></div><div style="font-size:.85rem;color:var(--text2)">'+bn.desc+'</div><div style="font-size:.8rem;color:var(--text3);margin-top:4px">Target: '+enemy.name+' \u00b7 Reward: <span style="color:var(--gold)">'+bn.goldReward+'g</span> + '+bn.xpReward+' XP</div>';
+    const btn=document.createElement('button');btn.className='iab';btn.style.cssText='margin-top:6px';btn.textContent='Accept Bounty';
+    btn.onclick=()=>{r.activeBounty={id:bn.id,enemy:bn.enemy,goldReward:bn.goldReward,xpReward:bn.xpReward,name:bn.name};
+      r.bountyBoard=null;GS.saveA();ML.closeAll();this.startBounty()};
+    row.appendChild(btn);b.appendChild(row)});
+  const refreshBtn=document.createElement('button');refreshBtn.className='iab';refreshBtn.style.cssText='margin-top:8px;width:100%';refreshBtn.textContent='Refresh Board';
+  refreshBtn.onclick=()=>{r.bountyBoard=this._generateBountyBoard();GS.saveA();this.openBountyBoard()};
+  b.appendChild(refreshBtn);
+  b.innerHTML+='<div class="ist" style="margin-top:16px">Quests</div>';
+  const available=Object.entries(QUESTS).filter(([id,q])=>!r.completedQuests[id]);
+  if(!available.length)b.innerHTML+='<div style="font-size:.85rem;color:var(--text3);font-style:italic">All quests completed!</div>';
+  available.forEach(([id,q])=>{
+    const accepted=r.activeQuests.includes(id);
+    const prog=r.questProgress[id]||0;
+    const qd=document.createElement('div');
+    qd.style.cssText='padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
+    let rewardStr='<span style="color:var(--gold)">'+q.reward.gold+'g</span> + '+q.reward.xp+' XP';
+    if(q.reward.item)rewardStr+=' + '+ITEMS[q.reward.item].name;
+    qd.innerHTML='<strong style="color:var(--text)">'+q.name+'</strong><div style="font-size:.85rem;color:var(--text2)">'+q.desc+'</div><div style="font-size:.8rem;color:var(--text3);margin-top:4px">Reward: '+rewardStr+(accepted?' \u00b7 Progress: '+prog+'/'+q.count:'')+'</div>';
+    if(!accepted){const ab=document.createElement('button');ab.className='iab';ab.style.cssText='margin-top:6px';ab.textContent='Accept';
+      ab.onclick=()=>{r.activeQuests.push(id);GS.saveA();this.openBountyBoard()};qd.appendChild(ab)}
+    else{const tag=document.createElement('span');tag.style.cssText='display:inline-block;margin-top:6px;font-size:.8rem;color:var(--green)';tag.textContent='Accepted ('+prog+'/'+q.count+')';qd.appendChild(tag)}
+    b.appendChild(qd)});
+  const doneBtn=document.createElement('button');doneBtn.className='mbtn';doneBtn.textContent='Done';doneBtn.style.marginTop='12px';
+  doneBtn.onclick=()=>ML.closeAll();b.appendChild(doneBtn);
+  ML.open('m-dlg');
+  const modal=$('m-dlg');const mx=modal.querySelector('.mx');if(mx)mx.style.display='';
+},
+
+startBounty(){
+  const r=GS.run,bn=r.activeBounty;if(!bn)return;
+  const enemy=ENEMIES[bn.enemy];if(!enemy){UI.addN('Bounty target unknown.','d');return}
+  const arenaScene=SCENE_DATA.bounty_arena;
+  arenaScene.description='You track your quarry to a clearing. A '+enemy.name+' awaits.';
+  arenaScene.events.combat=bn.enemy;
+  this.enter('bounty_arena');
+},
+
+async completeBounty(){
+  const r=GS.run,bn=r.activeBounty;if(!bn)return;
+  if(!r.gold)r.gold=0;r.gold+=bn.goldReward;
+  const xpRes=GS.addXP(bn.xpReward);
+  UI.addN('Bounty Complete: '+bn.name+'!','h');
+  UI.addN('Bonus reward: +'+bn.goldReward+'g, +'+xpRes.gained+' XP','s');
+  this._trackQuestProgress('bounty_complete');
+  this._trackQuestProgress('defeat_'+bn.enemy);
+  r.activeBounty=null;GS.saveA();UI.updateHUD();
+  if(xpRes.leveled){
+    const showLvl=(idx)=>{if(idx>=xpRes.lvls.length){this._bountyReturn();return}
+      ML.openLvl(xpRes.lvls[idx],()=>showLvl(idx+1))};showLvl(0)}
+  else this._bountyReturn();
+},
+
+failBounty(){
+  const r=GS.run;
+  UI.addN('Bounty failed. Return to the tavern to try again.','d');
+  r.activeBounty=null;GS.saveA();
+  this._bountyReturn();
+},
+
+async _bountyReturn(){
+  await UI._wait(500);
+  const btn=document.createElement('button');btn.className='nav-btn';btn.style.marginTop='12px';
+  btn.textContent='Return to Tavern \u2192';
+  btn.onclick=()=>this.enter('tavern_hub');
+  UI.addEl(btn);
+},
+
+_trackQuestProgress(trigger){
+  const r=GS.run;
+  if(!r.activeQuests||!r.activeQuests.length)return;
+  if(!r.questProgress)r.questProgress={};
+  if(!r.completedQuests)r.completedQuests={};
+  r.activeQuests.forEach(qid=>{
+    const q=QUESTS[qid];if(!q||r.completedQuests[qid])return;
+    if(q.trigger===trigger){
+      r.questProgress[qid]=(r.questProgress[qid]||0)+1;
+      if(r.questProgress[qid]>=q.count){
+        r.completedQuests[qid]=true;
+        r.activeQuests=r.activeQuests.filter(x=>x!==qid);
+        if(!r.gold)r.gold=0;r.gold+=q.reward.gold;
+        GS.addXP(q.reward.xp);
+        if(q.reward.item&&r.bp.length<6)r.bp.push({...ITEMS[q.reward.item]});
+        UI.addN('Quest Complete: '+q.name+'!','h');
+        UI.addN('Reward: +'+q.reward.gold+'g, +'+q.reward.xp+' XP'+(q.reward.item?' + '+ITEMS[q.reward.item].name:''),'s');
+        showToast('Quest Complete: '+q.name,'success');
+      }
+    }
+  });
+  GS.saveA();UI.updateHUD();
+},
+
 runComplete(){
   const r=GS.run,adv=r.adventure||'muddy_trail',xpRes=GS.addXP(25);
-  const advNames={muddy_trail:'The Muddy Trail',iron_hollows:'The Iron Hollows'};
+  const advNames={muddy_trail:'The Muddy Trail',iron_hollows:'The Iron Hollows',ashen_waste:'The Ashen Waste'};
   UI.addN((advNames[adv]||'Adventure')+' Complete!','h');
   UI.addN('XP earned: '+xpRes.gained+' (exploration bonus)','s');
   const afterLvl=()=>{
@@ -1993,7 +2385,12 @@ runComplete(){
       const btn=document.createElement('button');btn.className='nav-btn';btn.style.marginTop='12px';
       btn.textContent='Continue to the Iron Hollows \u2192';btn.onclick=()=>this.startAdventure('iron_hollows');
       UI.addEl(btn)}
-    else{UI.addN('You emerge into daylight. Both adventures are complete. Save your progress from the menu, or begin anew.','f')}
+    else if(adv==='iron_hollows'){
+      UI.addN('The Iron Hollows are behind you. But beyond the mountains, a scorched wasteland awaits \u2014 the Ashen Waste, where fire and ruin reign.','f');
+      const btn2=document.createElement('button');btn2.className='nav-btn';btn2.style.marginTop='12px';
+      btn2.textContent='Continue to the Ashen Waste \u2192';btn2.onclick=()=>this.startAdventure('ashen_waste');
+      UI.addEl(btn2)}
+    else{UI.addN('You emerge into daylight. All adventures are complete. Save your progress from the menu, or begin anew.','f')}
     UI.updateHUD()};
   if(xpRes.leveled){
     const showLvl=(idx)=>{if(idx>=xpRes.lvls.length){afterLvl();return}
@@ -2007,7 +2404,7 @@ runComplete(){
 startAdventure(advId){
   const r=GS.run;r.adventure=advId;r.cs=null;
   if(r.debuffs)r.debuffs=[];
-  const starts={iron_hollows:'ih_entrance'};
+  const starts={iron_hollows:'ih_entrance',ashen_waste:'ash_gate'};
   const startScene=starts[advId]||'trailhead';
   r.scene=startScene;GS.saveA();
   UI.clearN();this.enter(startScene);
