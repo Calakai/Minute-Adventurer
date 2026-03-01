@@ -81,17 +81,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .ne-d{color:var(--red)}
 .ne-y{font-size:.85rem;color:var(--text3)}
 .ne-g{color:var(--gold)}
-/* Zone Display */
-#zone-display{display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 16px}
-#zone-display.vis{display:block}
-.zone-labels{display:flex;gap:0;justify-content:center;margin-bottom:4px}
-.zone-lbl{flex:1;min-height:32px;background:transparent;border:1px solid var(--border);color:var(--text3);font-family:var(--fn);font-size:.8rem;cursor:default;text-align:center;padding:4px 8px;letter-spacing:.08em;transition:color .15s,border-color .15s}
-.zone-lbl:first-child{border-radius:4px 0 0 4px}.zone-lbl:last-child{border-radius:0 4px 4px 0}
-.zone-lbl.active{color:var(--gold);border-color:var(--gold);background:rgba(201,168,76,.08);font-weight:600}
-#zone-enemy-info{display:none}
-/* Enemy HP Bar */
-#enemy-hp-wrap{margin-top:6px;text-align:center}
-#enemy-hp-name{font-size:.95rem;font-weight:600;margin-bottom:4px}
+/* Battle Canvas */
+#battle-canvas{width:100%;height:auto;max-height:220px;image-rendering:pixelated;image-rendering:crisp-edges;background:#0d0d1a;border-bottom:1px solid var(--border)}
 .tier-badge{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;padding:1px 5px;border-radius:3px;margin-right:6px;vertical-align:1px}
 .tier-1{color:var(--text3);border:1px solid var(--text3)}.tier-2{color:var(--text);border:1px solid var(--text)}.tier-3{color:var(--gold);border:1px solid var(--gold)}.tier-4{color:var(--red);border:1px solid var(--red)}.tier-5{color:#b060d0;border:1px solid #b060d0}
 .enemy-hp-bar{width:100%;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin:4px 0}
@@ -122,15 +113,26 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #bbar{display:none;flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);padding:8px 10px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
 #bbar.vis{display:block}
 #explore-bar{display:flex;gap:8px;align-items:center}
-#combat-bar{display:none;gap:6px}
+#combat-bar{display:none}
 #bbar.combat-mode #explore-bar{display:none}
-#bbar.combat-mode #combat-bar{display:flex}
+#bbar.combat-mode #combat-bar{display:block}
 .acts-btn{min-height:48px;padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:var(--fn);font-size:.9rem;cursor:pointer;white-space:nowrap;transition:border-color .15s}
 .acts-btn:active{border-color:var(--gold)}
-.cbtn{flex:1;min-height:48px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--fn);font-size:.9rem;cursor:pointer;padding:6px 4px;transition:background .15s,border-color .15s}
-.cbtn:active,.cbtn:hover{background:var(--bg2);border-color:var(--gold)}
-.cbtn[disabled]{opacity:.35;cursor:default;pointer-events:none}
-.cbtn .pct{display:block;font-size:.75rem;color:var(--text2)}
+.cmd-menu{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.cmd-btn{display:flex;align-items:center;gap:6px;min-height:40px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--fn);font-size:.85rem;cursor:pointer;padding:6px 10px;transition:background .15s,border-color .15s}
+.cmd-btn:active,.cmd-btn:hover{background:var(--bg2);border-color:var(--gold)}
+.cmd-btn[disabled]{opacity:.35;cursor:default;pointer-events:none}
+.cmd-icon{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.cmd-pct{margin-left:auto;font-size:.75rem;color:var(--text2);white-space:nowrap}
+.cmd-sub{display:grid;grid-template-columns:1fr;gap:3px;margin-top:4px;padding:6px;background:var(--bg2);border:1px solid var(--gold);border-radius:6px}
+.cmd-sub.hidden{display:none}
+.cmd-sub-btn{display:flex;align-items:center;justify-content:space-between;min-height:34px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--fn);font-size:.82rem;cursor:pointer;padding:4px 10px;transition:background .15s}
+.cmd-sub-btn:hover{background:var(--bg2);border-color:var(--gold)}
+.cmd-sub-btn[disabled]{opacity:.35;cursor:default;pointer-events:none}
+.cmd-sub-btn .sub-cost{color:var(--text2);font-size:.75rem}
+.cmd-sub-btn .sub-desc{color:var(--text3);font-size:.7rem;margin-left:8px}
+.cmd-back{color:var(--text2);font-size:.8rem;border:none;background:transparent;cursor:pointer;padding:4px 8px;font-family:var(--fn)}
+.cmd-back:hover{color:var(--gold)}
 /* Modals */
 .mo{display:none;position:fixed;inset:0;background:var(--bgO);z-index:500;justify-content:center;align-items:center;padding:0}
 .mo.open{display:flex}
@@ -369,19 +371,7 @@ html.settings-large-text{font-size:1.1rem}
 <div class="ccnv" id="cc-nav"><button class="ccnb" id="cc-bk" aria-label="Go back" style="display:none">Back</button><button class="ccnb pri" id="cc-nx" aria-label="Continue">Continue</button></div>
 </main>
 <div id="game" style="display:none;flex:1;flex-direction:column;overflow:hidden">
-<div id="zone-display" aria-label="Combat zone">
-<div class="zone-labels">
-<button class="zone-lbl" data-zone="close">CLOSE</button>
-<button class="zone-lbl" data-zone="mid">MID</button>
-<button class="zone-lbl" data-zone="far">FAR</button>
-</div>
-<span id="zone-enemy-info"></span>
-<div id="enemy-hp-wrap">
-<div id="enemy-hp-name"></div>
-<div class="enemy-hp-bar"><div class="enemy-hp-fill ehp-high" id="enemy-hp-fill"></div></div>
-<div id="enemy-hp-text"></div>
-</div>
-</div>
+<canvas id="battle-canvas" width="360" height="200" style="display:none"></canvas>
 <div id="hit-flash"></div>
 <div id="narr-w" role="log" aria-label="Story narrative" aria-live="polite" tabindex="-1"><div id="narr-log"></div></div>
 </div>
@@ -390,12 +380,15 @@ html.settings-large-text{font-size:1.1rem}
 <button class="acts-btn" id="b-acts" aria-label="Choose an action">Actions</button>
 </div>
 <div id="combat-bar">
-    <button class="cbtn" id="cb-atk">Attack<span class="pct" id="cb-atk-pct"></span></button>
-    <button class="cbtn" id="cb-ability" style="display:none"><span id="cb-ability-name">Ability</span><span class="pct" id="cb-ability-cost"></span></button>
-    <button class="cbtn" id="cb-move">Move</button>
-    <button class="cbtn" id="cb-block">Block</button>
-    <button class="cbtn" id="cb-flee">Flee<span class="pct" id="cb-flee-pct"></span></button>
-    <button class="cbtn" id="cb-item">Item</button>
+  <div class="cmd-menu" id="cmd-menu-main">
+    <button class="cmd-btn" id="cb-atk"><span class="cmd-icon">⚔</span>Attack<span class="cmd-pct" id="cb-atk-pct"></span></button>
+    <button class="cmd-btn" id="cb-ability" style="display:none"><span class="cmd-icon">✦</span><span id="cb-ability-name">Ability</span><span class="cmd-pct" id="cb-ability-cost"></span></button>
+    <button class="cmd-btn" id="cb-block"><span class="cmd-icon">🛡</span>Defend</button>
+    <button class="cmd-btn" id="cb-item"><span class="cmd-icon">⚗</span>Item</button>
+    <button class="cmd-btn" id="cb-flee"><span class="cmd-icon">↩</span>Flee<span class="cmd-pct" id="cb-flee-pct"></span></button>
+  </div>
+  <div class="cmd-sub hidden" id="cmd-sub-ability"></div>
+  <div class="cmd-sub hidden" id="cmd-sub-item"></div>
 </div>
 </div></div>
 <div class="mo" id="m-act" role="dialog" aria-label="Actions" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Actions</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-act-b"></div></div></div>
@@ -418,11 +411,19 @@ html.settings-large-text{font-size:1.1rem}
 // === PIXEL ART SYSTEM ===
 const PA={
 draw(ctx,d,sz){const p=sz/d.length;for(let y=0;y<d.length;y++)for(let x=0;x<d[y].length;x++)if(d[y][x]){ctx.fillStyle=d[y][x];ctx.fillRect(Math.floor(x*p),Math.floor(y*p),Math.ceil(p),Math.ceil(p))}},
+drawAt(ctx,d,sz,ox,oy){const p=sz/d.length;for(let y=0;y<d.length;y++)for(let x=0;x<d[y].length;x++)if(d[y][x]){ctx.fillStyle=d[y][x];ctx.fillRect(Math.floor(ox+x*p),Math.floor(oy+y*p),Math.ceil(p),Math.ceil(p))}},
+drawAtFlip(ctx,d,sz,ox,oy){const p=sz/d.length;for(let y=0;y<d.length;y++){const row=d[y];const w=row.length;for(let x=0;x<w;x++)if(row[x]){ctx.fillStyle=row[x];ctx.fillRect(Math.floor(ox+(w-1-x)*p),Math.floor(oy+y*p),Math.ceil(p),Math.ceil(p))}}},
 C:{sk:'#e0b088',skD:'#c89868',skG:'#a0c890',skR:'#d4a574',hr:'#4a3520',hrL:'#c8a060',hrC:'#8b6840',
 ey:'#446688',eyD:'#223344',mt:'#a0a0b0',mtD:'#707080',mtL:'#c8c8d8',
 lt:'#8b6840',ltD:'#6b4820',cl:'#404060',clL:'#606080',
 gd:'#c9a84c',gn:'#4a7c59',gnD:'#385c44',rd:'#8b2635',
-wh:'#e8e8f0',bk:'#1a1a2e',gy:'#6b6b7b',tk:'#d8d0c0'},
+wh:'#e8e8f0',bk:'#1a1a2e',gy:'#6b6b7b',tk:'#d8d0c0',
+sl:'#6b8f3c',slD:'#4a6828',slL:'#90b050',sp:'#6088a8',spD:'#405868',spL:'#80b0d0',
+bn:'#d8d0c0',bnD:'#a89880',fl:'#e08030',flD:'#a05020',flB:'#f0c040',
+sh:'#604080',shD:'#402060',shL:'#8060a0',dr:'#a03030',drD:'#702020',drB:'#d04040',
+cr:'#60c0d0',crD:'#408090',crL:'#90e0f0',fg:'#c0a040',fgD:'#806820',fgL:'#e0c060',
+ir:'#808890',irD:'#606870',irL:'#a0a8b0',vd:'#8040c0',vdD:'#602090',vdL:'#a060e0',
+dm:'#302030',dmR:'#c02040',dmB:'#201020',psn:'#50a050',brn:'#d06020',ice:'#a0d0e0'},
 species:{
 human(){const o='#1a1a2e',s='#e0b088',h='#4a3520',e='#446688',r='#8b2635',c='#404060',_=null;return[
 [_,_,_,_,o,h,h,h,h,h,o,_,_,_,_,_],
@@ -674,7 +675,224 @@ berserker(){const t='#a0a0b4',r='#c44054',_=null;return[
 },
 renderIcon(cv,fn){const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);this.draw(x,fn(),cv.width)},
 renderClassIcon(cv,k){const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);const fn=this.classIcons[k];if(fn)this.draw(x,fn(),cv.width)},
-renderPortrait(cv,k){const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);const fn=this.species[k];if(fn)this.draw(x,fn(),cv.width)}
+renderPortrait(cv,k){const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);const fn=this.species[k];if(fn)this.draw(x,fn(),cv.width)},
+renderEnemy(cv,k){const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);const fn=this.enemies[k];if(fn)this.draw(x,fn(),cv.width)},
+enemies:{
+gray_ooze(){const o='#1a1a2e',g='#6b8f3c',l='#90b050',d='#4a6828',e='#223344',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,o,_,_,_,_,_,_,_],[_,_,_,_,o,g,l,g,l,o,_,_,_,_,_,_],[_,_,_,o,g,l,g,l,g,g,o,_,_,_,_,_],[_,_,o,g,e,g,g,e,g,l,g,o,_,_,_,_],[_,o,g,l,g,g,g,g,g,g,l,g,o,_,_,_],[o,g,g,g,l,g,g,g,g,l,g,g,g,o,_,_],[o,d,g,g,g,g,g,g,g,g,g,g,d,o,_,_],[o,d,d,g,g,g,g,g,g,g,g,d,d,o,_,_],[_,o,o,d,d,g,g,g,g,d,d,o,o,_,_,_],[_,_,_,o,o,o,o,o,o,o,o,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+bog_wraith(){const o='#1a1a2e',s='#6088a8',l='#80b0d0',d='#405868',w='#e8e8f0',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,_,_,_,_,_,_,_,_],[_,_,_,_,o,s,l,s,o,_,_,_,_,_,_,_],[_,_,_,o,s,l,s,l,s,o,_,_,_,_,_,_],[_,_,_,o,s,w,s,w,s,o,_,_,_,_,_,_],[_,_,_,o,s,s,s,s,s,o,_,_,_,_,_,_],[_,_,_,_,o,s,l,s,o,_,_,_,_,_,_,_],[_,_,_,o,s,l,s,l,s,o,_,_,_,_,_,_],[_,_,o,s,s,s,l,s,s,s,o,_,_,_,_,_],[_,_,o,s,l,s,s,s,l,s,o,_,_,_,_,_],[_,_,_,o,s,s,l,s,s,o,_,_,_,_,_,_],[_,_,_,o,d,s,s,s,d,o,_,_,_,_,_,_],[_,_,_,_,o,d,s,d,o,_,_,_,_,_,_,_],[_,_,_,o,_,o,d,o,_,o,_,_,_,_,_,_],[_,_,o,_,_,_,o,_,_,_,o,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+moss_rat(){const o='#1a1a2e',b='#8b6840',d='#6b4820',g='#4a7c59',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,o,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,b,b,o,o,o,o,_,_,_,_,_,_,_,_],[o,b,r,b,g,g,g,g,o,o,_,_,_,_,_,_],[o,b,b,b,b,g,g,b,b,b,o,_,_,_,_,_],[_,o,b,b,b,b,b,b,b,b,o,o,_,_,_,_],[_,_,o,b,d,b,d,b,d,o,_,o,o,_,_,_],[_,_,o,o,o,o,o,o,o,_,_,_,o,o,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,o,o,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+marsh_toad(){const o='#1a1a2e',g='#4a7c59',d='#385c44',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,o,o,_,_,_,_,o,o,_,_,_,_,_],[_,_,o,r,r,o,_,_,o,r,r,o,_,_,_,_],[_,_,_,o,o,g,o,o,g,o,o,_,_,_,_,_],[_,_,o,g,g,g,g,g,g,g,g,o,_,_,_,_],[_,o,g,g,g,g,g,g,g,g,g,g,o,_,_,_],[o,g,g,g,g,g,g,g,g,g,g,g,g,o,_,_],[o,g,d,d,d,d,d,d,d,d,d,d,g,o,_,_],[o,g,g,g,g,g,g,g,g,g,g,g,g,o,_,_],[_,o,g,d,g,d,g,g,d,g,d,g,o,_,_,_],[_,_,o,o,g,o,g,g,o,g,o,o,_,_,_,_],[_,_,_,_,o,_,o,o,_,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+spore_mite(){const o='#1a1a2e',f='#c0a040',d='#806820',l='#e0c060',e='#223344',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,l,_,_,l,_,_,_,_,_,_,_],[_,_,_,_,l,_,_,l,_,l,_,_,_,_,_,_],[_,_,_,_,_,l,_,_,l,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,f,f,o,_,_,_,_,_,_,_],[_,_,_,o,o,f,e,f,f,o,_,_,_,_,_,_],[_,_,o,d,f,f,f,f,f,f,o,_,_,_,_,_],[_,_,o,d,d,f,f,f,f,d,o,_,_,_,_,_],[_,_,_,o,o,d,d,d,o,o,_,_,_,_,_,_],[_,_,o,_,o,o,o,o,o,_,o,_,_,_,_,_],[_,o,_,_,_,_,_,_,_,_,_,o,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+ember_beetle(){const o='#1a1a2e',f='#e08030',d='#a05020',b='#f0c040',e='#223344',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,o,o,_,_,_,_,_,_],[_,_,o,o,o,f,b,f,b,f,o,_,_,_,_,_],[_,o,d,e,d,f,f,o,f,f,f,o,_,_,_,_],[_,o,d,d,f,f,f,o,f,f,f,o,_,_,_,_],[_,o,f,f,f,b,f,o,f,b,f,o,_,_,_,_],[_,_,o,f,d,f,d,o,d,f,d,o,_,_,_,_],[_,_,_,o,o,o,o,o,o,o,o,_,_,_,_,_],[_,_,o,_,o,_,o,_,o,_,o,_,_,_,_,_],[_,o,_,_,_,o,_,_,_,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+ash_worm(){const o='#1a1a2e',b='#d8d0c0',d='#a89880',e='#223344',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,o,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,b,b,o,_,_,_,_,_,_,_,_,_,_,_],[_,o,e,b,o,_,_,_,_,_,_,_,_,_,_,_],[_,o,b,b,d,o,_,_,_,_,_,_,_,_,_,_],[_,_,o,b,b,b,o,_,_,_,_,_,_,_,_,_],[_,_,_,o,d,b,b,o,_,_,_,_,_,_,_,_],[_,_,_,_,o,b,b,d,o,_,_,_,_,_,_,_],[_,_,_,_,o,d,b,b,o,_,_,_,_,_,_,_],[_,_,_,_,_,o,b,b,d,o,_,_,_,_,_,_],[_,_,_,_,_,_,o,d,b,b,o,_,_,_,_,_],[_,_,_,_,_,_,_,o,b,b,o,_,_,_,_,_],[_,_,_,_,_,_,_,_,o,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+tunnel_bat(){const o='#1a1a2e',s='#402060',l='#604080',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[o,o,_,_,_,_,_,_,_,_,_,_,_,o,o,_],[o,s,o,_,_,_,_,_,_,_,_,_,o,s,o,_],[_,o,s,o,_,_,o,o,o,_,_,o,s,o,_,_],[_,o,s,s,o,o,s,l,s,o,o,s,s,o,_,_],[_,_,o,s,s,s,r,s,r,s,s,s,o,_,_,_],[_,_,o,s,s,s,s,s,s,s,s,s,o,_,_,_],[_,_,_,o,s,s,s,l,s,s,s,o,_,_,_,_],[_,_,_,_,o,s,s,s,s,s,o,_,_,_,_,_],[_,_,_,_,_,o,o,s,o,o,_,_,_,_,_,_],[_,_,_,_,_,_,o,o,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+giant_spider(){const o='#1a1a2e',s='#402060',l='#604080',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,_,_,_,_,_,_,_,_,_,_,o,_,_,_],[_,_,o,_,_,o,o,o,o,_,_,o,_,_,_,_],[o,_,_,o,o,s,s,s,s,o,o,_,_,o,_,_],[_,o,_,o,s,r,s,s,r,s,o,_,o,_,_,_],[_,_,o,o,s,s,s,s,s,s,o,o,_,_,_,_],[_,o,_,o,s,s,l,l,s,s,o,_,o,_,_,_],[o,_,_,o,o,s,s,s,s,o,o,_,_,o,_,_],[_,o,_,_,o,o,s,s,o,o,_,_,o,_,_,_],[_,_,o,_,_,o,o,o,o,_,_,o,_,_,_,_],[_,_,_,o,_,_,_,_,_,_,o,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+dire_wolf(){const o='#1a1a2e',g='#808890',d='#606870',l='#a0a8b0',r='#8b2635',w='#e8e8f0',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_],[o,g,g,o,_,_,_,_,_,_,_,_,_,_,_,_],[o,g,l,g,o,o,o,o,o,_,_,_,_,_,_,_],[_,o,g,r,g,g,l,g,g,o,_,_,_,_,_,_],[_,o,g,g,g,g,g,g,g,g,o,o,_,_,_,_],[_,_,o,w,g,g,g,g,g,g,g,g,o,_,_,_],[_,_,_,o,g,g,d,g,d,g,d,g,o,_,_,_],[_,_,_,o,d,g,g,g,g,g,g,g,g,o,_,_],[_,_,_,_,o,g,g,g,g,g,g,g,d,o,_,_],[_,_,_,_,o,d,o,_,o,_,_,o,d,o,_,_],[_,_,_,_,o,o,_,_,_,_,_,_,o,o,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+venomfang_snake(){const o='#1a1a2e',s='#302030',g='#50a050',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_],[o,s,s,o,_,_,_,_,_,_,_,_,_,_,_,_],[o,r,s,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,s,s,o,_,_,_,_,_,_,_,_,_,_,_],[_,g,o,s,s,o,o,o,o,_,_,_,_,_,_,_],[_,_,_,o,s,s,s,s,s,o,_,_,_,_,_,_],[_,_,_,_,o,o,o,o,s,s,o,_,_,_,_,_],[_,_,_,_,_,_,_,o,s,s,o,_,_,_,_,_],[_,_,_,_,_,o,o,s,s,o,_,_,_,_,_,_],[_,_,_,_,o,s,s,s,o,_,_,_,_,_,_,_],[_,_,_,_,o,s,s,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+shadow_hound(){const o='#1a1a2e',s='#604080',d='#402060',l='#8060a0',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_],[o,s,l,o,o,o,o,_,_,_,_,_,_,_,_,_],[o,r,s,s,l,s,s,o,o,_,_,_,_,_,_,_],[_,o,s,s,s,s,s,s,s,o,o,_,_,_,_,_],[_,_,o,s,s,s,l,s,l,s,s,o,_,_,_,_],[_,_,o,d,s,s,s,s,s,s,s,o,_,_,_,_],[_,_,_,o,s,s,s,s,s,s,d,o,_,_,_,_],[_,_,_,o,d,s,s,s,s,d,o,l,_,_,_,_],[_,_,_,_,o,o,_,_,o,o,_,_,_,_,_,_],[_,_,_,_,o,o,_,_,o,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+fungal_horror(){const o='#1a1a2e',f='#c0a040',d='#806820',l='#e0c060',g='#50a050',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,o,l,l,o,_,o,o,_,_,_,_,_],[_,_,_,o,f,f,f,o,o,l,l,o,_,_,_,_],[_,_,_,o,o,f,o,f,f,f,f,o,_,_,_,_],[_,_,_,o,g,o,g,f,f,o,o,_,_,_,_,_],[_,_,o,g,g,g,g,g,g,g,o,_,_,_,_,_],[_,_,o,g,g,g,g,g,g,g,g,o,_,_,_,_],[_,o,g,d,g,g,g,g,g,d,g,o,_,_,_,_],[_,o,g,g,g,g,g,g,g,g,g,o,_,_,_,_],[_,_,o,g,d,g,g,g,d,g,o,_,_,_,_,_],[_,_,_,o,g,g,g,g,g,o,_,_,_,_,_,_],[_,_,o,_,o,o,o,o,o,_,o,_,_,_,_,_],[_,o,_,_,_,_,_,_,_,_,_,o,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+ironscale_lizard(){const o='#1a1a2e',i='#808890',d='#606870',l='#a0a8b0',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_],[o,i,i,i,o,o,l,o,l,o,_,_,_,_,_,_],[o,r,i,i,i,i,i,i,i,i,o,_,_,_,_,_],[o,i,i,l,i,l,i,l,i,l,i,o,_,_,_,_],[_,o,i,i,i,i,i,i,i,i,i,i,o,_,_,_],[_,_,o,d,i,d,i,d,i,d,i,d,o,_,_,_],[_,_,_,o,o,i,o,i,o,i,i,o,o,_,_,_],[_,_,_,o,o,_,o,_,o,_,o,_,o,o,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,o,o,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+ghoul(){const o='#1a1a2e',b='#d8d0c0',d='#a89880',r='#8b2635',g='#6b6b7b',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,_,_,_,_,_,_,_,_],[_,_,_,_,o,b,b,b,o,_,_,_,_,_,_,_],[_,_,_,_,o,r,b,r,o,_,_,_,_,_,_,_],[_,_,_,_,o,b,b,b,o,_,_,_,_,_,_,_],[_,_,_,_,o,b,d,b,o,_,_,_,_,_,_,_],[_,_,_,_,_,o,b,o,_,_,_,_,_,_,_,_],[_,_,_,o,o,g,g,g,o,o,_,_,_,_,_,_],[_,_,o,b,g,g,g,g,g,b,o,_,_,_,_,_],[_,o,b,o,g,g,g,g,g,o,b,o,_,_,_,_],[_,o,b,_,o,g,g,g,o,_,b,o,_,_,_,_],[_,_,o,_,_,o,g,o,_,_,o,_,_,_,_,_],[_,_,_,_,_,o,g,o,_,_,_,_,_,_,_,_],[_,_,_,_,o,g,_,g,o,_,_,_,_,_,_,_],[_,_,_,_,o,o,_,o,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+bone_sentinel(){const o='#1a1a2e',b='#d8d0c0',d='#a89880',i='#808890',r='#606870',w='#e8e8f0',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,_,_,_,_,w,_,_,_],[_,_,_,_,o,b,b,b,o,_,_,w,w,_,_,_],[_,_,_,_,o,d,b,d,o,_,w,w,_,_,_,_],[_,_,_,_,o,b,d,b,o,w,w,_,_,_,_,_],[_,_,_,_,_,o,b,o,w,_,_,_,_,_,_,_],[_,_,_,_,o,i,i,i,o,_,_,_,_,_,_,_],[_,_,_,o,i,r,i,r,i,o,_,_,_,_,_,_],[_,_,_,o,i,i,i,i,i,o,_,_,_,_,_,_],[_,_,_,o,r,i,i,i,r,o,_,_,_,_,_,_],[_,_,_,_,o,i,i,i,o,_,_,_,_,_,_,_],[_,_,_,_,o,r,i,r,o,_,_,_,_,_,_,_],[_,_,_,_,o,i,_,i,o,_,_,_,_,_,_,_],[_,_,_,_,o,o,_,o,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+rock_troll(){const o='#1a1a2e',i='#808890',d='#606870',l='#a0a8b0',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,o,o,_,_,_,_,_,_],[_,_,_,_,o,i,i,i,i,i,o,_,_,_,_,_],[_,_,_,o,i,r,i,i,r,i,i,o,_,_,_,_],[_,_,_,o,i,i,i,i,i,i,i,o,_,_,_,_],[_,_,_,_,o,i,d,d,d,i,o,_,_,_,_,_],[_,_,o,o,i,i,i,i,i,i,i,o,o,_,_,_],[_,o,i,i,i,d,i,i,i,d,i,i,i,o,_,_],[o,i,l,i,i,i,i,i,i,i,i,i,l,i,o,_],[o,i,i,o,i,i,d,d,d,i,i,o,i,i,o,_],[_,o,o,_,o,i,i,i,i,i,o,_,o,o,_,_],[_,_,_,_,o,d,i,i,i,d,o,_,_,_,_,_],[_,_,_,_,o,i,_,_,_,i,o,_,_,_,_,_],[_,_,_,_,o,o,_,_,_,o,o,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+wyvern_hatchling(){const o='#1a1a2e',g='#4a7c59',d='#385c44',r='#8b2635',p='#50a050',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,o,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,g,g,o,_,_,_,_,_,_,_,_,_,_,_],[_,o,r,g,g,o,o,_,_,_,_,_,_,_,_,_],[_,_,o,g,g,g,g,o,_,_,_,_,_,_,_,_],[_,_,o,d,g,g,g,g,o,_,_,_,_,_,_,_],[_,o,d,o,g,g,g,g,g,o,_,_,_,_,_,_],[_,o,d,_,o,d,g,d,g,o,_,_,_,_,_,_],[_,_,o,_,_,o,g,g,o,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,o,o,o,_,_,_,_,_],[_,_,_,_,_,o,_,_,_,_,o,o,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,o,p,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+cave_crawler(){const o='#1a1a2e',b='#d8d0c0',d='#a89880',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_],[o,b,b,o,o,_,_,_,_,_,_,_,_,_,_,_],[o,r,r,b,b,o,o,_,_,_,_,_,_,_,_,_],[_,o,b,b,d,b,b,o,o,_,_,_,_,_,_,_],[_,_,o,b,b,d,b,b,b,o,o,_,_,_,_,_],[_,_,_,o,d,b,b,d,b,b,b,o,o,_,_,_],[_,_,_,_,o,b,d,b,b,d,b,b,o,_,_,_],[_,_,_,_,_,o,b,b,d,b,b,o,_,_,_,_],[_,_,o,_,o,_,o,o,o,o,o,_,o,_,_,_],[_,o,_,o,_,o,_,_,_,o,_,o,_,o,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+flame_elemental(){const o='#1a1a2e',f='#e08030',d='#a05020',b='#f0c040',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,b,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,b,b,b,_,_,_,_,_,_,_,_],[_,_,_,_,o,f,b,f,o,_,_,_,_,_,_,_],[_,_,_,o,f,f,f,f,f,o,_,_,_,_,_,_],[_,_,_,o,f,o,f,o,f,o,_,_,_,_,_,_],[_,_,_,_,o,f,f,f,o,_,_,_,_,_,_,_],[_,_,_,_,o,f,d,f,o,_,_,_,_,_,_,_],[_,_,b,o,f,f,f,f,f,o,b,_,_,_,_,_],[_,_,_,o,f,d,f,d,f,o,_,_,_,_,_,_],[_,_,_,_,o,f,f,f,o,_,_,_,_,_,_,_],[_,_,_,_,o,d,f,d,o,_,_,_,_,_,_,_],[_,_,_,_,o,f,_,f,o,_,_,_,_,_,_,_],[_,_,_,o,d,_,_,_,d,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+darkwood_treant(){const o='#1a1a2e',b='#6b4820',d='#4a3520',g='#385c44',r='#8b2635',_=null;return[[_,_,_,_,_,g,g,_,g,g,_,_,_,_,_,_],[_,_,_,g,g,g,o,g,o,g,g,g,_,_,_,_],[_,_,g,g,o,g,g,g,g,g,o,g,g,_,_,_],[_,_,_,o,b,b,b,b,b,b,b,o,_,_,_,_],[_,_,o,b,b,b,b,b,b,b,b,b,o,_,_,_],[_,_,o,b,r,o,b,b,r,o,b,b,o,_,_,_],[_,_,o,b,b,b,b,b,b,b,b,b,o,_,_,_],[_,_,o,b,b,d,d,d,d,b,b,o,_,_,_,_],[_,o,b,o,b,b,b,b,b,b,o,b,o,_,_,_],[o,b,o,_,o,b,d,b,d,o,_,o,b,o,_,_],[_,o,_,_,_,o,b,b,o,_,_,_,o,_,_,_],[_,_,_,_,_,o,b,b,o,_,_,_,_,_,_,_],[_,_,_,_,o,d,b,b,d,o,_,_,_,_,_,_],[_,_,_,o,d,d,o,o,d,d,o,_,_,_,_,_],[_,_,o,o,_,_,_,_,_,_,o,o,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+banshee(){const o='#1a1a2e',s='#6088a8',l='#80b0d0',w='#e8e8f0',d='#405868',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,w,w,w,w,w,_,_,_,_,_,_,_,_],[_,_,w,w,l,l,l,w,w,_,_,_,_,_,_,_],[_,_,w,l,o,l,o,l,w,_,_,_,_,_,_,_],[_,_,_,o,l,l,l,o,_,_,_,_,_,_,_,_],[_,_,_,o,l,o,l,o,_,_,_,_,_,_,_,_],[_,_,_,_,o,o,o,_,_,_,_,_,_,_,_,_],[_,_,_,o,s,l,s,o,_,_,_,_,_,_,_,_],[_,_,o,s,s,l,s,s,o,_,_,_,_,_,_,_],[_,w,o,s,l,s,s,l,s,o,w,_,_,_,_,_],[_,_,o,s,s,s,l,s,s,o,_,_,_,_,_,_],[_,_,_,o,s,s,s,s,o,_,_,_,_,_,_,_],[_,_,_,o,d,s,s,d,o,_,_,_,_,_,_,_],[_,_,_,_,o,d,d,o,_,_,_,_,_,_,_,_],[_,_,_,d,_,o,o,_,d,_,_,_,_,_,_,_],[_,_,d,_,_,_,_,_,_,d,_,_,_,_,_,_]]},
+chimera_spawn(){const o='#1a1a2e',b='#8b6840',d='#6b4820',r='#8b2635',g='#4a7c59',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,o,_,_,_,_,_,_,_,_,o,o,_,_,_],[o,b,b,o,_,_,_,_,_,_,o,g,g,o,_,_],[o,r,b,o,_,o,o,o,_,_,o,r,g,o,_,_],[_,o,b,o,o,b,b,b,o,o,o,g,o,_,_,_],[_,_,o,b,b,b,d,b,b,b,o,o,_,_,_,_],[_,_,o,b,b,b,b,b,b,b,b,o,_,_,_,_],[_,_,_,o,b,d,b,b,d,b,o,_,_,_,_,_],[_,_,_,o,b,b,b,b,b,b,o,_,_,_,_,_],[_,_,_,_,o,b,b,b,b,o,o,o,_,_,_,_],[_,_,_,_,o,d,o,o,d,o,_,o,o,_,_,_],[_,_,_,_,o,o,_,_,o,o,_,_,o,o,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,o,r,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+corrupted_knight(){const o='#1a1a2e',i='#606870',d='#808890',r='#8b2635',l='#a0a8b0',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,o,_,_,_,_,_,_,_],[_,_,_,_,o,i,i,i,i,o,_,_,_,_,_,_],[_,_,_,o,i,r,i,r,i,i,o,_,_,_,_,_],[_,_,_,o,i,i,i,i,i,i,o,_,_,_,_,_],[_,_,_,_,o,i,i,i,i,o,_,_,_,_,_,_],[_,_,_,o,d,i,i,i,d,o,_,_,_,_,_,_],[_,_,o,i,d,i,d,i,d,i,o,_,_,_,_,_],[_,o,l,o,i,i,i,i,i,o,l,o,_,_,_,_],[_,_,o,_,o,i,i,i,o,_,o,_,_,_,_,_],[_,_,_,_,o,i,d,i,o,_,_,_,_,_,_,_],[_,_,_,_,o,i,i,i,o,_,_,_,_,_,_,_],[_,_,_,_,o,d,_,d,o,_,_,_,_,_,_,_],[_,_,_,_,o,o,_,o,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+crystal_golem(){const o='#1a1a2e',c='#60c0d0',d='#408090',l='#90e0f0',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,_,_,_,_,_,_,_,_],[_,_,_,_,o,c,l,c,o,_,_,_,_,_,_,_],[_,_,_,o,c,l,c,l,c,o,_,_,_,_,_,_],[_,_,_,o,c,o,c,o,c,o,_,_,_,_,_,_],[_,_,_,_,o,c,c,c,o,_,_,_,_,_,_,_],[_,_,_,o,l,c,c,c,l,o,_,_,_,_,_,_],[_,_,o,c,c,d,c,d,c,c,o,_,_,_,_,_],[_,o,l,o,c,c,c,c,c,o,l,o,_,_,_,_],[_,_,o,_,o,c,l,c,o,_,o,_,_,_,_,_],[_,_,_,_,o,c,c,c,o,_,_,_,_,_,_,_],[_,_,_,_,o,d,c,d,o,_,_,_,_,_,_,_],[_,_,_,o,c,_,_,_,c,o,_,_,_,_,_,_],[_,_,_,o,o,_,_,_,o,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+plague_bearer(){const o='#1a1a2e',b='#a89880',d='#6b4820',g='#50a050',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,_,_,_,_,_,_,_,_],[_,_,_,_,o,b,b,b,o,_,_,_,_,_,_,_],[_,_,_,_,o,r,b,r,o,_,_,_,_,_,_,_],[_,_,_,_,o,b,d,b,o,_,_,_,_,_,_,_],[_,_,_,_,_,o,b,o,_,_,_,_,_,_,_,_],[_,_,_,o,g,d,d,d,g,o,_,_,_,_,_,_],[_,_,o,d,d,g,d,g,d,d,o,_,_,_,_,_],[_,o,g,o,d,d,d,d,d,o,g,o,_,_,_,_],[_,_,o,_,o,d,g,d,o,_,o,_,_,_,_,_],[_,_,_,_,o,d,d,d,o,_,_,_,_,_,_,_],[_,_,_,_,o,g,d,g,o,_,_,_,_,_,_,_],[_,_,_,_,o,d,_,d,o,_,_,_,_,_,_,_],[_,_,_,_,o,o,_,o,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+wyvern(){const o='#1a1a2e',g='#4a7c59',d='#385c44',r='#8b2635',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[o,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[o,g,o,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,g,o,o,o,_,_,_,_,_,_,_,_,_,_],[_,o,g,r,g,g,o,o,o,_,_,_,_,_,_,_],[_,_,o,g,g,g,g,g,g,o,_,_,_,_,_,_],[_,_,o,d,g,g,g,g,g,g,o,_,_,_,_,_],[_,o,d,o,g,d,g,d,g,g,g,o,_,_,_,_],[_,o,d,d,o,g,g,g,g,g,g,o,_,_,_,_],[_,_,o,d,_,o,g,g,g,g,o,_,_,_,_,_],[_,_,_,o,_,_,o,d,g,o,o,o,_,_,_,_],[_,_,_,_,_,_,o,o,o,_,_,o,o,_,_,_],[_,_,_,_,_,_,o,_,o,_,_,_,o,o,_,_],[_,_,_,_,_,o,o,_,o,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+mine_shade(){const o='#1a1a2e',s='#604080',d='#402060',l='#8060a0',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,_,_,_,_,_,_,_,_],[_,_,_,_,o,d,d,d,o,_,_,_,_,_,_,_],[_,_,_,o,d,l,d,l,d,o,_,_,_,_,_,_],[_,_,_,o,d,d,d,d,d,o,_,_,_,_,_,_],[_,_,_,_,o,d,d,d,o,_,_,_,_,_,_,_],[_,_,_,o,s,d,d,d,s,o,_,_,_,_,_,_],[_,_,_,o,d,s,d,s,d,o,_,_,_,_,_,_],[_,_,_,l,o,d,d,d,o,l,_,_,_,_,_,_],[_,_,_,_,o,d,d,d,o,_,_,_,_,_,_,_],[_,_,_,_,o,s,d,s,o,_,_,_,_,_,_,_],[_,_,_,_,_,o,d,o,_,_,_,_,_,_,_,_],[_,_,_,_,d,_,o,_,d,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+death_knight(){const o='#1a1a2e',d='#302030',i='#606870',r='#8b2635',m='#808890',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,o,o,o,o,o,_,_,_,_,_,_,_],[_,_,_,o,d,d,d,d,d,o,_,_,_,_,_,_],[_,_,_,o,r,r,r,r,r,o,_,_,_,_,_,_],[_,_,_,o,d,d,d,d,d,o,_,_,_,_,_,_],[_,_,_,_,o,d,d,d,o,_,_,_,_,_,_,_],[_,_,o,i,d,d,d,d,d,i,o,_,_,_,_,_],[_,o,d,d,d,i,d,i,d,d,d,o,_,_,_,_],[o,m,o,d,d,d,d,d,d,d,o,m,o,_,_,_],[_,o,_,o,d,d,d,d,d,o,_,o,_,_,_,_],[_,_,_,o,d,i,d,i,d,o,_,_,_,_,_,_],[_,_,_,o,d,d,d,d,d,o,_,_,_,_,_,_],[_,_,_,o,i,d,_,d,i,o,_,_,_,_,_,_],[_,_,_,o,o,o,_,o,o,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+void_stalker(){const o='#1a1a2e',v='#8040c0',d='#602090',l='#a060e0',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,l,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,o,o,o,_,_,_,_,_,_,_,_,_],[_,_,_,o,v,v,v,o,_,_,_,_,_,_,_,_],[_,_,o,v,l,v,l,v,o,_,_,_,_,_,_,_],[_,_,o,v,v,v,v,v,o,_,_,_,_,_,_,_],[_,_,_,o,v,d,v,o,_,_,_,_,_,_,_,_],[_,_,o,d,v,v,v,d,o,_,_,_,_,_,_,_],[_,l,o,v,d,v,d,v,o,l,_,_,_,_,_,_],[_,_,o,v,v,v,v,v,o,_,_,_,_,_,_,_],[_,_,_,o,v,d,v,o,_,_,_,_,_,_,_,_],[_,_,_,o,d,v,d,o,_,_,_,_,_,_,_,_],[_,_,_,l,o,v,o,l,_,_,_,_,_,_,_,_],[_,_,_,_,o,o,o,_,_,_,_,_,_,_,_,_],[_,_,_,d,_,_,_,d,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+ash_wyrm(){const o='#1a1a2e',f='#e08030',d='#a05020',i='#808890',b='#f0c040',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_],[o,f,f,f,o,_,_,_,_,_,_,_,_,_,_,_],[o,b,f,f,f,o,o,_,_,_,_,_,_,_,_,_],[o,f,f,i,f,f,f,o,_,_,_,_,_,_,_,_],[_,o,f,f,i,f,i,f,o,_,_,_,_,_,_,_],[_,_,o,d,f,f,f,f,f,o,_,_,_,_,_,_],[_,_,_,o,i,f,i,f,i,f,o,_,_,_,_,_],[_,_,_,_,o,f,f,d,f,f,o,_,_,_,_,_],[_,_,_,_,_,o,o,f,f,o,_,_,_,_,_,_],[_,_,_,_,_,_,o,d,f,d,o,_,_,_,_,_],[_,_,_,_,_,o,f,f,o,_,_,_,_,_,_,_],[_,_,_,_,_,o,d,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+lich_apprentice(){const o='#1a1a2e',b='#d8d0c0',s='#604080',d='#402060',v='#a060e0',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,_,_,_,_,_,_,_,_],[_,_,_,_,o,b,b,b,o,_,_,_,_,_,_,_],[_,_,_,_,o,o,b,o,o,_,_,_,_,_,_,_],[_,_,_,_,o,b,o,b,o,_,_,_,_,_,_,_],[_,_,_,_,_,o,b,o,_,_,_,_,_,_,_,_],[_,_,_,o,s,s,s,s,s,o,_,_,_,_,_,_],[_,_,o,s,s,d,s,d,s,s,o,_,_,_,_,_],[_,v,o,s,s,s,s,s,s,s,o,v,_,_,_,_],[_,_,o,s,d,s,s,s,d,s,o,_,_,_,_,_],[_,_,_,o,s,s,s,s,s,o,_,_,_,_,_,_],[_,_,_,o,d,s,s,s,d,o,_,_,_,_,_,_],[_,_,_,o,s,s,_,s,s,o,_,_,_,_,_,_],[_,_,_,o,o,o,_,o,o,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+storm_elemental(){const o='#1a1a2e',s='#6088a8',l='#80b0d0',w='#e8e8f0',d='#405868',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,w,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,w,w,w,_,_,_,_,_,_,_,_],[_,_,_,_,o,l,w,l,o,_,_,_,_,_,_,_],[_,_,_,o,s,l,s,l,s,o,_,_,_,_,_,_],[_,_,_,o,s,w,s,w,s,o,_,_,_,_,_,_],[_,_,_,_,o,s,s,s,o,_,_,_,_,_,_,_],[_,_,w,o,s,l,s,l,s,o,w,_,_,_,_,_],[_,_,_,o,l,s,l,s,l,o,_,_,_,_,_,_],[_,_,_,o,s,l,s,l,s,o,_,_,_,_,_,_],[_,_,_,_,o,s,l,s,o,_,_,_,_,_,_,_],[_,_,_,_,o,d,s,d,o,_,_,_,_,_,_,_],[_,_,_,o,d,_,s,_,d,o,_,_,_,_,_,_],[_,_,_,_,_,_,d,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+troll_warlord(){const o='#1a1a2e',g='#4a7c59',d='#385c44',r='#8b2635',w='#c9a84c',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,o,o,o,o,o,o,_,_,_,_,_,_],[_,_,_,o,g,g,g,g,g,g,o,_,_,_,_,_],[_,_,o,g,r,o,g,g,r,o,g,o,_,_,_,_],[_,_,o,g,g,g,g,g,g,g,g,o,_,_,_,_],[_,_,_,o,g,r,d,d,r,g,o,_,_,_,_,_],[_,o,o,g,g,g,g,g,g,g,g,o,o,_,_,_],[o,g,g,g,d,g,d,g,d,g,g,g,g,o,_,_],[o,g,g,o,g,g,g,g,g,g,o,g,g,o,_,_],[o,g,d,_,o,g,g,g,g,o,_,d,g,o,_,_],[_,o,o,_,o,g,d,d,g,o,_,o,o,_,_,_],[_,_,_,_,o,d,g,g,d,o,_,_,_,_,_,_],[_,_,_,_,o,g,_,_,g,o,_,_,_,_,_,_],[_,_,_,_,o,o,_,_,o,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+iron_golem(){const o='#1a1a2e',i='#808890',d='#606870',l='#a0a8b0',r='#8b2635',g='#c9a84c',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,o,o,o,o,o,o,o,o,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,l,i,i,i,i,i,l,i,i,o,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,i,i,l,i,l,i,i,i,i,o,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,r,r,i,i,i,r,r,i,i,o,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,i,i,i,i,i,i,i,i,i,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,i,i,d,d,d,i,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,o,o,i,i,i,o,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,i,i,i,i,i,i,i,o,o,o,_,_,_,_,_,_],[_,_,_,_,o,i,i,i,d,i,l,i,l,i,d,i,i,i,o,_,_,_,_,_],[_,_,_,o,i,i,d,i,i,i,i,i,i,i,i,i,d,i,i,o,_,_,_,_],[_,_,o,i,l,o,i,i,i,i,g,g,i,i,i,i,i,o,l,i,o,_,_,_],[_,o,l,o,_,_,o,i,d,i,i,i,i,d,i,o,_,_,o,l,o,_,_,_],[_,_,o,_,_,_,o,i,i,i,i,i,i,i,i,o,_,_,_,o,_,_,_,_],[_,_,_,_,_,_,o,d,i,d,i,i,d,i,d,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,i,i,i,i,i,i,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,d,i,i,i,i,d,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,i,i,d,d,i,i,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,i,o,_,_,o,i,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,d,o,_,_,o,d,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,i,o,_,_,o,i,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,i,d,o,_,_,_,_,o,d,i,o,_,_,_,_,_,_,_],[_,_,_,_,_,o,o,o,_,_,_,_,_,_,o,o,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+elder_dragon(){const o='#1a1a2e',r='#a03030',d='#702020',b='#d04040',f='#e08030',l='#f0c040',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,o,d,o,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,r,d,r,o,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,o,o,r,r,r,o,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,o,r,r,r,r,o,_,_,_,_,_,_],[_,o,o,o,_,_,_,_,_,_,_,o,r,r,b,r,o,_,_,_,_,_,_,_],[o,r,r,r,o,o,_,_,_,_,o,r,r,r,r,o,_,_,_,_,_,_,_,_],[o,l,r,d,r,r,o,o,o,o,r,r,d,r,o,_,_,_,_,_,_,_,_,_],[f,o,r,r,d,r,r,r,r,r,r,b,r,o,_,_,_,_,_,_,_,_,_,_],[l,f,o,r,r,r,b,r,b,r,r,r,o,_,_,_,_,_,_,_,_,_,_,_],[_,l,_,o,d,r,r,r,r,r,d,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,o,r,d,r,d,r,o,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,r,r,r,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,d,r,d,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,r,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,d,r,r,r,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,r,d,r,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,o,r,r,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,o,d,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+lich_king(){const o='#1a1a2e',b='#d8d0c0',s='#604080',d='#402060',v='#a060e0',g='#c9a84c',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,g,_,g,_,g,_,g,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,g,o,g,o,g,o,g,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,g,g,g,g,g,g,g,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,b,b,b,b,b,b,b,b,b,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,b,v,o,b,b,b,v,o,b,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,b,b,b,b,b,b,b,b,b,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,b,b,o,o,b,b,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,o,o,_,_,o,o,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,s,s,d,s,s,d,s,s,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,s,s,d,s,s,s,s,d,s,s,o,_,_,_,_,_,_,_],[_,_,_,_,o,s,s,s,s,d,s,s,d,s,s,s,s,o,_,_,_,_,_,_],[_,_,_,v,o,s,d,s,s,s,s,s,s,s,s,d,s,o,v,_,_,_,_,_],[_,_,_,_,o,s,s,s,s,s,s,s,s,s,s,s,s,o,_,_,_,_,_,_],[_,_,_,_,_,o,s,s,d,s,s,s,s,d,s,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,s,s,s,s,s,s,s,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,d,s,s,s,s,s,d,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,s,d,s,d,s,o,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,s,s,_,s,s,o,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,d,o,_,o,d,o,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,o,o,_,_,_,o,o,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+ancient_construct(){const o='#1a1a2e',i='#808890',d='#606870',l='#a0a8b0',c='#60c0d0',g='#c9a84c',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,o,o,o,o,o,o,o,o,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,l,i,i,i,i,i,l,i,i,o,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,i,i,l,i,l,i,i,i,i,o,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,c,c,i,i,i,c,c,i,i,o,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,i,i,i,i,i,i,i,i,i,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,i,i,d,d,d,i,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,o,o,o,g,o,o,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,o,o,o,o,i,d,i,c,i,d,i,o,o,o,o,_,_,_,_,_],[_,_,_,o,i,l,i,i,i,i,i,g,i,i,i,i,i,l,i,o,_,_,_,_],[_,_,o,i,i,i,d,i,i,i,i,i,i,i,i,d,i,i,i,i,o,_,_,_],[_,o,l,o,i,i,i,i,d,i,c,c,i,d,i,i,i,i,o,l,o,_,_,_],[_,_,o,_,o,i,d,i,i,i,g,g,i,i,i,d,i,o,_,o,_,_,_,_],[_,_,_,_,o,i,i,i,i,i,i,i,i,i,i,i,i,o,_,_,_,_,_,_],[_,_,_,_,_,o,i,d,i,d,i,i,d,i,d,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,i,i,i,i,c,c,i,i,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,d,i,g,g,i,d,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,i,i,i,i,i,i,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,i,o,_,_,o,i,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,i,d,o,_,_,o,d,i,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,i,i,o,_,_,_,_,o,i,i,o,_,_,_,_,_,_,_],[_,_,_,_,_,o,d,o,_,_,_,_,_,_,o,d,o,_,_,_,_,_,_,_],[_,_,_,_,o,o,o,_,_,_,_,_,_,_,_,o,o,o,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]},
+demon_lord(){const o='#1a1a2e',d='#302030',r='#c02040',b='#201020',f='#e08030',l='#f0c040',_=null;return[[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_,_],[_,_,_,o,d,o,_,_,_,_,_,_,_,_,_,_,_,o,d,o,_,_,_,_],[_,_,_,o,d,d,o,_,_,_,_,_,_,_,_,_,o,d,d,o,_,_,_,_],[_,_,_,_,o,d,d,o,o,o,o,o,o,o,o,o,d,d,o,_,_,_,_,_],[_,_,_,_,_,o,d,d,d,d,d,d,d,d,d,d,d,o,_,_,_,_,_,_],[_,_,_,_,_,o,d,r,l,d,d,d,d,r,l,d,d,o,_,_,_,_,_,_],[_,_,_,_,_,_,o,d,d,d,d,d,d,d,d,d,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,d,d,r,r,r,r,d,d,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,d,d,d,d,d,d,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,o,d,d,d,d,d,d,d,d,d,d,o,_,_,_,_,_,_,_],[_,_,_,_,o,d,d,b,d,d,d,d,d,d,b,d,d,o,_,_,_,_,_,_],[_,_,_,f,o,d,d,d,d,d,r,r,d,d,d,d,d,o,f,_,_,_,_,_],[_,_,_,_,o,d,d,d,b,d,d,d,d,b,d,d,d,o,_,_,_,_,_,_],[_,_,_,_,_,o,d,d,d,d,d,d,d,d,d,d,o,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,d,d,b,d,d,b,d,d,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,d,d,d,d,d,d,d,d,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,d,d,d,d,d,d,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,d,b,d,d,b,d,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,o,d,o,_,_,o,d,o,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,d,o,_,_,_,_,o,d,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,o,o,_,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],[_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_]]}
+}
+};
+
+// === BATTLE RENDERER ===
+const BattleRenderer={
+_bobOff:0,_bobDir:1,_bobTimer:null,_animQueue:[],_animating:false,
+TIER_CLR:['','#6b6b7b','#d8d0c0','#c9a84c','#8b2635','#b060d0'],
+BG:{
+muddy_trail(ctx,w,h){
+  ctx.fillStyle='#0d1a0d';ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#1a2e1a';ctx.fillRect(0,0,w,h*0.35);
+  for(let i=0;i<8;i++){ctx.fillStyle=i%2?'#1a2e1a':'#0f200f';ctx.fillRect(i*(w/8),h*0.15,4,h*0.5)}
+  ctx.fillStyle='#2a1e10';ctx.fillRect(0,h*0.7,w,h*0.3);
+  ctx.fillStyle='#221810';ctx.fillRect(0,h*0.7,w,2);
+},
+iron_hollows(ctx,w,h){
+  ctx.fillStyle='#12101a';ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#1a1820';ctx.fillRect(0,0,w,h*0.35);
+  for(let i=0;i<6;i++){ctx.fillStyle='#201e28';ctx.fillRect(20+i*60,h*0.1,8,h*0.55)}
+  ctx.fillStyle='#e0803030';ctx.fillRect(60,h*0.08,3,3);ctx.fillRect(260,h*0.12,3,3);
+  ctx.fillStyle='#2a2830';ctx.fillRect(0,h*0.7,w,h*0.3);
+  ctx.fillStyle='#222028';ctx.fillRect(0,h*0.7,w,2);
+},
+ashen_waste(ctx,w,h){
+  ctx.fillStyle='#1a0e08';ctx.fillRect(0,0,w,h);
+  const grd=ctx.createLinearGradient(0,0,0,h*0.4);
+  grd.addColorStop(0,'#3a1808');grd.addColorStop(1,'#1a0e08');
+  ctx.fillStyle=grd;ctx.fillRect(0,0,w,h*0.4);
+  ctx.fillStyle='#201008';ctx.fillRect(0,h*0.7,w,h*0.3);
+  for(let i=0;i<w;i+=12){ctx.fillStyle='#2a1408';ctx.fillRect(i,h*0.7,8,2)}
+  ctx.fillStyle='#1a0a04';ctx.fillRect(0,h*0.7,w,2);
+}},
+render(cv,r,cs){
+  const ctx=cv.getContext('2d'),w=cv.width,h=cv.height;
+  ctx.clearRect(0,0,w,h);
+  const adv=r.adventure||'muddy_trail';
+  const bgFn=this.BG[adv]||this.BG.muddy_trail;
+  bgFn(ctx,w,h);
+  const groundY=h*0.7;
+  const bob=Math.round(this._bobOff);
+  const pSprite=PA.species[r.species];
+  if(pSprite){const pd=pSprite();const psz=pd.length===24?72:64;PA.drawAt(ctx,pd,psz,20,groundY-psz+bob)}
+  const e=cs.enemy;
+  const eSprite=PA.enemies[e.id];
+  if(eSprite){const ed=eSprite();const esz=ed.length===24?72:64;PA.drawAtFlip(ctx,ed,esz,w-esz-20,groundY-esz-bob)}
+  else{ctx.fillStyle='#604080';ctx.fillRect(w-80,groundY-60,60,56)}
+  this._drawEnemyHUD(ctx,e,w);
+  this._drawDebuffs(ctx,r.debuffs,40,groundY+6);
+  if(e.debuffs&&e.debuffs.length)this._drawDebuffs(ctx,e.debuffs,w-100,groundY+6);
+},
+_drawEnemyHUD(ctx,e,w){
+  const tier=e.tier||1;
+  ctx.font='bold 10px sans-serif';ctx.fillStyle=this.TIER_CLR[tier]||'#6b6b7b';
+  const tl=TIER_LABELS[tier]||'';
+  ctx.fillText(tl,w-140,12);
+  ctx.fillStyle='#e8e8f0';ctx.font='bold 11px sans-serif';
+  ctx.fillText(e.name,w-140+ctx.measureText(tl).width+6,12);
+  const bx=w-140,by=16,bw=120,bh=6;
+  ctx.fillStyle='#1a1a2e';ctx.fillRect(bx,by,bw,bh);
+  const pct=Math.max(0,e.hp/e.mHP);
+  ctx.fillStyle=pct>0.5?'#4a7c59':pct>0.25?'#c9a84c':'#8b2635';
+  ctx.fillRect(bx,by,bw*pct,bh);
+  ctx.fillStyle='#a0a0b0';ctx.font='9px sans-serif';
+  ctx.fillText(e.hp+'/'+e.mHP+' HP',bx,by+bh+10);
+},
+_drawDebuffs(ctx,debuffs,x,y){
+  if(!debuffs||!debuffs.length)return;
+  const colors={poison:'#50a050',bleed:'#8b2635',burn:'#e08030',stun:'#c9a84c',curse:'#604080',blind:'#6b6b7b',slow:'#6088a8',weaken:'#702020'};
+  debuffs.forEach((d,i)=>{ctx.fillStyle=colors[d.type]||'#6b6b7b';ctx.fillRect(x+i*10,y,6,6)});
+},
+startIdle(cv,r,cs){
+  this.stopIdle();
+  if(REDUCED_MOTION)return;
+  this._bobOff=0;this._bobDir=1;this._cv=cv;this._r=r;this._cs=cs;
+  this._bobTimer=setInterval(()=>{
+    if(this._animating)return;
+    this._bobOff+=this._bobDir*0.5;
+    if(this._bobOff>2||this._bobOff<-2)this._bobDir*=-1;
+    this.render(cv,r,cs);
+  },120);
+},
+stopIdle(){if(this._bobTimer){clearInterval(this._bobTimer);this._bobTimer=null}},
+_pOff:0,_eOff:0,_flashP:0,_flashE:0,_dmgPops:[],
+playAttack(type,dmg,cb){
+  if(REDUCED_MOTION||!this._cv){if(cb)cb();return}
+  const cv=this._cv,r=this._r,cs=this._cs;
+  this._animating=true;
+  if(type==='player_melee'){
+    let frame=0;const slides=[0,8,16,24,30,24,16,8,0];
+    const anim=setInterval(()=>{
+      this._pOff=slides[frame]||0;this._flashE=frame>=4&&frame<=5?1:0;
+      this._renderAnim(cv,r,cs);frame++;
+      if(frame>=slides.length){clearInterval(anim);this._pOff=0;this._flashE=0;this._animating=false;if(cb)cb()}
+    },40);
+  } else if(type==='player_ranged'){
+    let px=80,frame=0;
+    const anim=setInterval(()=>{
+      this._renderAnim(cv,r,cs);
+      const ctx=cv.getContext('2d');
+      ctx.fillStyle='#e8e8f0';ctx.fillRect(px,cv.height*0.5,4,2);
+      px+=18;frame++;
+      if(px>cv.width-80){clearInterval(anim);this._flashE=1;
+        this._renderAnim(cv,r,cs);setTimeout(()=>{this._flashE=0;this._animating=false;if(cb)cb()},80)}
+    },30);
+  } else if(type==='player_magic'){
+    let frame=0;const particles=[];
+    for(let i=0;i<8;i++)particles.push({x:80+Math.random()*20,y:cv.height*0.4+Math.random()*30,vx:8+Math.random()*4,vy:-2+Math.random()*4,life:8+Math.floor(Math.random()*6)});
+    const anim=setInterval(()=>{
+      this._renderAnim(cv,r,cs);const ctx=cv.getContext('2d');
+      particles.forEach(p=>{if(p.life>0){ctx.fillStyle='#a060e0';ctx.fillRect(p.x,p.y,3,3);p.x+=p.vx;p.y+=p.vy;p.life--}});
+      frame++;if(frame>16){clearInterval(anim);this._flashE=1;
+        this._renderAnim(cv,r,cs);setTimeout(()=>{this._flashE=0;this._animating=false;if(cb)cb()},80)}
+    },35);
+  } else if(type==='enemy_attack'){
+    let frame=0;const slides=[0,-8,-16,-24,-30,-24,-16,-8,0];
+    const anim=setInterval(()=>{
+      this._eOff=slides[frame]||0;this._flashP=frame>=4&&frame<=5?1:0;
+      this._renderAnim(cv,r,cs);frame++;
+      if(frame>=slides.length){clearInterval(anim);this._eOff=0;this._flashP=0;this._animating=false;if(cb)cb()}
+    },40);
+  } else if(type==='block'){
+    this._flashP=2;this._renderAnim(cv,r,cs);
+    setTimeout(()=>{this._flashP=0;this._animating=false;if(cb)cb()},200);
+  } else if(type==='enemy_death'){
+    let frame=0;
+    const anim=setInterval(()=>{
+      this._renderAnim(cv,r,cs);const ctx=cv.getContext('2d');
+      ctx.globalAlpha=1-(frame/10);
+      const esz=64,ex=cv.width-esz-20,ey=cv.height*0.7-esz;
+      ctx.fillStyle='#e8e8f0';
+      for(let i=0;i<5;i++)ctx.fillRect(ex+Math.random()*esz,ey-frame*3+Math.random()*20,2,2);
+      ctx.globalAlpha=1;frame++;
+      if(frame>10){clearInterval(anim);this._animating=false;if(cb)cb()}
+    },60);
+  } else {this._animating=false;if(cb)cb()}
+},
+showDmgPop(value,type){
+  if(!this._cv)return;
+  const cv=this._cv,ctx=cv.getContext('2d');
+  const isEnemy=type==='enemy_hit'||type==='enemy_dmg';
+  const x=isEnemy?cv.width-100+Math.random()*40:30+Math.random()*40;
+  const pop={x,y:cv.height*0.45,text:type==='miss'?'MISS':type==='heal'?'+'+value:'-'+value,
+    color:type==='miss'?'#6b6b7b':type==='heal'?'#50a050':type==='enemy_hit'?'#c9a84c':'#c02040',
+    life:20,vy:-1.5};
+  this._dmgPops.push(pop);
+},
+_renderAnim(cv,r,cs){
+  const ctx=cv.getContext('2d'),w=cv.width,h=cv.height;
+  ctx.clearRect(0,0,w,h);
+  const adv=r.adventure||'muddy_trail';
+  (this.BG[adv]||this.BG.muddy_trail)(ctx,w,h);
+  const groundY=h*0.7;
+  const bob=Math.round(this._bobOff);
+  const pSprite=PA.species[r.species];
+  if(pSprite){
+    const pd=pSprite();const psz=pd.length===24?72:64;
+    if(this._flashP===2){ctx.globalAlpha=0.7;ctx.fillStyle='#c9a84c';ctx.fillRect(20+this._pOff,groundY-psz+bob,psz,psz);ctx.globalAlpha=1}
+    PA.drawAt(ctx,pd,psz,20+this._pOff,groundY-psz+bob);
+    if(this._flashP===1){ctx.globalAlpha=0.4;ctx.fillStyle='#c02040';ctx.fillRect(20+this._pOff,groundY-psz+bob,psz,psz);ctx.globalAlpha=1}
+  }
+  const e=cs.enemy;
+  if(e.hp>0){
+    const eSprite=PA.enemies[e.id];
+    if(eSprite){const ed=eSprite();const esz=ed.length===24?72:64;
+      PA.drawAtFlip(ctx,ed,esz,w-esz-20+this._eOff,groundY-esz-bob);
+      if(this._flashE){ctx.globalAlpha=0.4;ctx.fillStyle='#c9a84c';ctx.fillRect(w-esz-20+this._eOff,groundY-esz-bob,esz,esz);ctx.globalAlpha=1}}
+    else{ctx.fillStyle='#604080';ctx.fillRect(w-80+this._eOff,groundY-60-bob,60,56)}
+  }
+  this._drawEnemyHUD(ctx,e,w);
+  this._drawDebuffs(ctx,r.debuffs,40,groundY+6);
+  if(e.debuffs&&e.debuffs.length)this._drawDebuffs(ctx,e.debuffs,w-100,groundY+6);
+  for(let i=this._dmgPops.length-1;i>=0;i--){
+    const p=this._dmgPops[i];ctx.font='bold 12px sans-serif';ctx.fillStyle=p.color;
+    ctx.fillText(p.text,p.x,p.y);p.y+=p.vy;p.life--;
+    if(p.life<=0)this._dmgPops.splice(i,1)}
+}
 };
 
 // === SPECIES DATA ===
@@ -709,7 +927,7 @@ halfling:{name:'Halfling',desc:'Small, fast, and dangerously resourceful. Halfli
   stats:{health:3,mana:6,melee:3,ranged:6,speech:7,sight:6,smarts:5,movement:6},
   subspecies:{
     quickfoot:{name:'Quickfoot',desc:'Quickfoot halflings are impossible to corner. They dart between legs and never stop moving.',
-      trait:'Nimble Escape',traitDesc:'+2 effective Movement in combat (after weight penalties).'},
+      trait:'Nimble Escape',traitDesc:'+2 effective Movement. Higher flee chance and evasion.'},
     shadowstep:{name:'Shadowstep',desc:'Shadowstep halflings are patient killers. They wait in the dark and strike once \u2014 devastatingly.',
       trait:'Vanish',traitDesc:'Once per combat: spend 2 MP to hide. Next attack deals double damage.'}}}
 };
@@ -719,22 +937,22 @@ const WT_NAMES=['Light','Medium','Heavy'];
 const CL={
 fighter:{name:'Fighter',desc:'No tricks, no magic. Just steel and the skill to use it.',
   abilities:[
-    {name:'Power Strike',desc:'Next melee attack deals double damage.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:2},requirement:'close_zone',unlockLevel:1},
-    {name:'Shield Bash',desc:'Melee attack with 30% stun chance.',cost:3,type:'attack',effect:{dmgDice:[6],statusChance:30,status:'stun',statusDuration:1},requirement:'close_zone',unlockLevel:4},
+    {name:'Power Strike',desc:'Next melee attack deals double damage.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:2},requirement:null,unlockLevel:1},
+    {name:'Shield Bash',desc:'Melee attack with 30% stun chance.',cost:3,type:'attack',effect:{dmgDice:[6],statusChance:30,status:'stun',statusDuration:1},requirement:null,unlockLevel:4},
     {name:'Battle Cry',desc:'+1 dmg, +5% hit for 4 turns.',cost:6,type:'buff',trigger:'sustained',effect:{dmgBonus:1,hitBonus:5,duration:4},requirement:null,unlockLevel:8}],
   wpn:{name:'Sword',t:'melee',wt:1,dD:8,dB:0,desc:'Melee, 1d8'},oh:null,
   arm:{name:'Chainmail',dB:2,wt:1,desc:'+2 defense (Medium)'},bp:[]},
 paladin:{name:'Paladin',desc:'Faith is my shield. Duty is my blade.',
   abilities:[
     {name:'Holy Light',desc:'Heal self for 8 HP.',cost:5,type:'heal',effect:{healAmt:8},requirement:null,unlockLevel:1},
-    {name:'Smite',desc:'2d8 holy damage, +50% vs undead.',cost:5,type:'attack',effect:{dmgDice:[8,8],bonusVsTag:'undead',bonusMult:1.5},requirement:'close_zone',unlockLevel:4},
+    {name:'Smite',desc:'2d8 holy damage, +50% vs undead.',cost:5,type:'attack',effect:{dmgDice:[8,8],bonusVsTag:'undead',bonusMult:1.5},requirement:null,unlockLevel:4},
     {name:'Divine Shield',desc:'Immune to damage for 1 turn.',cost:8,type:'buff',trigger:'sustained',effect:{dmgImmunity:true,duration:1},requirement:null,unlockLevel:8}],
   wpn:{name:'Sword',t:'melee',wt:1,dD:8,dB:0,desc:'Melee, 1d8'},
   oh:{name:'Wooden Shield',t:'shield',wt:1,blk:2,desc:'+2 block (Medium)'},
   arm:{name:'Chainmail',dB:2,wt:1,desc:'+2 defense (Medium)'},bp:[]},
 ranger:{name:'Ranger',desc:'One arrow. One kill. That\'s all it takes if you\'re patient.',
   abilities:[
-    {name:'Aimed Shot',desc:'Next ranged attack gains +20% hit, ignores zone penalties.',cost:3,type:'buff',trigger:'ranged_hit',effect:{hitBonus:20,ignoreZonePenalty:true},requirement:'mid_or_far_zone',unlockLevel:1},
+    {name:'Aimed Shot',desc:'Next ranged attack gains +20% hit.',cost:3,type:'buff',trigger:'ranged_hit',effect:{hitBonus:20},requirement:null,unlockLevel:1},
     {name:'Multi-Shot',desc:'Two attacks at -15% accuracy each.',cost:4,type:'attack',effect:{dmgDice:[6],multiHit:2,hitPenalty:-15},requirement:null,unlockLevel:4},
     {name:'Track',desc:'+25% hit on next attack.',cost:2,type:'buff',trigger:'any_hit',effect:{hitBonus:25},requirement:null,unlockLevel:8}],
   wpn:{name:'Shortbow',t:'ranged',wt:0,dD:6,dB:0,desc:'Ranged, 1d6',ammo:10},
@@ -742,9 +960,9 @@ ranger:{name:'Ranger',desc:'One arrow. One kill. That\'s all it takes if you\'re
   arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[{name:'Dagger',t:'melee',wt:0,dD:4,dB:2,desc:'Melee, 1d4+2'}]},
 rogue:{name:'Rogue',desc:'Fair fights are for people who can\'t plan ahead.',
   abilities:[
-    {name:'Backstab',desc:'Triple damage if first turn or moved this turn.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:3,condDmgMult:1},conditions:['first_turn','moved_this_turn'],requirement:'close_zone',unlockLevel:1},
+    {name:'Backstab',desc:'Triple damage on first turn.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:3,condDmgMult:1},conditions:['first_turn'],requirement:null,unlockLevel:1},
     {name:'Smoke Bomb',desc:'Guaranteed flee from any range.',cost:3,type:'special',effect:{guaranteedFlee:true},requirement:null,unlockLevel:4},
-    {name:'Assassinate',desc:'5x damage if hidden (Vanish).',cost:6,type:'buff',trigger:'melee_hit',effect:{dmgMult:5,condDmgMult:1},conditions:['hidden'],requirement:'close_zone',unlockLevel:8}],
+    {name:'Assassinate',desc:'5x damage if hidden (Vanish).',cost:6,type:'buff',trigger:'melee_hit',effect:{dmgMult:5,condDmgMult:1},conditions:['hidden'],requirement:null,unlockLevel:8}],
   wpn:{name:'Dagger',t:'melee',wt:0,dD:4,dB:2,desc:'Melee, 1d4+2'},
   oh:{name:'Lantern',t:'light',wt:0,desc:'Illuminates dark areas'},
   arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[]},
@@ -759,7 +977,7 @@ wizard:{name:'Wizard',desc:'While you were learning to swing a sword, I was read
 berserker:{name:'Berserker',desc:'You think pain stops me? Pain makes me STRONGER.',
   abilities:[
     {name:'Aggro',desc:'+2 melee dmg, +10% hit, +1 incoming dmg for 3 turns.',cost:5,type:'buff',trigger:'sustained',effect:{dmgBonus:2,hitBonus:10,incomingDmgBonus:1,duration:3},requirement:null,unlockLevel:1},
-    {name:'Rampage',desc:'Attack twice this turn.',cost:5,type:'attack',effect:{multiHit:2,dmgDice:null,useWeapon:true},requirement:'close_zone',unlockLevel:4},
+    {name:'Rampage',desc:'Attack twice this turn.',cost:5,type:'attack',effect:{multiHit:2,dmgDice:null,useWeapon:true},requirement:null,unlockLevel:4},
     {name:'Undying Rage',desc:'Survive lethal damage once (1 HP). Lasts until triggered.',cost:7,type:'buff',trigger:'sustained',effect:{undying:true,duration:99},requirement:null,unlockLevel:8}],
   wpn:{name:'Greataxe',t:'melee',wt:2,dD:10,dB:0,desc:'Melee, 1d10',twoHand:true},
   oh:null,
@@ -783,21 +1001,16 @@ maxHP(r){return r.stats.health*4},
 maxMP(r){let b=r.stats.mana*4;if(r.subspecies==='brightelf'||r.subspecies==='ashborn')b+=4;return b},
 totalWt(r){return(r.wpn?r.wpn.wt||0:0)+(r.oh?r.oh.wt||0:0)+(r.arm?r.arm.wt||0:0)},
 effMov(r){let m=r.stats.movement-this.totalWt(r);if(r.subspecies==='quickfoot')m+=2;return Math.max(1,m)},
-combatMove(r){return this.effMov(r)*2},
-ZONES:['close','mid','far'],
-zoneHitMod(zone,wpnType){
-  if(wpnType==='ranged'){if(zone==='close')return -15;if(zone==='far')return -10}
-  return 0},
-meleeHit(r,eDef,zone){
+meleeHit(r,eDef){
   let h=55+(r.stats.melee-5)*5-eDef*3;
   if(r.debuffs){r.debuffs.forEach(d=>{if(d.type==='curse')h-=10;if(d.type==='blind')h-=20})}
   return this.pct(h)},
-rangedHit(r,eDef,zone){
-  let h=55+(r.stats.ranged-5)*5-eDef*3+this.zoneHitMod(zone||'mid','ranged');
+rangedHit(r,eDef){
+  let h=55+(r.stats.ranged-5)*5-eDef*3;
   if(r.debuffs){r.debuffs.forEach(d=>{if(d.type==='curse')h-=10;if(d.type==='blind')h-=20})}
   return this.pct(h)},
 enemyHit(eAtk,pDef){return this.pct(55+(eAtk-5)*5-pDef*3)},
-playerDef(r){return r.arm?r.arm.dB:0},
+playerDef(r){let d=r.arm?r.arm.dB:0;if(r.oh&&r.oh.blk)d+=r.oh.blk;return d},
 flee(r){return this.pct(30+(this.effMov(r)-5)*5)},
 search(r,diff){return this.pct(50+(r.stats.sight-5)*7+(diff||0))},
 speech(r,diff){return this.pct(50+(r.stats.speech-5)*7+(diff||0))},
@@ -808,6 +1021,7 @@ meleeDmgMod(r){let d=r.stats.melee-5;
 rangedDmgMod(r){return r.stats.ranged-5},
 abilityCost(r,ability){let c=ability.cost;if(r.stats.smarts>=7)c=Math.max(1,c-1);return c},
 arcaneBoltHit(r,eDef){let h=55+(r.stats.smarts-5)*5-eDef*3;if(r.debuffs){r.debuffs.forEach(d=>{if(d.type==='curse')h-=10;if(d.type==='blind')h-=20})}return this.pct(h)},
+dodge(r){const m=this.effMov(r);let d=(m-4)*3;if(r.debuffs&&r.debuffs.find(db=>db.type==='slow'))d=Math.floor(d/2);return this.clamp(Math.round(d),0,25)},
 roll100(){return Math.floor(Math.random()*100)+1},
 rollDice(sides){return Math.floor(Math.random()*sides)+1},
 safeDmg(d){return isFinite(d)&&d>0?Math.floor(d):1}
@@ -853,7 +1067,7 @@ getSettings(){try{return JSON.parse(localStorage.getItem('gameSettings')||'{}')}
 setSettings(s){try{localStorage.setItem('gameSettings',JSON.stringify(s));const root=document.documentElement;root.classList.toggle('settings-high-contrast',!!s.highContrast);root.classList.toggle('settings-large-text',!!s.largeText)}catch(e){}},
 recEnc(id){if(!this.run)return;this.run.bSeen[id]=(this.run.bSeen[id]||0)+1;
   const m=this.getJM();if(!m.bestiary)m.bestiary={};
-  if(!m.bestiary[id]){const e=ENEMIES[id];m.bestiary[id]={name:e.name,lore:e.lore,hp:e.mHP,atk:e.atk,def:e.def,dmg:`1d${e.dD}+${e.dB}`,zone:e.preferredZone||'close'}}
+  if(!m.bestiary[id]){const e=ENEMIES[id];m.bestiary[id]={name:e.name,lore:e.lore,hp:e.mHP,atk:e.atk,def:e.def,dmg:`1d${e.dD}+${e.dB}`}}
   try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}this.saveA()},
 recDef(id){if(!this.run)return;this.run.bDef[id]=(this.run.bDef[id]||0)+1;this.saveA()},
 addXP(amt){if(!this.run)return{};this.run.xp+=amt;let lv=false,lvls=[];
@@ -868,45 +1082,20 @@ start(ek){
   const t=ENEMIES[ek];
   if(!t){console.error('Missing enemy:',ek);showToast('Combat error: unknown enemy.','error');return null}
   const e={...t,hp:t.mHP};
-  GS.run.cs={enemy:e,playerZone:'mid',turnCount:0,fled:false,over:false,won:false,
-    movedThisTurn:false,freeMovedThisCombat:false,activeBuff:null,blocking:false,pBlk:0};
+  GS.run.cs={enemy:e,turnCount:0,fled:false,over:false,won:false,
+    activeBuff:null,blocking:false,pBlk:0};
   GS.run.traitState.advantageUsed=false;GS.run.traitState.vanishUsed=false;GS.run.traitState.hidden=false;
   GS.recEnc(ek);GS.saveA();return GS.run.cs},
 gs(){return GS.run?GS.run.cs:null},
-_validZone(z){return z==='close'||z==='mid'||z==='far'},
-hasFreeMove(r,cs){
-  if(r.debuffs&&r.debuffs.find(d=>d.type==='slow'))return false;
-  if(r.subspecies==='quickfoot')return true;
-  if(r.classes&&r.classes[0]==='rogue')return 'toward_close';
-  if(CALC.effMov(r)>=7&&!cs.freeMovedThisCombat)return 'once';
-  return false},
-moveZone(dir){
-  const cs=this.gs();if(!cs||cs.over)return{ms:[],costAction:true};
-  if(!this._validZone(cs.playerZone)){cs.playerZone='mid';console.warn('Invalid zone reset to mid')}
-  const r=GS.run,ms=[],zones=CALC.ZONES,zi=zones.indexOf(cs.playerZone);
-  const fm=this.hasFreeMove(r,cs);
-  const isFree=fm===true||(fm==='toward_close'&&dir==='closer')||(fm==='once');
-  if(dir==='closer'){
-    if(zi<=0){ms.push({t:'Already at Close range!',c:'y'});return{ms,costAction:false}}
-    cs.playerZone=zones[zi-1];
-    ms.push({t:`You advance to ${cs.playerZone.toUpperCase()} range.`,c:'c'})}
-  else{
-    if(zi>=zones.length-1){ms.push({t:"Can't retreat further!",c:'y'});return{ms,costAction:false}}
-    cs.playerZone=zones[zi+1];
-    ms.push({t:`You fall back to ${cs.playerZone.toUpperCase()} range.`,c:'c'})}
-  cs.movedThisTurn=true;
-  if(fm==='once')cs.freeMovedThisCombat=true;
-  if(!isFree)ms.push({t:'(Movement costs your action)',c:'y'});
-  GS.saveA();return{ms,costAction:!isFree}},
 pAct(act){
   const cs=this.gs();if(!cs||cs.over)return[];const r=GS.run,ms=[];let eActs=true;
-  if(!this._validZone(cs.playerZone)){cs.playerZone='mid';console.warn('Invalid zone reset to mid')}
   if(cs.enemy.hp<=0){cs.over=true;cs.won=true;GS.saveA();return ms}
   if(r.hp<=0){cs.over=true;cs.won=false;GS.saveA();return ms}
   if(!r.debuffs)r.debuffs=[];
   cs.turnCount++;
   ms.push({t:`— Turn ${cs.turnCount} —`,c:'y'});
   cs.blocking=false;
+  const wasStunned=r.debuffs.some(d=>d.type==='stun');
   for(let i=r.debuffs.length-1;i>=0;i--){const d=r.debuffs[i];
     const label=d.type.charAt(0).toUpperCase()+d.type.slice(1);
     if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);r.hp=Math.max(0,r.hp-dd);ms.push({t:`${label} deals ${dd} damage! (${r.hp}/${r.mHP} HP)`,c:'d'})}
@@ -915,36 +1104,22 @@ pAct(act){
     if(d.remaining<=0){r.debuffs.splice(i,1);ms.push({t:`The ${d.type} fades.`,c:'y'})}
     else ms.push({t:`${label}: ${d.remaining} turn${d.remaining!==1?'s':''} remaining.`,c:'y'})}
   if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'});GS.saveA();return ms}
-  const stunIdx=r.debuffs.findIndex(d=>d.type==='stun');
-  if(stunIdx!==-1){r.debuffs.splice(stunIdx,1);ms.push({t:'You are stunned! Your action is lost!',c:'d'});
+  if(wasStunned){ms.push({t:'You are stunned! Your action is lost!',c:'d'});
     const eMs=this.eTurn();ms.push(...eMs);GS.saveA();return ms}
   const clDef=CL[r.classes[0]];const abilities=getAbilities(r);
-  const zone=cs.playerZone;
   let abilityIdx=0;if(typeof act==='string'&&act.startsWith('ability_')){abilityIdx=parseInt(act.split('_')[1])||0;act='ability'}
   switch(act){
-  case'move_closer':case'move_further':{
-    const dir=act==='move_closer'?'closer':'further';
-    const res=this.moveZone(dir);
-    ms.push(...res.ms);
-    if(res.costAction){
-      if(cs.enemy.hp<=0){cs.over=true;cs.won=true;eActs=false;ms.push({t:`The ${cs.enemy.name} falls! Victory!`,c:'s'});GS.recDef(cs.enemy.id);cs.activeBuff=null}
-      if(eActs&&!cs.over){ms.push(...this.eTurn());this._tickBuff(cs,ms)}
-      if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'})}
-      cs.pBlk=0;GS.saveA();return ms}
-    break}
   case'attack':{
     const w=r.wpn;if(!w){ms.push({t:'You have no weapon equipped!',c:'d'});GS.saveA();return ms}
     const isMelee=w.t==='melee';
-    if(isMelee&&zone!=='close'){ms.push({t:`Must be at CLOSE range for ${w.name}!`,c:'y'});GS.saveA();return ms}
     if(w.t==='ranged'&&w.ammo!==undefined&&w.ammo<=0){ms.push({t:'No arrows remain!',c:'d'});GS.saveA();return ms}
     if(w.t==='ranged'&&w.ammo!==undefined){w.ammo--;if(r.oh&&r.oh.t==='quiver'){r.oh.arrows=w.ammo;r.oh.desc=w.ammo+' arrow'+(w.ammo!==1?'s':'')}}
-    let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def,zone):CALC.rangedHit(r,cs.enemy.def,zone);
+    let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
     const buff=cs.activeBuff;
     if(buff&&buff.trigger==='ranged_hit'&&!isMelee&&buff.effect.hitBonus){
-      hitPct=CALC.pct(hitPct+buff.effect.hitBonus);
-      if(buff.effect.ignoreZonePenalty){const pen=CALC.zoneHitMod(zone,'ranged');
-        if(pen<0){hitPct=CALC.pct(hitPct-pen);ms.push({t:'Aimed Shot negates zone penalty!',c:'s'})}}}
+      hitPct=CALC.pct(hitPct+buff.effect.hitBonus)}
     if(buff&&buff.trigger==='sustained'&&buff.effect.hitBonus&&isMelee)hitPct=CALC.pct(hitPct+buff.effect.hitBonus);
+    if(buff&&buff.trigger==='any_hit'&&buff.effect.hitBonus){hitPct=CALC.pct(hitPct+buff.effect.hitBonus);ms.push({t:`${buff.name}: +${buff.effect.hitBonus}% accuracy!`,c:'s'})}
     let roll=CALC.roll100();
     if(r.subspecies==='duskelf'&&!r.traitState.advantageUsed){
       const roll2=CALC.roll100();ms.push({t:'Twilight Instinct! Rolling twice: '+roll+', '+roll2,c:'y'});
@@ -956,11 +1131,14 @@ pAct(act){
       if(buff&&buff.trigger==='melee_hit'&&isMelee&&buff.effect.dmgMult&&!buff.conditions){
         dmg*=buff.effect.dmgMult;ms.push({t:`Power Strike! ${buff.effect.dmgMult}\u00d7 damage!`,c:'s'});cs.activeBuff=null}
       if(buff&&buff.trigger==='melee_hit'&&isMelee&&buff.conditions){
-        const condMet=cs.turnCount<=1||cs.movedThisTurn;
-        if(condMet){dmg*=buff.effect.dmgMult;ms.push({t:`Backstab! ${buff.effect.dmgMult}\u00d7 damage!`,c:'s'})}
-        else{ms.push({t:'Backstab conditions not met \u2014 normal damage.',c:'y'})}
+        let condMet=false;
+        if(buff.conditions.includes('hidden'))condMet=r.traitState.hidden;
+        else condMet=cs.turnCount<=1;
+        if(condMet){dmg*=buff.effect.dmgMult;ms.push({t:`${buff.name}! ${buff.effect.dmgMult}\u00d7 damage!`,c:'s'})}
+        else{dmg*=(buff.effect.condDmgMult||1);ms.push({t:`${buff.name} conditions not met \u2014 normal damage.`,c:'y'})}
         cs.activeBuff=null}
       if(buff&&buff.trigger==='ranged_hit'&&!isMelee){ms.push({t:'Aimed Shot strikes true!',c:'s'});cs.activeBuff=null}
+      if(buff&&buff.trigger==='any_hit'){ms.push({t:`${buff.name} spent!`,c:'y'});cs.activeBuff=null}
       if(r.traitState.hidden===false&&GS.run.traitState._wasHidden){dmg*=2;delete GS.run.traitState._wasHidden;ms.push({t:'Double damage from Vanish!',c:'s'})}
       if(r.debuffs&&r.debuffs.find(d=>d.type==='weaken'))dmg=Math.max(1,dmg-1);
       dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
@@ -974,8 +1152,6 @@ pAct(act){
     if(!ab){ms.push({t:'You have no class ability.',c:'y'});GS.saveA();return ms}
     const cost=CALC.abilityCost(r,ab);
     if(r.mp<cost){ms.push({t:`Not enough MP! Need ${cost} MP for ${ab.name}.`,c:'y'});GS.saveA();return ms}
-    if(ab.requirement==='close_zone'&&zone!=='close'){ms.push({t:`Must be at CLOSE range for ${ab.name}.`,c:'y'});GS.saveA();return ms}
-    if(ab.requirement==='mid_or_far_zone'&&zone==='close'){ms.push({t:`Must be at MID or FAR range for ${ab.name}.`,c:'y'});GS.saveA();return ms}
     if(ab.requirement==='ranged_equipped'&&(!r.wpn||r.wpn.t!=='ranged')){ms.push({t:`Need a ranged weapon for ${ab.name}.`,c:'y'});GS.saveA();return ms}
     if(ab.requirement==='spellbook_equipped'&&(!r.oh||r.oh.t!=='spellbook')){ms.push({t:`Need a Spellbook equipped for ${ab.name}.`,c:'y'});GS.saveA();return ms}
     r.mp-=cost;
@@ -990,7 +1166,7 @@ pAct(act){
         cs.activeBuff={name:ab.name,trigger:ab.trigger,effect:{...ab.effect},conditions:ab.conditions||null};
         let lbl=ab.name;
         if(ab.conditions){
-          const condMet=ab.conditions.includes('hidden')?r.traitState.hidden:(cs.turnCount<=1||cs.movedThisTurn);
+          const condMet=ab.conditions.includes('hidden')?r.traitState.hidden:cs.turnCount<=1;
           lbl+=condMet?' ('+ab.effect.dmgMult+'\u00d7)':' (1\u00d7)'}
         ms.push({t:`${lbl} ready! (${cost} MP)`,c:'s'})}
       break}
@@ -1000,7 +1176,7 @@ pAct(act){
       if(eff.useWeapon&&r.wpn){
         const w=r.wpn,isMelee=w.t==='melee';
         for(let hi=0;hi<hits;hi++){
-          let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def,zone):CALC.rangedHit(r,cs.enemy.def,zone);
+          let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
           const roll=CALC.roll100();
           if(roll<=hitPct){let dmg=CALC.rollDice(w.dD)+(w.dB||0)+(isMelee?CALC.meleeDmgMod(r):CALC.rangedDmgMod(r));
             dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
@@ -1008,7 +1184,7 @@ pAct(act){
           else ms.push({t:`${ab.name} swing misses! (${hitPct}%)`,c:'d'})}
         break}
       for(let hi=0;hi<hits;hi++){
-        let hitPct=eff.statOverride==='smarts'?CALC.arcaneBoltHit(r,cs.enemy.def):CALC.meleeHit(r,cs.enemy.def,zone);
+        let hitPct=eff.statOverride==='smarts'?CALC.arcaneBoltHit(r,cs.enemy.def):(r.wpn&&r.wpn.t==='ranged'?CALC.rangedHit(r,cs.enemy.def):CALC.meleeHit(r,cs.enemy.def));
         if(eff.hitPenalty)hitPct=CALC.pct(hitPct+eff.hitPenalty);
         const roll=CALC.roll100();
         if(r.subspecies==='duskelf'&&!r.traitState.advantageUsed){
@@ -1020,10 +1196,11 @@ pAct(act){
           dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
           ms.push({t:`${ab.name} strikes the ${cs.enemy.name} for ${dmg} damage! (${hitPct}%)`,c:'s'});
           if(eff.statusChance&&CALC.roll100()<=eff.statusChance){
-            if(!r.debuffs)r.debuffs=[];
-            const existing=cs.enemy.debuffs||(cs.enemy.debuffs=[]);
-            ms.push({t:`${cs.enemy.name} is afflicted with ${eff.status}!`,c:'s'});
-            if(!r.debuffs.find(d=>d.type===eff.status)){}
+            if(!cs.enemy.debuffs)cs.enemy.debuffs=[];
+            const existing=cs.enemy.debuffs.find(db=>db.type===eff.status);
+            if(!existing){cs.enemy.debuffs.push({type:eff.status,dmg:eff.statusDmg||0,remaining:eff.statusDuration||1});
+              ms.push({t:`${cs.enemy.name} is afflicted with ${eff.status}!`,c:'s'})}
+            else{existing.remaining=eff.statusDuration||1;ms.push({t:`${eff.status.charAt(0).toUpperCase()+eff.status.slice(1)} on ${cs.enemy.name} refreshed!`,c:'s'})}
           }}
         else ms.push({t:`${ab.name} misses the ${cs.enemy.name}! (${hitPct}%)`,c:'d'})}
       break}
@@ -1046,7 +1223,6 @@ pAct(act){
     if(!it){ms.push({t:'No usable items!',c:'y'});GS.saveA();return ms}
     const msg=useConsumable(it,r);ms.push({t:msg,c:'s'});break}
   case'flee':{
-    if(zone==='close'&&r.subspecies!=='quickfoot'){ms.push({t:'Too close to flee! Move to MID or FAR first.',c:'y'});GS.saveA();return ms}
     const fleePct=CALC.flee(r);const roll=CALC.roll100();
     if(roll<=fleePct){ms.push({t:`You turn and run! (${fleePct}% \u2192 rolled ${roll})`,c:'s'});cs.fled=true;cs.over=true;eActs=false}
     else{ms.push({t:`You try to flee but can't escape! (${fleePct}% \u2192 rolled ${roll})`,c:'d'});
@@ -1063,7 +1239,7 @@ pAct(act){
     ms.push({t:`The ${cs.enemy.name} falls! Victory!`,c:'s'});GS.recDef(cs.enemy.id);cs.activeBuff=null}
   if(eActs&&!cs.over){ms.push(...this.eTurn());this._tickBuff(cs,ms)}
   if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'})}
-  cs.pBlk=0;cs.movedThisTurn=false;GS.saveA();return ms},
+  cs.pBlk=0;GS.saveA();return ms},
 _tickBuff(cs,ms){
   if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'){
     cs.activeBuff.turnsLeft--;
@@ -1072,6 +1248,8 @@ _tickBuff(cs,ms){
 _enemyAttack(cs,r){
   const e=cs.enemy,ms=[];
   if(e.hp<=0||r.hp<=0)return ms;
+  const dodgePct=CALC.dodge(r);
+  if(dodgePct>0&&CALC.roll100()<=dodgePct){ms.push({t:`You dodge the ${e.name}'s attack! (${dodgePct}% dodge)`,c:'s'});return ms}
   const pDef=CALC.playerDef(r);
   const hitPct=CALC.enemyHit(e.atk,pDef);const roll=CALC.roll100();
   if(roll<=hitPct){
@@ -1083,10 +1261,10 @@ _enemyAttack(cs,r){
     if(r.subspecies==='stoneblood'&&d>1){d--;ms.push({t:'Stone Skin absorbs 1 damage!',c:'y'})}
     if(r.subspecies==='fireblood'){d++;ms.push({t:'Volcanic Fury: you take 1 extra damage!',c:'y'})}
     if(r.traitState.hidden){r.traitState.hidden=false;delete GS.run.traitState._wasHidden;ms.push({t:'You are revealed by the attack!',c:'y'})}
+    if(cs.activeBuff&&cs.activeBuff.effect.dmgImmunity){d=0;ms.push({t:'Divine Shield absorbs all damage!',c:'s'})}
+    if(cs.activeBuff&&cs.activeBuff.effect.manaShield&&r.mp>0){const absorbed=Math.min(d,r.mp);r.mp-=absorbed;d=Math.max(0,d-absorbed);ms.push({t:`Mana Shield absorbs ${absorbed} damage! (${r.mp} MP left)`,c:'s'})}
     d=CALC.safeDmg(d);r.hp=Math.max(0,r.hp-d);
     if(r.hp<=0&&cs.activeBuff&&cs.activeBuff.effect.undying){r.hp=1;cs.activeBuff=null;ms.push({t:'Undying Rage! You refuse to fall! (1 HP)',c:'s'})}
-    if(cs.activeBuff&&cs.activeBuff.effect.dmgImmunity){d=0;r.hp=Math.min(r.hp+d,r.mHP);ms.push({t:'Divine Shield absorbs all damage!',c:'s'})}
-    if(cs.activeBuff&&cs.activeBuff.effect.manaShield&&r.mp>0){const absorbed=Math.min(d,r.mp);r.mp-=absorbed;r.hp=Math.min(r.hp+absorbed,r.mHP);ms.push({t:`Mana Shield absorbs ${absorbed} damage! (${r.mp} MP left)`,c:'s'})}
     if(e.onHit){if(!r.debuffs)r.debuffs=[];
       const oh=e.onHit;if(CALC.roll100()<=oh.chance&&r.subspecies!=='stoneblood'){
         const elabel=oh.effect.charAt(0).toUpperCase()+oh.effect.slice(1);
@@ -1098,16 +1276,14 @@ _enemyAttack(cs,r){
   return ms},
 eTurn(){const cs=this.gs(),r=GS.run,e=cs.enemy,ms=[];
   if(e.hp<=0||r.hp<=0)return ms;
-  const zone=cs.playerZone;const pref=e.preferredZone||'close';
-  const zones=CALC.ZONES,zi=zones.indexOf(zone);
-  if(pref==='close'&&zone!=='close'){
-    cs.playerZone=zones[Math.max(0,zi-1)];
-    ms.push({t:`The ${e.name} closes in! Now at ${cs.playerZone.toUpperCase()} range.`,c:'d'});
-    return ms}
-  if(pref==='mid'){
-    if(zone==='close'){cs.playerZone='mid';
-      ms.push({t:`The ${e.name} pulls back to MID range.`,c:'d'});return ms}
-    if(zone==='far'){ms.push(...this._enemyAttack(cs,r));return ms}}
+  if(e.debuffs&&e.debuffs.length>0){
+    const eStunned=e.debuffs.some(d=>d.type==='stun');
+    for(let i=e.debuffs.length-1;i>=0;i--){const d=e.debuffs[i];
+      const label=d.type.charAt(0).toUpperCase()+d.type.slice(1);
+      if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);e.hp=Math.max(0,e.hp-dd);ms.push({t:`${label} deals ${dd} to ${e.name}! (${e.hp} HP)`,c:'s'})}
+      d.remaining--;if(d.remaining<=0){e.debuffs.splice(i,1);ms.push({t:`${label} fades from ${e.name}.`,c:'y'})}}
+    if(e.hp<=0){cs.over=true;cs.won=true;ms.push({t:`The ${e.name} falls! Victory!`,c:'s'});GS.recDef(e.id);cs.activeBuff=null;return ms}
+    if(eStunned){ms.push({t:`${e.name} is stunned! Action lost!`,c:'s'});return ms}}
   ms.push(...this._enemyAttack(cs,r));
   return ms}
 };
@@ -1144,11 +1320,10 @@ init(){
     bchar:$('b-char'),bj:$('b-jrn'),bmenu:$('b-menu'),
     batk:$('b-atk'),bdef:$('b-def'),bitem:$('b-item'),atkLbl:$('atk-lbl'),
     cc:$('cc'),gm:$('game'),nw:$('narr-w'),nl:$('narr-log'),
-    zoneDisplay:$('zone-display'),
     bb:$('bbar'),exploreBar:$('explore-bar'),combatBar:$('combat-bar'),
     bacts:$('b-acts'),
     cbAtk:$('cb-atk'),cbAbility:$('cb-ability'),cbAbilityName:$('cb-ability-name'),cbAbilityCost:$('cb-ability-cost'),
-    cbBlock:$('cb-block'),cbFlee:$('cb-flee'),cbItem:$('cb-item'),cbMove:$('cb-move'),
+    cbBlock:$('cb-block'),cbFlee:$('cb-flee'),cbItem:$('cb-item'),
     cbAtkPct:$('cb-atk-pct'),cbFleePct:$('cb-flee-pct'),
     ni:$('ninp'),cbk:$('cc-bk'),cnx:$('cc-nx'),ccStep:$('cc-step'),
     tc:$('title-card'),tcn:$('tc-name'),tcs:$('tc-sub'),
@@ -1173,11 +1348,10 @@ bind(){
   this.el.bdef.onclick=()=>SE.doCombatAction('block');
   this.el.bitem.onclick=()=>SE.doCombatAction('use_potion');
   this.el.cbAtk.onclick=()=>SE.doCombatAction('attack');
-  this.el.cbAbility.onclick=()=>SE.doCombatAction('ability');
+  this.el.cbAbility.onclick=()=>this._toggleAbilitySub();
   this.el.cbBlock.onclick=()=>SE.doCombatAction('block');
   this.el.cbFlee.onclick=()=>SE.doCombatAction('flee');
-  this.el.cbItem.onclick=()=>SE.doCombatAction('use_potion');
-  this.el.cbMove.onclick=()=>SE.doCombatAction('move_closer');
+  this.el.cbItem.onclick=()=>this._toggleItemSub();
   this.el.asb.onclick=()=>this.closeActionSheet();
   this.el.dsl.onclick=()=>SE.deathLoad();
   this.el.dsn.onclick=()=>SE.deathNewRun();
@@ -1216,57 +1390,40 @@ showGame(){this.el.cc.style.display='none';const g=this.el.gm;g.style.display='f
   this.el.hud.classList.add('vis');this.el.bb.classList.add('vis');this.setCombatMode(false);this.updateHUD()},
 showCC(){this.el.cc.style.display='flex';this.el.gm.style.display='none';this.el.hud.classList.remove('vis');this.el.bb.classList.remove('vis');CC.reset()},
 setCombatMode(on){
-  if(on){this.el.hud.classList.add('combat-mode');this.el.bb.classList.add('combat-mode');this.updateCombatUI();this.updateZoneDisplay(true)}
-  else{this.el.hud.classList.remove('combat-mode');this.el.bb.classList.remove('combat-mode');this.updateZoneDisplay(false)}
+  if(on){this.el.hud.classList.add('combat-mode');this.el.bb.classList.add('combat-mode');this.updateCombatUI();this.updateBattleScene(true);
+    const bc=$('battle-canvas'),cs=CMB.gs(),r=GS.run;if(bc&&cs&&r)BattleRenderer.startIdle(bc,r,cs)}
+  else{this.el.hud.classList.remove('combat-mode');this.el.bb.classList.remove('combat-mode');this.updateBattleScene(false);BattleRenderer.stopIdle()}
 },
 updateCombatUI(){
   const cs=CMB.gs(),r=GS.run;if(!cs||cs.over)return;
-  const zone=cs.playerZone;
+  this._closeAllSubs();
   const w=r.wpn;if(w){const isMelee=w.t==='melee';
-    let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def,zone):CALC.rangedHit(r,cs.enemy.def,zone);
+    let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
     if(cs.activeBuff&&cs.activeBuff.trigger==='ranged_hit'&&!isMelee&&cs.activeBuff.effect.hitBonus)hitPct=CALC.pct(hitPct+cs.activeBuff.effect.hitBonus);
     if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'&&cs.activeBuff.effect.hitBonus&&isMelee)hitPct=CALC.pct(hitPct+cs.activeBuff.effect.hitBonus);
     this.el.atkLbl.textContent=hitPct+'%';this.el.cbAtkPct.textContent=hitPct+'%';
-    if(isMelee&&zone!=='close')this.el.cbAtk.disabled=true;else this.el.cbAtk.disabled=false}
+    this.el.cbAtk.disabled=false}
   const fleePct=CALC.flee(r);this.el.cbFleePct.textContent=fleePct+'%';
-  this.el.cbFlee.disabled=zone==='close'&&r.subspecies!=='quickfoot';
-  const zi=CALC.ZONES.indexOf(zone);
-  this.el.cbMove.textContent=zi>0?'\u25c4 Closer':'Further \u25ba';
-  this.el.cbMove.onclick=()=>SE.doCombatAction(zi>0?'move_closer':'move_further');
+  this.el.cbFlee.disabled=false;
   const abilities=getAbilities(r);const ab=abilities[0]||null;
   if(ab){
-    const cost=CALC.abilityCost(r,ab);
-    let canUse=r.mp>=cost;
-    if(ab.requirement==='close_zone'&&zone!=='close')canUse=false;
-    if(ab.requirement==='mid_or_far_zone'&&zone==='close')canUse=false;
-    if(ab.requirement==='ranged_equipped'&&(!r.wpn||r.wpn.t!=='ranged'))canUse=false;
-    if(ab.requirement==='spellbook_equipped'&&(!r.oh||r.oh.t!=='spellbook'))canUse=false;
     this.el.cbAbility.style.display='';
-    let btnLabel=ab.name;
-    if(ab.conditions){const condMet=cs.turnCount<=1||cs.movedThisTurn;btnLabel+=condMet?' (3\u00d7)':' (1\u00d7)'}
-    if(ab.trigger==='sustained'&&cs.activeBuff&&cs.activeBuff.trigger==='sustained')btnLabel+=' ON';
-    if(abilities.length>1)btnLabel+=' \u25bc';
+    let btnLabel=abilities.length>1?'Abilities':'Ability';
     this.el.cbAbilityName.textContent=btnLabel;
+    const cost=CALC.abilityCost(r,ab);
     this.el.cbAbilityCost.textContent=cost+'MP';
+    let canUse=abilities.some(a=>{const c=CALC.abilityCost(r,a);return r.mp>=c});
     this.el.cbAbility.disabled=!canUse;
   }else{this.el.cbAbility.style.display='none'}
-  this.updateZoneDisplay(true);
+  this.updateBattleScene(true);
 },
-updateZoneDisplay(show){
-  const zd=this.el.zoneDisplay;if(!zd)return;
-  if(!show){zd.classList.remove('vis');return}
-  const cs=CMB.gs();if(!cs||cs.over){zd.classList.remove('vis');return}
-  zd.classList.add('vis');
-  const lbls=zd.querySelectorAll('.zone-lbl');
-  lbls.forEach(l=>{const z=l.dataset.zone;l.classList.toggle('active',z===cs.playerZone)});
-  const e=cs.enemy,tier=e.tier||1;
-  const nameEl=$('enemy-hp-name');
-  if(nameEl)nameEl.innerHTML='<span class="tier-badge tier-'+tier+'">'+TIER_LABELS[tier]+'</span>'+e.name;
-  const fill=$('enemy-hp-fill');
-  if(fill){const pct=Math.max(0,(e.hp/e.mHP)*100);fill.style.width=pct+'%';
-    fill.className='enemy-hp-fill '+(pct>50?'ehp-high':pct>25?'ehp-mid':'ehp-low')}
-  const txt=$('enemy-hp-text');
-  if(txt)txt.textContent=e.hp+' / '+e.mHP+' HP';
+updateBattleScene(show){
+  const bc=$('battle-canvas');if(!bc)return;
+  if(!show){bc.style.display='none';return}
+  const cs=CMB.gs();if(!cs||cs.over){bc.style.display='none';return}
+  bc.style.display='block';
+  const r=GS.run;
+  BattleRenderer.render(bc,r,cs);
 },
 updateHUD(){const r=GS.run;if(!r)return;
   PA.renderPortrait(this.el.hp,r.species);
@@ -1348,16 +1505,12 @@ renderSceneActions(sceneId){
 openActionSheet(){
   const cs=CMB.gs(),r=GS.run;this.el.asl.innerHTML='';
   if(cs&&!cs.over){
-    const zone=cs.playerZone;
     const w=r.wpn;let atkDesc='No weapon';
-    if(w){const isMelee=w.t==='melee';const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def,zone):CALC.rangedHit(r,cs.enemy.def,zone);
-      atkDesc=w.name+' \u2014 '+hitPct+'% to hit'+(isMelee&&zone!=='close'?' (need CLOSE)':'')}
-    const zi=CALC.ZONES.indexOf(zone);
+    if(w){const isMelee=w.t==='melee';const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
+      atkDesc=w.name+' \u2014 '+hitPct+'% to hit'}
     const acts=[{l:'Attack \u2014 '+atkDesc,cmd:'attack'},
-      {l:'Move Closer',sub:'Advance one zone',cmd:'move_closer',dis:zi<=0},
-      {l:'Move Further',sub:'Fall back one zone',cmd:'move_further',dis:zi>=2},
       {l:'Block',sub:'Halve incoming damage this turn',cmd:'block'},
-      {l:'Flee \u2014 '+CALC.flee(r)+'%',sub:zone==='close'?'(need MID or FAR)':'',cmd:'flee',dis:zone==='close'&&r.subspecies!=='quickfoot'}];
+      {l:'Flee \u2014 '+CALC.flee(r)+'%',sub:'',cmd:'flee'}];
     const hpot=r.bp.find(i=>i.t==='consumable'&&i.heal);if(hpot)acts.push({l:'Use '+hpot.name,cmd:'use_hpot'});
     const mpot=r.bp.find(i=>i.t==='consumable'&&i.mana);if(mpot)acts.push({l:'Use '+mpot.name,cmd:'use_mpot'});
     const anti=r.bp.find(i=>i.t==='consumable'&&i.cure);if(anti)acts.push({l:'Use '+anti.name,sub:'Cures '+anti.cure,cmd:'use_antidote'});
@@ -1384,19 +1537,56 @@ openActionSheet(){
     mkA('Check inventory',()=>ML.openChar('bp'));
     r.bp.forEach(it=>{if(it.t==='consumable')mkA('Use '+it.name,()=>{
       const msg=useConsumable(it,r);if(msg)UI.addN(msg,'s')})});
-    const clDef2=CL[r.classes[0]],ab2=clDef2?clDef2.ability:null;
-    if(ab2&&ab2.type==='heal'&&r.hp<r.mHP){const cost2=CALC.abilityCost(r,ab2);
+    const healAbs=getAbilities(r).filter(a=>a.type==='heal');
+    healAbs.forEach(ab2=>{if(r.hp<r.mHP){const cost2=CALC.abilityCost(r,ab2);
       if(r.mp>=cost2)mkA(ab2.name+' ('+cost2+' MP)',()=>{r.mp-=cost2;const h=Math.min(ab2.effect.healAmt,r.mHP-r.hp);r.hp+=h;GS.saveA();
-        UI.addN(ab2.name+'! Restored '+h+' HP. ('+r.hp+'/'+r.mHP+' HP)','s');UI.updateHUD()})}
+        UI.addN(ab2.name+'! Restored '+h+' HP. ('+r.hp+'/'+r.mHP+' HP)','s');UI.updateHUD()})}})
     mkA('Save game',()=>{if(GS.qSave())UI.addN('Game quick saved.','y');else UI.addN('Quick save failed.','d')});
   }
   this.el.asb.classList.add('vis');this.el.ash.classList.add('vis');
 },
 closeActionSheet(){this.el.ash.classList.remove('vis');this.el.asb.classList.remove('vis')},
+_closeAllSubs(){$('cmd-sub-ability').classList.add('hidden');$('cmd-sub-item').classList.add('hidden')},
+_toggleAbilitySub(){
+  const sub=$('cmd-sub-ability'),r=GS.run,cs=CMB.gs();
+  if(!sub.classList.contains('hidden')){this._closeAllSubs();return}
+  this._closeAllSubs();sub.innerHTML='';sub.classList.remove('hidden');
+  const abilities=getAbilities(r);
+  abilities.forEach((ab,ai)=>{
+    const cost=CALC.abilityCost(r,ab);let canUse=r.mp>=cost;
+    if(ab.requirement==='ranged_equipped'&&(!r.wpn||r.wpn.t!=='ranged'))canUse=false;
+    if(ab.requirement==='spellbook_equipped'&&(!r.oh||r.oh.t!=='spellbook'))canUse=false;
+    const b=document.createElement('button');b.className='cmd-sub-btn';
+    b.innerHTML=ab.name+'<span class="sub-desc">'+ab.desc+'</span><span class="sub-cost">'+cost+' MP</span>';
+    b.disabled=!canUse;
+    b.onclick=()=>{this._closeAllSubs();SE.doCombatAction(ai===0?'ability':'ability_'+ai)};
+    sub.appendChild(b)});
+  const bk=document.createElement('button');bk.className='cmd-back';bk.textContent='← Back';
+  bk.onclick=()=>this._closeAllSubs();sub.appendChild(bk)},
+_toggleItemSub(){
+  const sub=$('cmd-sub-item'),r=GS.run;
+  if(!sub.classList.contains('hidden')){this._closeAllSubs();return}
+  this._closeAllSubs();sub.innerHTML='';sub.classList.remove('hidden');
+  const items=r.bp.filter(i=>i.t==='consumable');
+  if(!items.length){const e=document.createElement('div');e.style.cssText='color:var(--text2);font-size:.82rem;padding:4px';e.textContent='No items';sub.appendChild(e)}
+  else items.forEach(it=>{
+    const b=document.createElement('button');b.className='cmd-sub-btn';
+    let desc=it.heal?'Heal '+it.heal+' HP':'';
+    if(it.mana)desc+=(desc?' · ':'')+'Restore '+it.mana+' MP';
+    if(it.cure)desc+=(desc?' · ':'')+'Cure '+it.cure;
+    b.innerHTML=it.name+(desc?'<span class="sub-desc">'+desc+'</span>':'');
+    b.onclick=()=>{this._closeAllSubs();
+      if(it.heal)SE.doCombatAction('use_hpot');
+      else if(it.mana)SE.doCombatAction('use_mpot');
+      else if(it.cure)SE.doCombatAction('use_antidote');
+      else SE.doCombatAction('use_item')};
+    sub.appendChild(b)});
+  const bk=document.createElement('button');bk.className='cmd-back';bk.textContent='← Back';
+  bk.onclick=()=>this._closeAllSubs();sub.appendChild(bk)},
 
 setCombatBusy(busy){
   this._busy=busy;
-  [this.el.cbAtk,this.el.cbAbility,this.el.cbBlock,this.el.cbFlee,this.el.cbItem,this.el.cbMove,
+  [this.el.cbAtk,this.el.cbAbility,this.el.cbBlock,this.el.cbFlee,this.el.cbItem,
    this.el.batk,this.el.bdef,this.el.bitem].forEach(b=>{if(b)b.disabled=busy});
 },
 combatFX(type,value){
@@ -1405,17 +1595,13 @@ combatFX(type,value){
   if(type==='player_hit'){
     if(flash){flash.className='hit-flash-red';setTimeout(()=>{flash.className='';flash.style.display='none'},350)}
     const gm=$('game');if(gm){gm.classList.add('screen-shake');setTimeout(()=>gm.classList.remove('screen-shake'),300)}
+    BattleRenderer.showDmgPop(value||0,'player_dmg');
   }
   if(type==='enemy_hit'){
-    if(flash){flash.className='hit-flash-gold';setTimeout(()=>{flash.className='';flash.style.display='none'},350)}
+    BattleRenderer.showDmgPop(value||0,'enemy_hit');
   }
   if(type==='dmg'||type==='heal'||type==='miss'){
-    const pop=document.createElement('span');
-    pop.className='dmg-pop '+(type==='heal'?'dmg-pop-green':type==='miss'?'dmg-pop-grey':'dmg-pop-'+(value<0?'gold':'red'));
-    pop.textContent=type==='miss'?'MISS':type==='heal'?'+'+value:(value<0?value:'-'+value);
-    pop.style.top=(this.el.nw.scrollTop+this.el.nw.clientHeight-40)+'px';
-    this.el.nw.appendChild(pop);
-    setTimeout(()=>pop.remove(),750);
+    BattleRenderer.showDmgPop(Math.abs(value||0),type==='heal'?'heal':type==='miss'?'miss':(value<0?'enemy_hit':'player_dmg'));
   }
 }
 };
@@ -1567,7 +1753,7 @@ openJrn(){
   pgs.Combat.innerHTML='<h3>Combat System</h3><p>Combat uses percentage-based checks. Your hit chance is shown before each attack.</p><h3>Distance</h3><p>Battlefield spans 5m–30m. Melee weapons strike at 5m. Ranged: 10–30m (penalty under 10m).</p><h3>Free Movement</h3><p>Each turn you can move AND take an action. Movement distance = Movement stat × 2 meters, reduced by equipment weight.</p><h3>Actions</h3><p><strong style="color:var(--gold)">Attack</strong> — Hit chance: 55% + (attack stat − 5) × 5% − enemy defense × 3%.</p><p><strong style="color:var(--gold)">Block</strong> — Raise shield to reduce damage.</p><p><strong style="color:var(--gold)">Use Item</strong> — Consume potions mid-combat.</p><p><strong style="color:var(--gold)">Flee</strong> — 30% + distance × 1.5% + (Movement − 5) × 5%.</p><h3>Damage</h3><p>Weapon dice + (attack stat − 5) + trait bonuses. All rolls clamped 5%–95%.</p>';
   let clH='<h3>Classes</h3>';Object.values(CL).forEach(c=>{
     let gearStr=c.wpn?c.wpn.name:'—';if(c.arm)gearStr+=', '+c.arm.name;if(c.oh)gearStr+=', '+c.oh.name;
-    let abStr=c.ability?'<p style="font-size:.9rem;color:var(--gold-bright)">'+c.ability.name+' ('+c.ability.cost+' MP): '+c.ability.desc+'</p>':'';
+    const ccAb0=c.abilities?c.abilities[0]:c.ability;let abStr=ccAb0?'<p style="font-size:.9rem;color:var(--gold-bright)">'+ccAb0.name+' ('+ccAb0.cost+' MP): '+ccAb0.desc+'</p>':'';
     clH+='<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">'+c.name+'</strong></p><p style="font-style:italic;color:var(--text2)">'+c.desc+'</p><p style="font-size:.9rem;color:var(--text3)">Gear: '+gearStr+'</p>'+abStr+'</div>'});pgs.Classes.innerHTML=clH;
   let spH='<h3>Species</h3>';Object.entries(SP).forEach(([k,s])=>{spH+='<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">'+s.name+'</strong></p><p style="font-style:italic;color:var(--text2)">'+s.desc+'</p>';
     spH+='<p style="font-size:.85rem;color:var(--text3)">';STAT_NAMES.forEach(st=>{spH+=STAT_LABELS[st]+':'+s.stats[st]+' '});spH+='</p>';
@@ -1804,7 +1990,7 @@ async _startCombat(id,scene){
   const cs=CMB.start(eKey);
   if(!cs){UI.addN('The shadows disperse. Nothing attacks.','f');UI.updateHUD();return}
   UI.setCombatMode(true);
-  UI.addN('Combat begins! You are at '+cs.playerZone.toUpperCase()+' range.','y');
+  UI.addN('Combat begins!','y');
   if(waves.length>1)UI.addN('Wave 1 of '+waves.length,'y');
   const eTier=ENEMIES[eKey]?ENEMIES[eKey].tier||1:1;
   if(r.level>=(eTier*3+2)&&waves.length===1){
@@ -1838,19 +2024,26 @@ async doCombatAction(cmd){
     if(!sep&&!m.t.startsWith('The '))playerMs.push(m);
     else{sep=true;enemyMs.push(m)}});
   if(!enemyMs.length){playerMs.length=0;playerMs.push(...allMs)}
+  const r=GS.run,w=r?r.wpn:null;
+  let pAnimType='player_melee';
+  if(cmd==='block')pAnimType='block';
+  else if(cmd==='flee')pAnimType=null;
+  else if(cmd.startsWith('ability')){const ab=getAbilities(r)[0];pAnimType=ab&&ab.effect&&ab.effect.statOverride==='smarts'?'player_magic':'player_melee'}
+  else if(w&&w.t==='ranged')pAnimType='player_ranged';
+  if(pAnimType&&!REDUCED_MOTION)await new Promise(ok=>BattleRenderer.playAttack(pAnimType,eDmgDealt,ok));
   for(const m of playerMs){UI.addN(m.t,m.c)}
-  UI.updateZoneDisplay(true);
-  if(eDmgDealt>0)UI.combatFX('enemy_hit');
-  if(eDmgDealt>0)UI.combatFX('dmg',-eDmgDealt);
+  UI.updateBattleScene(true);
+  if(eDmgDealt>0)UI.combatFX('enemy_hit',eDmgDealt);
   const hasPlayerMiss=playerMs.some(m=>m.t.includes('MISS'));
   if(hasPlayerMiss)UI.combatFX('miss');
   if(enemyMs.length){
     const tier=cs1&&cs1.enemy?cs1.enemy.tier||1:1;
     const suspenseDelay=Math.min(800,300+tier*80);
     await UI._wait(REDUCED_MOTION?0:suspenseDelay);
+    if(!REDUCED_MOTION&&pDmgTaken>0)await new Promise(ok=>BattleRenderer.playAttack('enemy_attack',pDmgTaken,ok));
   }
   for(const m of enemyMs){UI.addN(m.t,m.c)}
-  if(pDmgTaken>0){UI.combatFX('player_hit');UI.combatFX('dmg',pDmgTaken)}
+  if(pDmgTaken>0){UI.combatFX('player_hit',pDmgTaken)}
   const hasEnemyMiss=enemyMs.some(m=>m.t.includes('misses'));
   if(hasEnemyMiss)UI.combatFX('miss');
   if(enemyMs.length)await UI._wait(REDUCED_MOTION?0:250);
@@ -1961,6 +2154,20 @@ handleAction(cmd){
       if(r.bp.length<6){r.bp.push({...ITEMS.dwarven_ale});UI.addN('The flask survived the golem\u2019s collapse. Dwarven Ale \u2014 could come in handy.','s')}
       else{UI.addN('A flask among the rubble, but your backpack is full!','d');r.ss.ihGolemSearch=false}GS.saveA()}
     else UI.addN('Nothing more among the iron.','f');return}
+  if(cmd==='camp_rest'){
+    const restFlags={post_ooze:'restPostOoze',post_spider:'restPostSpider',ih_post_crawler:'restIhCrawler',ash_post_road:'restAshRoad'};
+    const flag=restFlags[sceneId];
+    if(flag&&!r.ss[flag]){
+      r.ss[flag]=true;
+      const hpGain=Math.min(Math.ceil(r.mHP*0.25),r.mHP-r.hp);
+      const mpGain=Math.min(Math.ceil(r.mMP*0.25),r.mMP-r.mp);
+      r.hp+=hpGain;r.mp+=mpGain;GS.saveA();UI.updateHUD();
+      UI.addN('You sit down, tend your wounds, and gather your strength.','s');
+      if(hpGain>0||mpGain>0)UI.addN(`Recovered ${hpGain} HP and ${mpGain} MP.`,'s');
+      else UI.addN('You are already at full strength, but the rest clears your mind.','f');
+      UI.renderScene(SCENE_DATA[sceneId],sceneId)}
+    else UI.addN('You have already rested here.','f');
+    return}
   if(cmd==='leave_hollows'){this.runComplete();return}
   if(cmd==='leave_waste'){this.runComplete();return}
   if(cmd==='rest'){this.runComplete();return}
@@ -2042,8 +2249,12 @@ async onWin(){
   await UI._wait(500);
   if(r.activeBounty&&r.scene==='bounty_arena'){
     this.completeBounty();return}
-  const nextMap={gray_ooze:'post_ooze',giant_spider:'post_spider',dire_wolf:'post_wolf',bog_wraith:'post_bog',cave_crawler:'ih_post_crawler',mine_shade:'ih_post_shade',iron_golem:'ih_post_golem',
-    ember_beetle:'ash_post_road',fungal_horror:'ash_post_swamp',corrupted_knight:'ash_post_ruins',ash_wyrm:'ash_post_tower',elder_dragon:'ash_exit'};
+  const nextMap={gray_ooze:'post_ooze',giant_spider:'post_spider',dire_wolf:'post_wolf',bog_wraith:'post_bog',
+    fungal_horror:r.scene==='ih_fungal_grotto'?'ih_post_fungal':'ash_post_swamp',
+    bone_sentinel:'ih_post_bone',
+    cave_crawler:'ih_post_crawler',mine_shade:'ih_post_shade',iron_golem:'ih_post_golem',
+    ironscale_lizard:'ash_post_road',
+    corrupted_knight:'ash_post_ruins',ash_wyrm:'ash_post_tower',elder_dragon:'ash_exit'};
   const nextScene=nextMap[enemy.id]||null;
   if(nextScene){
     const goBtn=document.createElement('button');goBtn.className='nav-btn';goBtn.style.marginTop='12px';
@@ -2404,6 +2615,7 @@ runComplete(){
 startAdventure(advId){
   const r=GS.run;r.adventure=advId;r.cs=null;
   if(r.debuffs)r.debuffs=[];
+  if(advId==='ashen_waste')r.ss.exit_tavern_hub_waste=true;
   const starts={iron_hollows:'ih_entrance',ashen_waste:'ash_gate'};
   const startScene=starts[advId]||'trailhead';
   r.scene=startScene;GS.saveA();
