@@ -6,12 +6,12 @@ const fs = require('fs');
 const vm = require('vm');
 
 const src = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const wrapped = src + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.BOUNTIES=BOUNTIES;this.QUESTS=QUESTS;this.DEATH_QUOTES=DEATH_QUOTES;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;this.TAVERN_NPCS=TAVERN_NPCS;this.ADVENTURE_SIDE_NPCS=ADVENTURE_SIDE_NPCS;this.TAVERN_STATES=TAVERN_STATES;this.REPUTATION_TIERS=REPUTATION_TIERS;this.CLASS_UNLOCK_TIERS=CLASS_UNLOCK_TIERS;this.MILESTONES=MILESTONES;';
+const wrapped = src + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.BOUNTIES=BOUNTIES;this.QUESTS=QUESTS;this.DEATH_QUOTES=DEATH_QUOTES;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;this.TAVERN_NPCS=TAVERN_NPCS;this.ADVENTURE_SIDE_NPCS=ADVENTURE_SIDE_NPCS;this.TAVERN_STATES=TAVERN_STATES;this.REPUTATION_TIERS=REPUTATION_TIERS;this.CLASS_UNLOCK_TIERS=CLASS_UNLOCK_TIERS;this.MILESTONES=MILESTONES;this.SUBCLASS_ABILITIES=SUBCLASS_ABILITIES;this.CLASS_OOC_ABILITIES=CLASS_OOC_ABILITIES;';
 const sandbox = { UI: { addN() {} }, GS: { saveA() {} } };
 vm.createContext(sandbox);
 vm.runInContext(wrapped, sandbox);
 
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA, BOUNTIES, QUESTS, DEATH_QUOTES, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, RECIPES, ITEM_RARITY, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS, TAVERN_NPCS, ADVENTURE_SIDE_NPCS, TAVERN_STATES, REPUTATION_TIERS, CLASS_UNLOCK_TIERS, MILESTONES } = sandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, BOUNTIES, QUESTS, DEATH_QUOTES, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, RECIPES, ITEM_RARITY, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS, TAVERN_NPCS, ADVENTURE_SIDE_NPCS, TAVERN_STATES, REPUTATION_TIERS, CLASS_UNLOCK_TIERS, MILESTONES, SUBCLASS_ABILITIES, CLASS_OOC_ABILITIES } = sandbox;
 let errors = 0;
 let warnings = 0;
 
@@ -202,27 +202,86 @@ if (CLASS_MILESTONES) {
   }
 }
 
-// Batch 4: CLASS_TREE validation
+// Batch 4/6: CLASS_TREE validation (135-node web model)
 if (CLASS_TREE) {
   const allNodeIds = new Set();
+  const CL_KEYS_TREE = ['fighter','paladin','ranger','rogue','wizard','berserker','gunslinger','necromancer','warlock'];
   for (const [cl, tree] of Object.entries(CLASS_TREE)) {
+    if (!tree.nodes || !Array.isArray(tree.nodes))
+      { err(`CLASS_TREE "${cl}" missing nodes array`); continue; }
+    if (tree.nodes.length !== 15)
+      err(`CLASS_TREE "${cl}" has ${tree.nodes.length} nodes (expected 15)`);
+    const cpTotal = tree.nodes.reduce((s,n) => s + n.cost, 0);
+    if (cpTotal !== 53)
+      err(`CLASS_TREE "${cl}" CP total is ${cpTotal} (expected 53)`);
     const classNodeIds = new Set();
-    for (const node of tree.trunk) {
+    let generalCount = 0, subclassCount = 0, unlockCount = 0;
+    for (const node of tree.nodes) {
       if (allNodeIds.has(node.id)) err(`CLASS_TREE node id "${node.id}" duplicated across classes`);
       allNodeIds.add(node.id);
       classNodeIds.add(node.id);
-      if (node.prereq && !classNodeIds.has(node.prereq))
-        err(`CLASS_TREE "${cl}" node "${node.id}" prereq "${node.prereq}" not found`);
-    }
-    for (const [bk, branch] of Object.entries(tree.branches)) {
-      for (const node of branch.nodes) {
-        if (allNodeIds.has(node.id)) err(`CLASS_TREE node id "${node.id}" duplicated across classes`);
-        allNodeIds.add(node.id);
-        if (node.prereq && !classNodeIds.has(node.prereq))
-          err(`CLASS_TREE "${cl}" branch "${bk}" node "${node.id}" prereq "${node.prereq}" not found`);
+      if (!node.effects || !Array.isArray(node.effects))
+        err(`CLASS_TREE "${cl}" node "${node.id}" missing effects array`);
+      if (typeof node.tier !== 'number' || node.tier < 1 || node.tier > 5)
+        err(`CLASS_TREE "${cl}" node "${node.id}" invalid tier ${node.tier}`);
+      if (node.type === 'general') generalCount++;
+      else if (node.type === 'unlock') unlockCount++;
+      else subclassCount++;
+      // Validate prereqs reference valid IDs within class
+      if (node.prereq && Array.isArray(node.prereq)) {
+        for (const group of node.prereq) {
+          for (const pid of group) {
+            if (!classNodeIds.has(pid) && !tree.nodes.some(n => n.id === pid))
+              err(`CLASS_TREE "${cl}" node "${node.id}" prereq "${pid}" not found in class`);
+          }
+        }
+      }
+      // Unlock nodes must have subclass and minNodes
+      if (node.type === 'unlock') {
+        if (!node.subclass) err(`CLASS_TREE "${cl}" unlock node "${node.id}" missing subclass`);
+        if (typeof node.minNodes !== 'number') err(`CLASS_TREE "${cl}" unlock node "${node.id}" missing minNodes`);
       }
     }
+    if (generalCount !== 6) err(`CLASS_TREE "${cl}" has ${generalCount} general nodes (expected 6)`);
+    if (subclassCount !== 6) err(`CLASS_TREE "${cl}" has ${subclassCount} subclass-aligned nodes (expected 6)`);
+    if (unlockCount !== 3) err(`CLASS_TREE "${cl}" has ${unlockCount} unlock nodes (expected 3)`);
+    // Validate subclasses object
+    if (!tree.subclasses || Object.keys(tree.subclasses).length !== 3)
+      err(`CLASS_TREE "${cl}" must have exactly 3 subclasses`);
   }
+  if (allNodeIds.size !== 135)
+    err(`CLASS_TREE total nodes: ${allNodeIds.size} (expected 135)`);
+}
+
+// Batch 6: SUBCLASS_ABILITIES validation
+if (typeof SUBCLASS_ABILITIES !== 'undefined' && SUBCLASS_ABILITIES) {
+  let saCount = 0;
+  for (const [cl, subs] of Object.entries(SUBCLASS_ABILITIES)) {
+    for (const [sub, ab] of Object.entries(subs)) {
+      saCount++;
+      if (!ab.name) err(`SUBCLASS_ABILITIES "${cl}.${sub}" missing name`);
+      if (typeof ab.cost !== 'number') err(`SUBCLASS_ABILITIES "${cl}.${sub}" missing cost`);
+      if (ab.unlockLevel !== 12) err(`SUBCLASS_ABILITIES "${cl}.${sub}" unlockLevel should be 12`);
+    }
+  }
+  if (saCount !== 27) err(`SUBCLASS_ABILITIES has ${saCount} entries (expected 27)`);
+}
+
+// Batch 6: CLASS_OOC_ABILITIES validation
+if (typeof CLASS_OOC_ABILITIES !== 'undefined' && CLASS_OOC_ABILITIES) {
+  const validStats = ['sight','speech','movement'];
+  let oocCount = 0;
+  for (const [cl, data] of Object.entries(CLASS_OOC_ABILITIES)) {
+    if (!validStats.includes(data.stat))
+      err(`CLASS_OOC_ABILITIES "${cl}" has invalid stat "${data.stat}"`);
+    if (!data.abilities || data.abilities.length !== 2)
+      err(`CLASS_OOC_ABILITIES "${cl}" should have exactly 2 abilities`);
+    for (const ab of (data.abilities || [])) {
+      oocCount++;
+      if (!ab.id || !ab.name) err(`CLASS_OOC_ABILITIES "${cl}" ability missing id or name`);
+    }
+  }
+  if (oocCount !== 18) err(`CLASS_OOC_ABILITIES has ${oocCount} entries (expected 18)`);
 }
 
 // Batch 5: TAVERN_NPCS validation

@@ -7,11 +7,11 @@ const vm = require('vm');
 
 // Load data.js (same as validate.js)
 const dataSrc = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_COLORS=RARITY_COLORS;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;this.TAVERN_NPCS=TAVERN_NPCS;this.ADVENTURE_SIDE_NPCS=ADVENTURE_SIDE_NPCS;this.TAVERN_STATES=TAVERN_STATES;this.REPUTATION_TIERS=REPUTATION_TIERS;this.CLASS_UNLOCK_TIERS=CLASS_UNLOCK_TIERS;this.MILESTONES=MILESTONES;this.BOUNTIES=BOUNTIES;';
+const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_COLORS=RARITY_COLORS;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;this.TAVERN_NPCS=TAVERN_NPCS;this.ADVENTURE_SIDE_NPCS=ADVENTURE_SIDE_NPCS;this.TAVERN_STATES=TAVERN_STATES;this.REPUTATION_TIERS=REPUTATION_TIERS;this.CLASS_UNLOCK_TIERS=CLASS_UNLOCK_TIERS;this.MILESTONES=MILESTONES;this.BOUNTIES=BOUNTIES;this.SUBCLASS_ABILITIES=SUBCLASS_ABILITIES;this.CLASS_OOC_ABILITIES=CLASS_OOC_ABILITIES;';
 const dataSandbox = { UI: { addN() {} } };
 vm.createContext(dataSandbox);
 vm.runInContext(dataWrapped, dataSandbox);
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS, RECIPES, ITEM_RARITY, RARITY_COLORS, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS, TAVERN_NPCS, ADVENTURE_SIDE_NPCS, TAVERN_STATES, REPUTATION_TIERS, CLASS_UNLOCK_TIERS, MILESTONES, BOUNTIES } = dataSandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS, RECIPES, ITEM_RARITY, RARITY_COLORS, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS, TAVERN_NPCS, ADVENTURE_SIDE_NPCS, TAVERN_STATES, REPUTATION_TIERS, CLASS_UNLOCK_TIERS, MILESTONES, BOUNTIES, SUBCLASS_ABILITIES, CLASS_OOC_ABILITIES } = dataSandbox;
 
 // Replicate rollLoot from index.html
 function rollLoot(enemy) {
@@ -273,23 +273,64 @@ for (const [cl, milestones] of Object.entries(CLASS_MILESTONES)) {
 }
 console.log('CLASS_MILESTONES validation passed (' + Object.keys(CLASS_MILESTONES).length + ' classes).');
 
-// Test CLASS_TREE node IDs are unique
+// Test CLASS_TREE 135-node web model
 {
   const allIds = new Set();
   let dupes = 0;
+  let totalCP = 0;
   for (const [cl, tree] of Object.entries(CLASS_TREE)) {
-    for (const node of tree.trunk) {
+    if (!tree.nodes || tree.nodes.length !== 15) { err('CLASS_TREE ' + cl + ' should have 15 nodes, has ' + (tree.nodes ? tree.nodes.length : 0)); }
+    const cp = tree.nodes.reduce((s,n) => s + n.cost, 0);
+    if (cp !== 53) err('CLASS_TREE ' + cl + ' CP total ' + cp + ' (expected 53)');
+    totalCP += cp;
+    for (const node of tree.nodes) {
       if (allIds.has(node.id)) { err('CLASS_TREE duplicate node ID: ' + node.id); dupes++; }
       allIds.add(node.id);
+      if (!node.effects || !Array.isArray(node.effects)) err('CLASS_TREE node ' + node.id + ' missing effects');
     }
-    for (const branch of Object.values(tree.branches)) {
-      for (const node of branch.nodes) {
-        if (allIds.has(node.id)) { err('CLASS_TREE duplicate node ID: ' + node.id); dupes++; }
-        allIds.add(node.id);
+    if (!tree.subclasses || Object.keys(tree.subclasses).length !== 3) err('CLASS_TREE ' + cl + ' missing 3 subclasses');
+    // Check prereq integrity
+    const classIds = new Set(tree.nodes.map(n => n.id));
+    for (const node of tree.nodes) {
+      if (node.prereq && Array.isArray(node.prereq)) {
+        for (const group of node.prereq) {
+          for (const pid of group) {
+            if (!classIds.has(pid)) err('CLASS_TREE ' + cl + ' node ' + node.id + ' prereq ' + pid + ' not found');
+          }
+        }
       }
     }
   }
-  if (dupes === 0) console.log('CLASS_TREE node ID uniqueness passed (' + allIds.size + ' nodes).');
+  if (dupes === 0) console.log('CLASS_TREE node ID uniqueness passed (' + allIds.size + ' nodes, ' + totalCP + ' total CP).');
+}
+
+// Test SUBCLASS_ABILITIES (27 entries)
+{
+  let count = 0;
+  for (const cl of Object.keys(SUBCLASS_ABILITIES)) {
+    for (const sub of Object.keys(SUBCLASS_ABILITIES[cl])) {
+      count++;
+      const ab = SUBCLASS_ABILITIES[cl][sub];
+      if (!ab.name || typeof ab.cost !== 'number') err('SUBCLASS_ABILITIES ' + cl + '.' + sub + ' invalid');
+    }
+  }
+  if (count === 27) console.log('SUBCLASS_ABILITIES: 27 entries verified.');
+  else err('SUBCLASS_ABILITIES has ' + count + ' entries (expected 27)');
+}
+
+// Test CLASS_OOC_ABILITIES (18 entries)
+{
+  let count = 0;
+  const statCounts = {sight:0,speech:0,movement:0};
+  for (const [cl, data] of Object.entries(CLASS_OOC_ABILITIES)) {
+    if (data.stat) statCounts[data.stat] = (statCounts[data.stat]||0) + 1;
+    for (const ab of (data.abilities || [])) {
+      count++;
+      if (!ab.id || !ab.name) err('CLASS_OOC_ABILITIES ' + cl + ' ability missing id/name');
+    }
+  }
+  if (count === 18) console.log('CLASS_OOC_ABILITIES: 18 entries verified (Sight:' + statCounts.sight + ' Speech:' + statCounts.speech + ' Movement:' + statCounts.movement + ').');
+  else err('CLASS_OOC_ABILITIES has ' + count + ' entries (expected 18)');
 }
 
 // Test SPIRITFIRE_REWARDS has correct fields

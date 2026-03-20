@@ -1149,101 +1149,273 @@ hunted:{name:'Hunted',desc:'Every 5 combat turns, a reinforcement enemy appears.
 
 const CLASS_TREE={
 fighter:{
-trunk:[
-{id:'f_t1',name:'Arms Training',cost:2,desc:'+1 melee damage',prereq:null},
-{id:'f_t2',name:'Shield Mastery',cost:3,desc:'+1 block value',prereq:'f_t1'},
-{id:'f_t3',name:'Hardened Veteran',cost:5,desc:'+5 max HP',prereq:'f_t2'}
-],branches:{
-champion:{name:'Champion',nodes:[{id:'f_ch1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'f_t3'}]},
-warden:{name:'Warden',nodes:[{id:'f_wa1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'f_t3'}]},
-weaponmaster:{name:'Weaponmaster',nodes:[{id:'f_wm1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'f_t3'}]}
-}},
-paladin:{
-trunk:[
-{id:'p_t1',name:'Holy Training',cost:2,desc:'+1 melee damage',prereq:null},
-{id:'p_t2',name:'Faith Shield',cost:3,desc:'+1 block value',prereq:'p_t1'},
-{id:'p_t3',name:'Divine Constitution',cost:5,desc:'+5 max HP',prereq:'p_t2'}
-],branches:{
-templar:{name:'Templar',nodes:[{id:'p_te1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'p_t3'}]},
-inquisitor:{name:'Inquisitor',nodes:[{id:'p_in1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'p_t3'}]},
-crusader:{name:'Crusader',nodes:[{id:'p_cr1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'p_t3'}]}
-}},
+  nodes:[
+    // --- Entry (Tier 1) ---
+    {id:'f_G1',name:'Steel Conditioning',type:'general',tier:1,cost:2,desc:'+1 damage on first attack each combat.',prereq:[],effects:[{type:'firstAttackBonus',value:1}]},
+    {id:'f_G2',name:'Drilled Reflexes',type:'general',tier:1,cost:2,desc:'+5% melee hit chance.',prereq:[],effects:[{type:'meleeHit',value:5}]},
+    // --- Second Tier ---
+    {id:'f_G3',name:'Endurance Training',type:'general',tier:2,cost:3,desc:'+4 max HP.',prereq:[['f_G1','f_G2']],effects:[{type:'maxHP',value:4}]},
+    {id:'f_G4',name:'Tactical Awareness',type:'general',tier:2,cost:3,desc:'Rally also grants +5% hit for 2 turns.',prereq:[['f_G1','f_G2']],effects:[{type:'abilityEnhance',ability:'rally',mods:{hitBonus:5,hitDuration:2}}]},
+    {id:'f_S_Sen1',name:'Shield Mastery',type:'sentinel',tier:2,cost:3,desc:'Shield block +1. Block reduces status duration by 1 turn.',prereq:[['f_G2']],effects:[{type:'blockBonus',value:1},{type:'blockStatusReduce',value:1}]},
+    {id:'f_S_Bla1',name:'Aggressive Stance',type:'blade',tier:2,cost:3,desc:'+1 damage all attacks, -1 DEF (toggle).',prereq:[['f_G1']],effects:[{type:'toggle',id:'aggressive_stance',dmgBonus:1,defPenalty:1}]},
+    // --- Third Tier ---
+    {id:'f_G5',name:'Battle Hardened',type:'general',tier:3,cost:3,desc:'-1 incoming damage from all sources.',prereq:[['f_G3']],effects:[{type:'damageReduction',value:1}]},
+    {id:'f_G6',name:'War Experience',type:'general',tier:3,cost:3,desc:'Power Strike MP 4 to 3.',prereq:[['f_G4']],effects:[{type:'abilityCostReduce',ability:'power_strike',value:1}]},
+    {id:'f_S_Com1',name:'Field Commander',type:'commandant',tier:3,cost:4,desc:'Battle Cry +2 turns (4 to 6). Stagger +10%.',prereq:[['f_G4']],effects:[{type:'abilityEnhance',ability:'battle_cry',mods:{durationBonus:2}},{type:'statusChanceBonus',status:'stagger',value:10}]},
+    {id:'f_S_Sen2',name:'Immovable',type:'sentinel',tier:3,cost:4,desc:'While blocking: immune to Slow/Rooted. Rally cleanses 2 effects.',prereq:[['f_S_Sen1'],['f_G3']],effects:[{type:'blockStatusImmune',statuses:['slow','rooted']},{type:'abilityEnhance',ability:'rally',mods:{cleanse:2}}]},
+    // --- Fourth Tier ---
+    {id:'f_S_Com2',name:'Inspiring Presence',type:'commandant',tier:4,cost:4,desc:'Battle Cry also grants +1 DEF. Stagger +1 turn.',prereq:[['f_S_Com1']],minGeneral:2,effects:[{type:'abilityEnhance',ability:'battle_cry',mods:{defBonus:1}},{type:'statusDurationBonus',status:'stagger',value:1}]},
+    {id:'f_S_Bla2',name:'Killing Intent',type:'blade',tier:4,cost:4,desc:'Crit +10%. +3 damage vs enemies below 30% HP.',prereq:[['f_S_Bla1'],['f_G5','f_G6']],effects:[{type:'critBonus',value:10},{type:'damageVsLowHP',value:3,threshold:30}]},
+    // --- Unlock (Tier 5) ---
+    {id:'f_U_Sen',name:'Sentinel Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Sentinel subclass.',prereq:[['f_S_Sen1'],['f_S_Sen2']],subclass:'sentinel',minNodes:8,effects:[{type:'subclassUnlock',subclass:'sentinel'}]},
+    {id:'f_U_Com',name:'Commandant Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Commandant subclass.',prereq:[['f_S_Com1'],['f_S_Com2']],subclass:'commandant',minNodes:8,effects:[{type:'subclassUnlock',subclass:'commandant'}]},
+    {id:'f_U_Bla',name:'Blade Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Blade subclass.',prereq:[['f_S_Bla1'],['f_S_Bla2']],subclass:'blade',minNodes:8,effects:[{type:'subclassUnlock',subclass:'blade'}]}
+  ],
+  subclasses:{
+    sentinel:{name:'Sentinel',desc:'Front-line tank specialist.'},
+    commandant:{name:'Commandant',desc:'Tactical commander.'},
+    blade:{name:'Blade',desc:'Pure damage specialist.'}
+  }
+},
 ranger:{
-trunk:[
-{id:'r_t1',name:'Sharpshooter',cost:2,desc:'+1 ranged damage',prereq:null},
-{id:'r_t2',name:'Quiver Mastery',cost:3,desc:'+3 bonus ammo',prereq:'r_t1'},
-{id:'r_t3',name:'Hawk Eye',cost:5,desc:'+5% ranged hit',prereq:'r_t2'}
-],branches:{
-beastmaster:{name:'Beastmaster',nodes:[{id:'r_bm1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'r_t3'}]},
-marksman:{name:'Marksman',nodes:[{id:'r_mk1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'r_t3'}]},
-warden:{name:'Warden',nodes:[{id:'r_wd1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'r_t3'}]}
-}},
-rogue:{
-trunk:[
-{id:'ro_t1',name:'Blade Work',cost:2,desc:'+1 melee damage',prereq:null},
-{id:'ro_t2',name:'Quick Reflexes',cost:3,desc:'+5% dodge',prereq:'ro_t1'},
-{id:'ro_t3',name:'Shadow Mastery',cost:5,desc:'Vanish costs 1 MP less',prereq:'ro_t2'}
-],branches:{
-assassin:{name:'Assassin',nodes:[{id:'ro_as1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'ro_t3'}]},
-thief:{name:'Thief',nodes:[{id:'ro_th1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'ro_t3'}]},
-duelist:{name:'Duelist',nodes:[{id:'ro_du1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'ro_t3'}]}
-}},
-wizard:{
-trunk:[
-{id:'w_t1',name:'Arcane Focus',cost:2,desc:'+1 spell damage',prereq:null},
-{id:'w_t2',name:'Mana Well',cost:3,desc:'+4 max MP',prereq:'w_t1'},
-{id:'w_t3',name:'Spell Mastery',cost:5,desc:'-1 ability cost',prereq:'w_t2'}
-],branches:{
-evoker:{name:'Evoker',nodes:[{id:'w_ev1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'w_t3'}]},
-enchanter:{name:'Enchanter',nodes:[{id:'w_en1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'w_t3'}]},
-chronomancer:{name:'Chronomancer',nodes:[{id:'w_ch1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'w_t3'}]}
-}},
-berserker:{
-trunk:[
-{id:'b_t1',name:'Brute Force',cost:2,desc:'+1 melee damage',prereq:null},
-{id:'b_t2',name:'Iron Will',cost:3,desc:'+5 max HP',prereq:'b_t1'},
-{id:'b_t3',name:'Battle Scars',cost:5,desc:'+1 DEF',prereq:'b_t2'}
-],branches:{
-ravager:{name:'Ravager',nodes:[{id:'b_rv1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'b_t3'}]},
-juggernaut:{name:'Juggernaut',nodes:[{id:'b_jg1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'b_t3'}]},
-warchief:{name:'Warchief',nodes:[{id:'b_wc1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'b_t3'}]}
-}},
+  nodes:[
+    // --- Entry (Tier 1) ---
+    {id:'r_G1',name:'Steady Hand',type:'general',tier:1,cost:2,desc:'+5% ranged hit chance.',prereq:[],effects:[{type:'rangedHit',value:5}]},
+    {id:'r_G2',name:'Wilderness Instinct',type:'general',tier:1,cost:2,desc:'+1 Sight for exploration events.',prereq:[],effects:[{type:'sight',value:1}]},
+    // --- Second Tier ---
+    {id:'r_G3',name:'Arrow Conservation',type:'general',tier:2,cost:3,desc:'Aimed Shot MP 3 to 2.',prereq:[['r_G1','r_G2']],effects:[{type:'abilityCostReduce',ability:'aimed_shot',value:1}]},
+    {id:'r_G4',name:'Keen Eye',type:'general',tier:2,cost:3,desc:'Surveyor also reveals status resistances and weaknesses.',prereq:[['r_G1','r_G2']],effects:[{type:'abilityEnhance',ability:'surveyor',mods:{revealResists:true}}]},
+    {id:'r_S_Mar1',name:'Lethal Precision',type:'marksman',tier:2,cost:3,desc:'+2 damage vs Marked targets.',prereq:[['r_G1']],effects:[{type:'damageVsMarked',value:2}]},
+    {id:'r_S_Tra1',name:'Snare Expert',type:'trapper',tier:2,cost:3,desc:'Multi-Shot Slow +15% per arrow. Slow +1 turn.',prereq:[['r_G2']],effects:[{type:'abilityEnhance',ability:'multi_shot',mods:{slowBonusPerArrow:15}},{type:'statusDurationBonus',status:'slow',value:1}]},
+    // --- Third Tier ---
+    {id:'r_G5',name:'Survivalist',type:'general',tier:3,cost:3,desc:'+3 max HP, +1 Effective Movement.',prereq:[['r_G3','r_G4']],effects:[{type:'maxHP',value:3},{type:'effMov',value:1}]},
+    {id:'r_G6',name:'Patient Hunter',type:'general',tier:3,cost:3,desc:'Track MP 2 to 1. Marked +1 turn.',prereq:[['r_G3']],effects:[{type:'abilityCostReduce',ability:'track',value:1},{type:'statusDurationBonus',status:'marked',value:1}]},
+    {id:'r_S_Mar2',name:'Dead Calm',type:'marksman',tier:3,cost:4,desc:'Crit +15% when not moved zones. Aimed Shot adds Bleed.',prereq:[['r_S_Mar1'],['r_G3','r_G6']],effects:[{type:'passive',id:'dead_calm',critBonusStationary:15},{type:'abilityEnhance',ability:'aimed_shot',mods:{addBleed:true}}]},
+    {id:'r_S_Out1',name:'Dual Grip',type:'outrider',tier:3,cost:4,desc:'Dagger 1d6+2. No zone-change penalty switching ranged/melee.',prereq:[['r_G5']],effects:[{type:'passive',id:'dual_grip',daggerDie:6,daggerBonus:2,noZonePenalty:true}]},
+    // --- Fourth Tier ---
+    {id:'r_S_Tra2',name:'Killzone',type:'trapper',tier:4,cost:4,desc:'Place zone trap (damage + Bleed on entry). 1/combat, 3 MP.',prereq:[['r_S_Tra1']],minGeneral:2,effects:[{type:'grantAbility',id:'killzone',cost:3,perCombat:1,trapDamage:true,trapBleed:true}]},
+    {id:'r_S_Out2',name:'Momentum',type:'outrider',tier:4,cost:4,desc:'After melee hit: next ranged +2. After ranged hit: next melee +2.',prereq:[['r_S_Out1'],['r_G3','r_G6']],effects:[{type:'passive',id:'momentum',meleeToRangedBonus:2,rangedToMeleeBonus:2}]},
+    // --- Unlock (Tier 5) ---
+    {id:'r_U_Mar',name:'Marksman Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Marksman subclass.',prereq:[['r_S_Mar1'],['r_S_Mar2']],subclass:'marksman',minNodes:8,effects:[{type:'subclassUnlock',subclass:'marksman'}]},
+    {id:'r_U_Tra',name:'Trapper Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Trapper subclass.',prereq:[['r_S_Tra1'],['r_S_Tra2']],subclass:'trapper',minNodes:8,effects:[{type:'subclassUnlock',subclass:'trapper'}]},
+    {id:'r_U_Out',name:'Outrider Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Outrider subclass.',prereq:[['r_S_Out1'],['r_S_Out2']],subclass:'outrider',minNodes:8,effects:[{type:'subclassUnlock',subclass:'outrider'}]}
+  ],
+  subclasses:{
+    marksman:{name:'Marksman',desc:'Long-range precision specialist.'},
+    trapper:{name:'Trapper',desc:'Zone-control tactician.'},
+    outrider:{name:'Outrider',desc:'Hybrid melee-ranged skirmisher.'}
+  }
+},
 gunslinger:{
-trunk:[
-{id:'g_t1',name:'Quick Draw',cost:2,desc:'+1 ranged damage',prereq:null},
-{id:'g_t2',name:'Steady Hands',cost:3,desc:'+5% ranged hit',prereq:'g_t1'},
-{id:'g_t3',name:'Extra Rounds',cost:5,desc:'+2 bonus ammo',prereq:'g_t2'}
-],branches:{
-desperado:{name:'Desperado',nodes:[{id:'g_de1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'g_t3'}]},
-sharpshooter:{name:'Sharpshooter',nodes:[{id:'g_sh1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'g_t3'}]},
-engineer:{name:'Engineer',nodes:[{id:'g_eg1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'g_t3'}]}
-}},
+  nodes:[
+    // --- Entry (Tier 1) ---
+    {id:'g_G1',name:'Quick Reflexes',type:'general',tier:1,cost:2,desc:'+5% ranged hit with Pistol.',prereq:[],effects:[{type:'rangedHit',value:5}]},
+    {id:'g_G2',name:'Gunpowder Intuition',type:'general',tier:1,cost:2,desc:'Quickdraw also reveals target next intent.',prereq:[],effects:[{type:'abilityEnhance',ability:'quickdraw',mods:{revealIntent:true}}]},
+    // --- Second Tier ---
+    {id:'g_G3',name:'Ammunition Craft',type:'general',tier:2,cost:3,desc:'Pistol +1 damage. Misses: 20% chance to apply intended status.',prereq:[['g_G1','g_G2']],effects:[{type:'rangedDmg',value:1},{type:'passive',id:'ammo_craft',missStatusChance:20}]},
+    {id:'g_G4',name:'Steady Nerves',type:'general',tier:2,cost:3,desc:'Quickdraw +2 damage. Immune to Stagger 1 turn after Quickdraw.',prereq:[['g_G1','g_G2']],effects:[{type:'abilityEnhance',ability:'quickdraw',mods:{dmgBonus:2}},{type:'passive',id:'steady_nerves',staggerImmune1t:true}]},
+    {id:'g_S_Sni1',name:'Patience Pays',type:'sniper',tier:2,cost:3,desc:'Skip attacking 1 turn: next shot +3 damage, +10% crit.',prereq:[['g_G1']],effects:[{type:'passive',id:'patience_pays',skipBonus:3,skipCrit:10}]},
+    {id:'g_S_Cow1',name:'Fan the Hammer',type:'cowboy',tier:2,cost:3,desc:'New ability: 2 shots at -10% accuracy, 3 MP.',prereq:[['g_G1','g_G2']],effects:[{type:'grantAbility',id:'fan_the_hammer',cost:3,shots:2,accuracyPenalty:10}]},
+    // --- Third Tier ---
+    {id:'g_G5',name:'Slippery',type:'general',tier:3,cost:3,desc:'+1 EffMov. Flee +10% from any zone.',prereq:[['g_G3','g_G4']],effects:[{type:'effMov',value:1},{type:'fleeBonus',value:10}]},
+    {id:'g_G6',name:'Read the Room',type:'general',tier:3,cost:3,desc:'+1 Sight. Marked enemies: DEF revealed.',prereq:[['g_G4']],effects:[{type:'sight',value:1},{type:'passive',id:'read_room',markedRevealDEF:true}]},
+    {id:'g_S_Sni2',name:'One Between the Eyes',type:'sniper',tier:3,cost:4,desc:'+3 damage vs Marked. Quickdraw doubles vs Exposed.',prereq:[['g_S_Sni1'],['g_G3','g_G4']],effects:[{type:'damageVsMarked',value:3},{type:'abilityEnhance',ability:'quickdraw',mods:{doubleVsExposed:true}}]},
+    {id:'g_S_Luc1',name:'Trick Shot',type:'lucky_shooter',tier:3,cost:4,desc:'New ability: choose Weaken/Slow/Blind. 4 MP.',prereq:[['g_G2']],effects:[{type:'grantAbility',id:'trick_shot',cost:4,chooseEffect:['weaken','slow','blind']}]},
+    // --- Fourth Tier ---
+    {id:'g_S_Cow2',name:'Never Stop Shooting',type:'cowboy',tier:4,cost:4,desc:'Fan the Hammer: 3 shots. Free shot on kill. Blind +15%.',prereq:[['g_S_Cow1']],minGeneral:2,effects:[{type:'abilityEnhance',ability:'fan_the_hammer',mods:{shots:3,freeOnKill:true}},{type:'statusChanceBonus',status:'blind',value:15}]},
+    {id:'g_S_Luc2',name:'Fortune Favors the Bold',type:'lucky_shooter',tier:4,cost:4,desc:'Trick Shot interrupts. +1 Sight/Speech. Quickdraw 25% Exposed.',prereq:[['g_S_Luc1'],['g_G5','g_G6']],effects:[{type:'abilityEnhance',ability:'trick_shot',mods:{interrupts:true}},{type:'sight',value:1},{type:'speech',value:1},{type:'abilityEnhance',ability:'quickdraw',mods:{exposedChance:25}}]},
+    // --- Unlock (Tier 5) ---
+    {id:'g_U_Sni',name:'Sniper Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Sniper subclass.',prereq:[['g_S_Sni1'],['g_S_Sni2']],subclass:'sniper',minNodes:8,effects:[{type:'subclassUnlock',subclass:'sniper'}]},
+    {id:'g_U_Cow',name:'Cowboy Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Cowboy subclass.',prereq:[['g_S_Cow1'],['g_S_Cow2']],subclass:'cowboy',minNodes:8,effects:[{type:'subclassUnlock',subclass:'cowboy'}]},
+    {id:'g_U_Luc',name:'Lucky Shooter Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Lucky Shooter subclass.',prereq:[['g_S_Luc1'],['g_S_Luc2']],subclass:'lucky_shooter',minNodes:8,effects:[{type:'subclassUnlock',subclass:'lucky_shooter'}]}
+  ],
+  subclasses:{
+    sniper:{name:'Sniper',desc:'Patient precision marksman.'},
+    cowboy:{name:'Cowboy',desc:'Rapid-fire gunfighter.'},
+    lucky_shooter:{name:'Lucky Shooter',desc:'Trick-shot specialist.'}
+  }
+},
+rogue:{
+  nodes:[
+    // --- Entry (Tier 1) ---
+    {id:'ro_G1',name:'Keen Edge',type:'general',tier:1,cost:2,desc:'Dagger crit +10%.',prereq:[],effects:[{type:'critBonus',value:10}]},
+    {id:'ro_G2',name:'Light Feet',type:'general',tier:1,cost:2,desc:'+1 EffMov. Free zone move once per combat.',prereq:[],effects:[{type:'effMov',value:1},{type:'freeZoneMove',value:1}]},
+    // --- Second Tier ---
+    {id:'ro_G3',name:'Opportunist',type:'general',tier:2,cost:3,desc:'Backstab multiplier 3x to 3.5x.',prereq:[['ro_G1','ro_G2']],effects:[{type:'abilityEnhance',ability:'backstab',mods:{multiplier:3.5}}]},
+    {id:'ro_G4',name:'Shadow Sense',type:'general',tier:2,cost:3,desc:'+1 Sight. Auto trap detection at visited nodes.',prereq:[['ro_G1','ro_G2']],effects:[{type:'sight',value:1},{type:'passive',id:'shadow_sense',autoTrapDetect:true}]},
+    {id:'ro_S_Pha1',name:'Ghost Step',type:'phantom',tier:2,cost:3,desc:'Vanish +2 damage on emerge. Items don\'t break stealth.',prereq:[['ro_G2']],effects:[{type:'abilityEnhance',ability:'vanish',mods:{emergeDmgBonus:2,itemsStealth:true}}]},
+    {id:'ro_S_Ser1',name:'Venom Knowledge',type:'serpent',tier:2,cost:3,desc:'Weaken 90%. Dagger vs Weakened: 25% Poison.',prereq:[['ro_G1']],effects:[{type:'statusChanceBonus',status:'weaken',value:20},{type:'passive',id:'venom_knowledge',poisonVsWeakened:25}]},
+    // --- Third Tier ---
+    {id:'ro_G5',name:'Exploit Weakness',type:'general',tier:3,cost:3,desc:'+2 damage vs any enemy with 1+ status effect.',prereq:[['ro_G3']],effects:[{type:'damageVsDebuffed',value:2}]},
+    {id:'ro_G6',name:'Resourceful',type:'general',tier:3,cost:3,desc:'Consumable effects +1 turn. +1 Speech.',prereq:[['ro_G4']],effects:[{type:'passive',id:'resourceful',consumableDurationBonus:1},{type:'speech',value:1}]},
+    {id:'ro_S_Pha2',name:'Death from Shadows',type:'phantom',tier:3,cost:4,desc:'Vanish resets on kill from stealth. Assassinate 5x to 6x.',prereq:[['ro_S_Pha1']],minGeneral:2,effects:[{type:'passive',id:'death_from_shadows',vanishResetOnKill:true},{type:'abilityEnhance',ability:'assassinate',mods:{multiplier:6}}]},
+    {id:'ro_S_Sca1',name:'Sticky Fingers',type:'scavenger',tier:3,cost:4,desc:'Better loot rarity. +1 gold all sources. 15% bonus consumable after combat.',prereq:[['ro_G4']],effects:[{type:'passive',id:'sticky_fingers',lootRarityBonus:true,goldBonus:1,consumableChance:15}]},
+    // --- Fourth Tier ---
+    {id:'ro_S_Ser2',name:'Thousand Cuts',type:'serpent',tier:4,cost:4,desc:'+1 damage per unique debuff on target. Nerve Damage also Bleed 50%.',prereq:[['ro_S_Ser1']],minGeneral:2,effects:[{type:'passive',id:'thousand_cuts',dmgPerDebuff:1},{type:'abilityEnhance',ability:'nerve_damage',mods:{bleedChance:50}}]},
+    {id:'ro_S_Sca2',name:'Dungeon Rat',type:'scavenger',tier:4,cost:4,desc:'Shop prices -10%. Reveal hidden shop item. +1 Sight/Movement exploration.',prereq:[['ro_S_Sca1'],['ro_G6','ro_G2']],effects:[{type:'passive',id:'dungeon_rat',shopDiscount:10,hiddenItemReveal:true,exploreSight:1,exploreMov:1}]},
+    // --- Unlock (Tier 5) ---
+    {id:'ro_U_Pha',name:'Phantom Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Phantom subclass.',prereq:[['ro_S_Pha1'],['ro_S_Pha2']],subclass:'phantom',minNodes:8,effects:[{type:'subclassUnlock',subclass:'phantom'}]},
+    {id:'ro_U_Ser',name:'Serpent Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Serpent subclass.',prereq:[['ro_S_Ser1'],['ro_S_Ser2']],subclass:'serpent',minNodes:8,effects:[{type:'subclassUnlock',subclass:'serpent'}]},
+    {id:'ro_U_Sca',name:'Scavenger Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Scavenger subclass.',prereq:[['ro_S_Sca1'],['ro_S_Sca2']],subclass:'scavenger',minNodes:8,effects:[{type:'subclassUnlock',subclass:'scavenger'}]}
+  ],
+  subclasses:{
+    phantom:{name:'Phantom',desc:'Stealth assassin.'},
+    serpent:{name:'Serpent',desc:'Poison saboteur.'},
+    scavenger:{name:'Scavenger',desc:'Resourceful opportunist.'}
+  }
+},
+paladin:{
+  nodes:[
+    // --- Entry (Tier 1) ---
+    {id:'p_G1',name:'Righteous Resolve',type:'general',tier:1,cost:2,desc:'+4 max HP.',prereq:[],effects:[{type:'maxHP',value:4}]},
+    {id:'p_G2',name:'Devotion',type:'general',tier:1,cost:2,desc:'Holy Light MP 5 to 4.',prereq:[],effects:[{type:'abilityCostReduce',ability:'holy_light',value:1}]},
+    // --- Second Tier ---
+    {id:'p_G3',name:'Holy Fervor',type:'general',tier:2,cost:3,desc:'Smite +1d4. Burn +10% (50 to 60%).',prereq:[['p_G1','p_G2']],effects:[{type:'abilityEnhance',ability:'smite',mods:{dmgDie:4}},{type:'statusChanceBonus',status:'burn',value:10}]},
+    {id:'p_G4',name:'Stalwart Faith',type:'general',tier:2,cost:3,desc:'Consecrate +1 turn (3 to 4), +1 damage/turn (2 to 3).',prereq:[['p_G1','p_G2']],effects:[{type:'abilityEnhance',ability:'consecrate',mods:{durationBonus:1,dmgPerTurnBonus:1}}]},
+    {id:'p_S_Hea1',name:'Mercy',type:'healer',tier:2,cost:3,desc:'Holy Light +3 HP (8 to 11). Can target summons in 2v2.',prereq:[['p_G2']],effects:[{type:'abilityEnhance',ability:'holy_light',mods:{healBonus:3,targetSummons:true}}]},
+    {id:'p_S_Wra1',name:'Burning Judgment',type:'wrathbringer',tier:2,cost:3,desc:'Smite Burn +20% (stacks with G3 up to 80%). Burn stacks +1 per Smite.',prereq:[['p_G3','p_G1']],effects:[{type:'statusChanceBonus',status:'burn',value:20},{type:'abilityEnhance',ability:'smite',mods:{burnStackBonus:1}}]},
+    // --- Third Tier ---
+    {id:'p_G5',name:'Unyielding',type:'general',tier:3,cost:3,desc:'Divine Shield usable twice per combat. Second use +2 MP (8 to 10).',prereq:[['p_G1']],effects:[{type:'abilityEnhance',ability:'divine_shield',mods:{usesPerCombat:2,secondUseCostBonus:2}}]},
+    {id:'p_G6',name:'Aura of Protection',type:'general',tier:3,cost:3,desc:'+1 DEF in Consecrated zone. Undead in zone +1 holy damage per turn.',prereq:[['p_G4']],effects:[{type:'passive',id:'aura_protection',defInConsecrate:1,holyVsUndead:1}]},
+    {id:'p_S_Oat1',name:'Fortress Stance',type:'oathshield',tier:3,cost:4,desc:'Shield block +2. Block grants +1 DEF 2 turns (stacks to +3).',prereq:[['p_G1','p_G4']],effects:[{type:'blockBonus',value:2},{type:'passive',id:'fortress_stance',blockDefBonus:1,blockDefDuration:2,blockDefCap:3}]},
+    {id:'p_S_Hea2',name:'Wellspring',type:'healer',tier:3,cost:4,desc:'Regen 1 HP/turn in Consecrated zone. Holy Light cleanses 1 status.',prereq:[['p_S_Hea1']],minGeneral:2,effects:[{type:'passive',id:'wellspring',regenInConsecrate:1},{type:'abilityEnhance',ability:'holy_light',mods:{cleanse:1}}]},
+    // --- Fourth Tier ---
+    {id:'p_S_Wra2',name:'Purging Fire',type:'wrathbringer',tier:4,cost:4,desc:'Detonate: consume Burn for 2x tick damage. 4 MP. Smite +2 vs Burning.',prereq:[['p_S_Wra1']],minGeneral:2,effects:[{type:'grantAbility',id:'detonate_burn',cost:4,tickMultiplier:2},{type:'abilityEnhance',ability:'smite',mods:{bonusVsBurning:2}}]},
+    {id:'p_S_Oat2',name:'Immovable Bastion',type:'oathshield',tier:4,cost:4,desc:'Consecrate Slows enemies. Counter-attack 2 holy on block in zone. -1 damage in own Consecrated zone.',prereq:[['p_S_Oat1'],['p_G5','p_G6']],effects:[{type:'abilityEnhance',ability:'consecrate',mods:{slowEnemies:true}},{type:'passive',id:'immovable_bastion',counterHoly:2,zoneReduction:1}]},
+    // --- Unlock (Tier 5) ---
+    {id:'p_U_Hea',name:'Healer Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Healer subclass.',prereq:[['p_S_Hea1'],['p_S_Hea2']],subclass:'healer',minNodes:8,effects:[{type:'subclassUnlock',subclass:'healer'}]},
+    {id:'p_U_Wra',name:'Wrathbringer Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Wrathbringer subclass.',prereq:[['p_S_Wra1'],['p_S_Wra2']],subclass:'wrathbringer',minNodes:8,effects:[{type:'subclassUnlock',subclass:'wrathbringer'}]},
+    {id:'p_U_Oat',name:'Oathshield Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Oathshield subclass.',prereq:[['p_S_Oat1'],['p_S_Oat2']],subclass:'oathshield',minNodes:8,effects:[{type:'subclassUnlock',subclass:'oathshield'}]}
+  ],
+  subclasses:{
+    healer:{name:'Healer',desc:'Divine support specialist.'},
+    wrathbringer:{name:'Wrathbringer',desc:'Holy offensive caster.'},
+    oathshield:{name:'Oathshield',desc:'Immovable fortress defender.'}
+  }
+},
 necromancer:{
-trunk:[
-{id:'n_t1',name:'Dark Arts',cost:2,desc:'+1 spell damage',prereq:null},
-{id:'n_t2',name:'Soul Harvest',cost:3,desc:'+1 starting Grave Charge',prereq:'n_t1'},
-{id:'n_t3',name:'Undying Will',cost:5,desc:'+4 max MP',prereq:'n_t2'}
-],branches:{
-lich:{name:'Lich',nodes:[{id:'n_li1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'n_t3'}]},
-deathbringer:{name:'Deathbringer',nodes:[{id:'n_db1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'n_t3'}]},
-bonelord:{name:'Bonelord',nodes:[{id:'n_bl1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'n_t3'}]}
-}},
+  nodes:[
+    // --- Entry (Tier 1) ---
+    {id:'n_G1',name:'Death\'s Whisper',type:'general',tier:1,cost:2,desc:'Grave Charge +1 per enemy death (doubles base rate).',prereq:[],effects:[{type:'passive',id:'deaths_whisper',graveChargeBonus:1}]},
+    {id:'n_G2',name:'Dark Resilience',type:'general',tier:1,cost:2,desc:'+4 max HP. Immune to Curse.',prereq:[],effects:[{type:'maxHP',value:4},{type:'statusImmune',status:'curse'}]},
+    // --- Second Tier ---
+    {id:'n_G3',name:'Bone Servitor',type:'general',tier:2,cost:3,desc:'Undead +2 HP, +1 turn before decay.',prereq:[['n_G1','n_G2']],effects:[{type:'passive',id:'bone_servitor',undeadHPBonus:2,undeadDurationBonus:1}]},
+    {id:'n_G4',name:'Necrotic Attunement',type:'general',tier:2,cost:3,desc:'Staff +1 necrotic damage. Personal kills +1 bonus Grave Charge.',prereq:[['n_G1','n_G2']],effects:[{type:'meleeDmg',value:1},{type:'passive',id:'necrotic_attunement',personalKillCharge:1}]},
+    {id:'n_S_Gra1',name:'Mass Grave',type:'gravecaller',tier:2,cost:3,desc:'Raise 2 undead simultaneously. Basic undead cost -1 Charge.',prereq:[['n_G1']],effects:[{type:'abilityEnhance',ability:'raise_dead',mods:{raiseCount:2,costReduce:1}}]},
+    {id:'n_S_Dre1',name:'Dread Aura',type:'dreadmage',tier:2,cost:3,desc:'Enemies in zone -1 damage dealt. Curse guaranteed on direct spells.',prereq:[['n_G2']],effects:[{type:'passive',id:'dread_aura',enemyDmgReduce:1},{type:'statusChanceBonus',status:'curse',value:100}]},
+    // --- Third Tier ---
+    {id:'n_G5',name:'Soul Harvest',type:'general',tier:3,cost:3,desc:'Harvest +1 Charge refund, +2 HP healing.',prereq:[['n_G3','n_G4']],effects:[{type:'abilityEnhance',ability:'harvest',mods:{chargeRefund:1,healBonus:2}}]},
+    {id:'n_G6',name:'Forbidden Knowledge',type:'general',tier:3,cost:3,desc:'+1 Sight. Undead bestiary auto-complete on first encounter.',prereq:[['n_G4']],effects:[{type:'sight',value:1},{type:'passive',id:'forbidden_knowledge',undeadBestiaryAuto:true}]},
+    {id:'n_S_Sou1',name:'Death Pyre',type:'soulreaper',tier:3,cost:4,desc:'Detonate Undead: sacrifice for 2x minion HP as burst AoE. 2 MP. Applies Curse.',prereq:[['n_G1','n_G3']],effects:[{type:'grantAbility',id:'detonate_undead',cost:2,hpMultiplier:2,appliesCurse:true}]},
+    {id:'n_S_Gra2',name:'Endless Horde',type:'gravecaller',tier:3,cost:4,desc:'2 active + 1 reserve undead. Weaken on hit 25%. Mass Rise: raise all fallen at half HP for 3 Charges.',prereq:[['n_S_Gra1']],minGeneral:2,effects:[{type:'passive',id:'endless_horde',activeUndead:2,reserveUndead:1,weakenOnHit:25},{type:'grantAbility',id:'mass_rise',chargeCost:3}]},
+    // --- Fourth Tier ---
+    {id:'n_S_Sou2',name:'Soul Engine',type:'soulreaper',tier:4,cost:4,desc:'Detonate 3x HP. Harvest cleanses all self-debuffs. +1 damage on next attack when minion dies.',prereq:[['n_S_Sou1']],minGeneral:2,effects:[{type:'abilityEnhance',ability:'detonate_undead',mods:{hpMultiplier:3}},{type:'abilityEnhance',ability:'harvest',mods:{cleanseSelf:true}},{type:'passive',id:'soul_engine',dmgOnMinionDeath:1}]},
+    {id:'n_S_Dre2',name:'Grasp of the Grave',type:'dreadmage',tier:4,cost:4,desc:'Soul Drain: necrotic to Cursed enemy, heal 50%. Rooted via direct spell. Silenced 60%.',prereq:[['n_S_Dre1']],minGeneral:2,effects:[{type:'grantAbility',id:'soul_drain',healPct:50,appliesRooted:true,silencedChance:60}]},
+    // --- Unlock (Tier 5) ---
+    {id:'n_U_Gra',name:'Gravecaller Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Gravecaller subclass.',prereq:[['n_S_Gra1'],['n_S_Gra2']],subclass:'gravecaller',minNodes:8,effects:[{type:'subclassUnlock',subclass:'gravecaller'}]},
+    {id:'n_U_Sou',name:'Soulreaper Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Soulreaper subclass.',prereq:[['n_S_Sou1'],['n_S_Sou2']],subclass:'soulreaper',minNodes:8,effects:[{type:'subclassUnlock',subclass:'soulreaper'}]},
+    {id:'n_U_Dre',name:'Dreadmage Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Dreadmage subclass.',prereq:[['n_S_Dre1'],['n_S_Dre2']],subclass:'dreadmage',minNodes:8,effects:[{type:'subclassUnlock',subclass:'dreadmage'}]}
+  ],
+  subclasses:{
+    gravecaller:{name:'Gravecaller',desc:'Undead horde commander.'},
+    soulreaper:{name:'Soulreaper',desc:'Sacrifice-fueled destroyer.'},
+    dreadmage:{name:'Dreadmage',desc:'Dark debuff caster.'}
+  }
+},
+wizard:{
+  nodes:[
+    // --- Entry (Tier 1) ---
+    {id:'w_G1',name:'Arcane Focus',type:'general',tier:1,cost:2,desc:'Arcane Bolt +1d4 (2d6 to 2d6+1d4).',prereq:[],effects:[{type:'abilityEnhance',ability:'arcane_bolt',mods:{bonusDie:4}}]},
+    {id:'w_G2',name:'Mana Well',type:'general',tier:1,cost:2,desc:'+4 max MP.',prereq:[],effects:[{type:'maxMP',value:4}]},
+    // --- Second Tier ---
+    {id:'w_G3',name:'Efficient Casting',type:'general',tier:2,cost:3,desc:'Arcane Bolt MP 3 to 2. Arcane Binding MP -1.',prereq:[['w_G1','w_G2']],effects:[{type:'abilityCostReduce',ability:'arcane_bolt',value:1},{type:'abilityCostReduce',ability:'arcane_binding',value:1}]},
+    {id:'w_G4',name:'Elemental Affinity',type:'general',tier:2,cost:3,desc:'Fireball +1d4. Burn +10% (50 to 60%).',prereq:[['w_G1','w_G2']],effects:[{type:'abilityEnhance',ability:'fireball',mods:{bonusDie:4}},{type:'statusChanceBonus',status:'burn',value:10}]},
+    {id:'w_S_Asc1',name:'Overcharge',type:'arcane_ascended',tier:2,cost:3,desc:'Double MP on damage spell for +50% damage. 1/combat.',prereq:[['w_G1']],effects:[{type:'grantAbility',id:'overcharge',perCombat:1,dmgMultiplier:1.5,costMultiplier:2}]},
+    {id:'w_S_Con1',name:'Arcane Familiar',type:'conjurer',tier:2,cost:3,desc:'Summon entity (HP = Smarts x 2, 1d4 attack). 4 MP.',prereq:[['w_G2']],effects:[{type:'grantAbility',id:'summon_familiar',cost:4,hpFormula:'smarts*2',atkDie:4}]},
+    // --- Third Tier ---
+    {id:'w_G5',name:'Spell Shaping',type:'general',tier:3,cost:3,desc:'Arcane Binding Slow +1 turn. Dispel removes 2 effects.',prereq:[['w_G3','w_G4']],effects:[{type:'abilityEnhance',ability:'arcane_binding',mods:{slowDurationBonus:1}},{type:'abilityEnhance',ability:'dispel',mods:{removeCount:2}}]},
+    {id:'w_G6',name:'Arcane Insight',type:'general',tier:3,cost:3,desc:'+1 Sight. +1 effective Smarts for Arcane Bolt hit.',prereq:[['w_G3']],effects:[{type:'sight',value:1},{type:'passive',id:'arcane_insight',smartsBonus:1}]},
+    {id:'w_S_Asc2',name:'Annihilation',type:'arcane_ascended',tier:3,cost:4,desc:'Overcharge 2/combat. Fireball Burn 90%. Free spell after kill.',prereq:[['w_S_Asc1']],minGeneral:2,effects:[{type:'abilityEnhance',ability:'overcharge',mods:{perCombat:2}},{type:'abilityEnhance',ability:'fireball',mods:{burnChance:90}},{type:'passive',id:'annihilation',freeSpellOnKill:true}]},
+    {id:'w_S_Bat1',name:'Arcane Armor',type:'battlemage',tier:3,cost:4,desc:'Mana Shield: 1 MP absorbs 2 damage. Can equip shield without Spellbook.',prereq:[['w_G2','w_G5']],effects:[{type:'passive',id:'arcane_armor',manaShieldRatio:2,shieldWithoutSpellbook:true}]},
+    // --- Fourth Tier ---
+    {id:'w_S_Con2',name:'Master Conjurer',type:'conjurer',tier:4,cost:4,desc:'Familiar +3 HP, 1d6 attack, Support Slows. Resummon 1/combat 3 MP. +1 MP regen while active.',prereq:[['w_S_Con1']],minGeneral:2,effects:[{type:'abilityEnhance',ability:'summon_familiar',mods:{hpBonus:3,atkDie:6,supportSlow:true,resummon:true,resummonCost:3}},{type:'passive',id:'master_conjurer',mpRegenWhileActive:1}]},
+    {id:'w_S_Bat2',name:'War Mage',type:'battlemage',tier:4,cost:4,desc:'1 MP regen/turn. Mana Shield 25% reflects 2 damage. Staff melee +2.',prereq:[['w_S_Bat1'],['w_G4','w_G6']],effects:[{type:'passive',id:'war_mage',mpRegen:1,manaShieldReflect:2,manaShieldReflectChance:25},{type:'meleeDmg',value:2}]},
+    // --- Unlock (Tier 5) ---
+    {id:'w_U_Asc',name:'Arcane Ascended Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Arcane Ascended subclass.',prereq:[['w_S_Asc1'],['w_S_Asc2']],subclass:'arcane_ascended',minNodes:8,effects:[{type:'subclassUnlock',subclass:'arcane_ascended'}]},
+    {id:'w_U_Con',name:'Conjurer Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Conjurer subclass.',prereq:[['w_S_Con1'],['w_S_Con2']],subclass:'conjurer',minNodes:8,effects:[{type:'subclassUnlock',subclass:'conjurer'}]},
+    {id:'w_U_Bat',name:'Battlemage Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Battlemage subclass.',prereq:[['w_S_Bat1'],['w_S_Bat2']],subclass:'battlemage',minNodes:8,effects:[{type:'subclassUnlock',subclass:'battlemage'}]}
+  ],
+  subclasses:{
+    arcane_ascended:{name:'Arcane Ascended',desc:'Glass cannon spellcaster.'},
+    conjurer:{name:'Conjurer',desc:'Arcane summoner.'},
+    battlemage:{name:'Battlemage',desc:'Armored spell-warrior.'}
+  }
+},
+berserker:{
+  nodes:[
+    // --- Entry (Tier 1) ---
+    {id:'b_G1',name:'Bloodlust',type:'general',tier:1,cost:2,desc:'Aggro Bleed chance raised to 90%.',prereq:[],effects:[{type:'statusChanceBonus',status:'bleed',value:20}]},
+    {id:'b_G2',name:'Thick Skin',type:'general',tier:1,cost:2,desc:'+5 max HP. -1 damage from first hit each combat.',prereq:[],effects:[{type:'maxHP',value:5},{type:'firstHitReduction',value:1}]},
+    // --- Second Tier ---
+    {id:'b_G3',name:'Reckless Fury',type:'general',tier:2,cost:3,desc:'Aggro +3 damage (from +2), +1 turn (3 to 4).',prereq:[['b_G1','b_G2']],effects:[{type:'abilityEnhance',ability:'aggro',mods:{dmgBonus:1,durationBonus:1}}]},
+    {id:'b_G4',name:'Pain Tolerance',type:'general',tier:2,cost:3,desc:'Frenzy at 60% (from 50%). Frenzy +3 per hit (from +2).',prereq:[['b_G1','b_G2']],effects:[{type:'abilityEnhance',ability:'frenzy',mods:{threshold:60,hitBonus:1}}]},
+    {id:'b_S_Sca1',name:'Blood Price',type:'scarborne',tier:2,cost:3,desc:'Sacrifice: spend 20% current HP as bonus damage on next attack. No MP. 1/turn.',prereq:[['b_G1']],effects:[{type:'grantAbility',id:'sacrifice',cost:0,hpPct:20,perTurn:1}]},
+    {id:'b_S_War1',name:'Cleaving Strikes',type:'warpath',tier:2,cost:3,desc:'Rampage applies Bleed independently per hit. In 1v2: hits split between targets.',prereq:[['b_G1','b_G2']],effects:[{type:'abilityEnhance',ability:'rampage',mods:{bleedPerHit:true,splitTargets:true}}]},
+    // --- Third Tier ---
+    {id:'b_G5',name:'Berserker\'s Instinct',type:'general',tier:3,cost:3,desc:'+5% melee hit. Below 50%: additional +10%.',prereq:[['b_G3','b_G4']],effects:[{type:'meleeHit',value:5},{type:'passive',id:'berserker_instinct',lowHPHitBonus:10,lowHPThreshold:50}]},
+    {id:'b_G6',name:'Intimidating Presence',type:'general',tier:3,cost:3,desc:'+1 Speech. Enemies -5% hit for first 2 turns.',prereq:[['b_G4']],effects:[{type:'speech',value:1},{type:'passive',id:'intimidating_presence',enemyHitPenalty:5,penaltyDuration:2}]},
+    {id:'b_S_Sca2',name:'Agony Fueled',type:'scarborne',tier:3,cost:4,desc:'+1 damage per 10% HP missing. Self-debuffs +1 damage each. Sacrifice 2/turn.',prereq:[['b_S_Sca1']],minGeneral:2,effects:[{type:'passive',id:'agony_fueled',dmgPer10PctMissing:1,dmgPerSelfDebuff:1},{type:'abilityEnhance',ability:'sacrifice',mods:{perTurn:2}}]},
+    {id:'b_S_Und1',name:'Iron Will',type:'undying',tier:3,cost:4,desc:'Undying Rage triggers twice (second costs 10 MP). Status durations on self -1 turn.',prereq:[['b_G2','b_G4']],effects:[{type:'abilityEnhance',ability:'undying_rage',mods:{uses:2,secondCost:10}},{type:'statusDurationSelfMod',value:-1}]},
+    // --- Fourth Tier ---
+    {id:'b_S_War2',name:'Unstoppable',type:'warpath',tier:4,cost:4,desc:'Rampage: 3 attacks. Free attack on kill. Bleed guaranteed during Aggro.',prereq:[['b_S_War1']],minGeneral:2,effects:[{type:'abilityEnhance',ability:'rampage',mods:{attacks:3,freeOnKill:true}},{type:'passive',id:'unstoppable',bleedGuaranteedAggro:true}]},
+    {id:'b_S_Und2',name:'Deathless',type:'undying',tier:4,cost:4,desc:'Regen 2 HP/turn below 50%. Undying Rage +2 DEF 3 turns. -2 damage below 25% HP.',prereq:[['b_S_Und1'],['b_G3','b_G5']],effects:[{type:'passive',id:'deathless',regenBelow50:2,undyingDefBonus:2,undyingDefDuration:3,reductionBelow25:2}]},
+    // --- Unlock (Tier 5) ---
+    {id:'b_U_Sca',name:'Scarborne Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Scarborne subclass.',prereq:[['b_S_Sca1'],['b_S_Sca2']],subclass:'scarborne',minNodes:8,effects:[{type:'subclassUnlock',subclass:'scarborne'}]},
+    {id:'b_U_War',name:'Warpath Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Warpath subclass.',prereq:[['b_S_War1'],['b_S_War2']],subclass:'warpath',minNodes:8,effects:[{type:'subclassUnlock',subclass:'warpath'}]},
+    {id:'b_U_Und',name:'Undying Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Undying subclass.',prereq:[['b_S_Und1'],['b_S_Und2']],subclass:'undying',minNodes:8,effects:[{type:'subclassUnlock',subclass:'undying'}]}
+  ],
+  subclasses:{
+    scarborne:{name:'Scarborne',desc:'Pain-fueled berserker.'},
+    warpath:{name:'Warpath',desc:'Relentless cleaving warrior.'},
+    undying:{name:'Undying',desc:'Unkillable last-stand fighter.'}
+  }
+},
 warlock:{
-trunk:[
-{id:'wk_t1',name:'Hex Mastery',cost:2,desc:'+1 spell damage',prereq:null},
-{id:'wk_t2',name:'Curse Amplifier',cost:3,desc:'+1 status duration',prereq:'wk_t1'},
-{id:'wk_t3',name:'Dark Pact',cost:5,desc:'+4 max MP',prereq:'wk_t2'}
-],branches:{
-hexblade:{name:'Hexblade',nodes:[{id:'wk_hb1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'wk_t3'}]},
-demonologist:{name:'Demonologist',nodes:[{id:'wk_dm1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'wk_t3'}]},
-shadowcaster:{name:'Shadowcaster',nodes:[{id:'wk_sc1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'wk_t3'}]}
-}}
+  nodes:[
+    // --- Entry (Tier 1) ---
+    {id:'wk_G1',name:'Hex Mastery',type:'general',tier:1,cost:2,desc:'Curse +15% chance, +1 turn duration.',prereq:[],effects:[{type:'statusChanceBonus',status:'curse',value:15},{type:'statusDurationBonus',status:'curse',value:1}]},
+    {id:'wk_G2',name:'Dark Vitality',type:'general',tier:1,cost:2,desc:'Lifesteal +5% of damage vs debuffed enemies.',prereq:[],effects:[{type:'lifestealPct',value:5}]},
+    // --- Second Tier ---
+    {id:'wk_G3',name:'Maleficent Knowledge',type:'general',tier:2,cost:3,desc:'+1 Sight. Hexing Focus +1 damage.',prereq:[['wk_G1','wk_G2']],effects:[{type:'sight',value:1},{type:'passive',id:'maleficent_knowledge',focusDmgBonus:1}]},
+    {id:'wk_G4',name:'Sympathetic Resonance',type:'general',tier:2,cost:3,desc:'Effigy +2 turns. Status tick damage on linked target +1 per tick.',prereq:[['wk_G1','wk_G2']],effects:[{type:'abilityEnhance',ability:'effigy',mods:{durationBonus:2,tickDmgBonus:1}}]},
+    {id:'wk_S_Vam1',name:'Blood Siphon',type:'vampire',tier:2,cost:3,desc:'Lifesteal doubled vs Cursed. +3 HP on debuffed enemy death.',prereq:[['wk_G2']],effects:[{type:'passive',id:'blood_siphon',lifestealDoubledVsCursed:true,hpOnDebuffedKill:3}]},
+    {id:'wk_S_Bli1',name:'Rapid Affliction',type:'blightweaver',tier:2,cost:3,desc:'Debuff ability MP costs -1. Free Marked 1/combat.',prereq:[['wk_G1']],effects:[{type:'passive',id:'rapid_affliction',debuffCostReduce:1,freeMarked:1}]},
+    // --- Third Tier ---
+    {id:'wk_G5',name:'Eldritch Resilience',type:'general',tier:3,cost:3,desc:'+4 max HP. Status durations on self -1 turn.',prereq:[['wk_G3','wk_G4']],effects:[{type:'maxHP',value:4},{type:'statusDurationSelfMod',value:-1}]},
+    {id:'wk_G6',name:'Tormentor',type:'general',tier:3,cost:3,desc:'Brittle +20% chance, +1 turn. Brittle enemies take +1 from status ticks.',prereq:[['wk_G4']],effects:[{type:'statusChanceBonus',status:'brittle',value:20},{type:'statusDurationBonus',status:'brittle',value:1},{type:'passive',id:'tormentor',brittleTickBonus:1}]},
+    {id:'wk_S_Pup1',name:'Thread of Pain',type:'puppet_master',tier:3,cost:4,desc:'30% damage taken redirected to linked enemy. Effigy links both in 1v2, effects bleed 50%.',prereq:[['wk_G4']],effects:[{type:'passive',id:'thread_of_pain',redirectPct:30,effigyLinksBoth:true,effectBleedPct:50}]},
+    {id:'wk_S_Vam2',name:'Feast of Suffering',type:'vampire',tier:3,cost:4,desc:'Soul Tap: drain HP = 2x debuff count on Cursed enemy. 3 MP, 1/turn. Lifesteal on tick damage.',prereq:[['wk_S_Vam1']],minGeneral:2,effects:[{type:'grantAbility',id:'soul_tap',cost:3,perTurn:1,drainPerDebuff:2},{type:'passive',id:'feast_of_suffering',lifestealOnTicks:true}]},
+    // --- Fourth Tier ---
+    {id:'wk_S_Pup2',name:'Master of Strings',type:'puppet_master',tier:4,cost:4,desc:'Redirect 50%. Mirror Hex: copy all effects between linked enemies, 4 MP, 1/combat. +1 DEF while Effigy active.',prereq:[['wk_S_Pup1']],minGeneral:2,effects:[{type:'passive',id:'master_of_strings',redirectPct:50,defWhileEffigy:1},{type:'grantAbility',id:'mirror_hex',cost:4,perCombat:1}]},
+    {id:'wk_S_Bli2',name:'Cascade of Ruin',type:'blightweaver',tier:4,cost:4,desc:'Apply 2 effects in one action. Brittle +35% damage taken. +1 per active debuff. Guaranteed Marked on all abilities.',prereq:[['wk_S_Bli1']],minGeneral:2,effects:[{type:'passive',id:'cascade_of_ruin',dualApply:true,brittleDmgBonus:35,dmgPerDebuff:1,guaranteedMarked:true}]},
+    // --- Unlock (Tier 5) ---
+    {id:'wk_U_Vam',name:'Vampire Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Vampire subclass.',prereq:[['wk_S_Vam1'],['wk_S_Vam2']],subclass:'vampire',minNodes:8,effects:[{type:'subclassUnlock',subclass:'vampire'}]},
+    {id:'wk_U_Pup',name:'Puppet Master Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Puppet Master subclass.',prereq:[['wk_S_Pup1'],['wk_S_Pup2']],subclass:'puppet_master',minNodes:8,effects:[{type:'subclassUnlock',subclass:'puppet_master'}]},
+    {id:'wk_U_Bli',name:'Blightweaver Unlock',type:'unlock',tier:5,cost:5,desc:'Unlock the Blightweaver subclass.',prereq:[['wk_S_Bli1'],['wk_S_Bli2']],subclass:'blightweaver',minNodes:8,effects:[{type:'subclassUnlock',subclass:'blightweaver'}]}
+  ],
+  subclasses:{
+    vampire:{name:'Vampire',desc:'Life-draining sustain specialist.'},
+    puppet_master:{name:'Puppet Master',desc:'Damage-redirecting manipulator.'},
+    blightweaver:{name:'Blightweaver',desc:'Multi-debuff affliction caster.'}
+  }
+}
 };
 
 const SHRINE_UPGRADES={
 tavern:[
 {id:'shr_ration',name:'Trail Rations',cost:5,desc:'Start each adventure with 1 extra Ration.'},
-{id:'shr_shop',name:'Supply Crate',cost:15,desc:'Tavern shop stocks 2 additional items.'}
+{id:'shr_shop',name:'Supply Crate',cost:15,desc:'Tavern shop stocks 2 additional items.'},
+{id:'shr_bounty',name:'Bounty Expansion',cost:25,desc:'Bounty board can hold 7 postings.'}
 ],
 species:[],
 starting:[
@@ -1251,6 +1423,97 @@ starting:[
 {id:'shr_lvl',name:'Head Start',cost:20,desc:'Start each run at level 2.'}
 ],
 world:[]
+};
+
+// --- Phase 6A: Subclass ability replacements (Ability 4 slot) ---
+
+const SUBCLASS_ABILITIES={
+fighter:{
+  sentinel:{name:'Iron Guard',cost:5,desc:'+3 DEF 3 turns, taunt enemy focus.',unlockLevel:12},
+  commandant:{name:'War Orders',cost:4,desc:'Extend all buffs 2 turns. Allies +1 damage.',unlockLevel:12},
+  blade:{name:'Deathblow',cost:5,desc:'+50% damage, +20% crit. MP refund on kill.',unlockLevel:12}
+},
+ranger:{
+  marksman:{name:'Killshot',cost:5,desc:'Skip turn. Next attack triple damage + auto-crit.',unlockLevel:12},
+  trapper:{name:'Spring Trap',cost:3,desc:'Place zone trap: damage + Bleed on entry.',unlockLevel:12},
+  outrider:{name:'Skirmish',cost:3,desc:'Melee + ranged attack in same turn.',unlockLevel:12}
+},
+gunslinger:{
+  sniper:{name:'One Perfect Shot',cost:6,desc:'Skip turn. Next shot triple + crit + Exposed.',unlockLevel:12},
+  cowboy:{name:'Fan the Hammer',cost:4,desc:'3 shots at -15% accuracy. Blind +15% each.',unlockLevel:12},
+  lucky_shooter:{name:'Trick Shot',cost:4,desc:'Choose guaranteed Weaken, Slow, or Blind.',unlockLevel:12}
+},
+rogue:{
+  phantom:{name:'Shadow Kill',cost:4,desc:'Vanish resets on kill. Assassinate at 6x.',unlockLevel:12},
+  serpent:{name:'Envenom',cost:3,desc:'Next 3 attacks guarantee Poison. +1 per debuff on target.',unlockLevel:12},
+  scavenger:{name:'Pilfer',cost:2,desc:'Steal consumable from enemy. 1/combat.',unlockLevel:12}
+},
+paladin:{
+  healer:{name:'Prayer of Restoration',cost:5,desc:'Heal 6 + cleanse 1 status + 1 DEF 2 turns.',unlockLevel:12},
+  wrathbringer:{name:'Purging Fire',cost:4,desc:'Consume Burn for 2x tick damage instantly. +2 vs Burning.',unlockLevel:12},
+  oathshield:{name:'Fortify',cost:4,desc:'+3 DEF 3 turns. Consecrate Slows while active.',unlockLevel:12}
+},
+necromancer:{
+  gravecaller:{name:'Endless Horde',cost:0,chargeCost:3,desc:'Raise 2 undead. Weaken on hit 25%.',unlockLevel:12},
+  soulreaper:{name:'Detonate Undead',cost:2,desc:'Sacrifice minion for 2x HP burst AoE + Curse.',unlockLevel:12},
+  dreadmage:{name:'Soul Drain',cost:4,desc:'Necrotic damage to Cursed enemy, heal 50%. Rooted 40%.',unlockLevel:12}
+},
+wizard:{
+  arcane_ascended:{name:'Overcharge',cost:0,desc:'Double MP on damage spell for +50% damage. 2/combat.',unlockLevel:12,special:'costMultiplier'},
+  conjurer:{name:'Summon Familiar',cost:4,desc:'Summon entity: HP = Smarts x 2, 1d4 attack. Attack/Defend/Support.',unlockLevel:12},
+  battlemage:{name:'Arcane Armor',cost:3,desc:'Mana Shield 1:2 ratio. Equip shield without Spellbook.',unlockLevel:12}
+},
+berserker:{
+  scarborne:{name:'Sacrifice',cost:0,desc:'Spend 20% current HP as bonus damage. No MP. 1/turn.',unlockLevel:12},
+  warpath:{name:'Cleave',cost:4,desc:'Rampage splits targets in 1v2. Bleed per hit.',unlockLevel:12},
+  undying:{name:'Iron Will',cost:6,desc:'-2 incoming damage 3 turns. Status durations -1 turn.',unlockLevel:12}
+},
+warlock:{
+  vampire:{name:'Soul Tap',cost:3,desc:'Drain HP = 2x debuff count on Cursed enemy. 1/turn.',unlockLevel:12},
+  puppet_master:{name:'Sympathetic Link',cost:4,desc:'Enhanced Effigy. 30% damage redirect. Effect bleed in 1v2.',unlockLevel:12},
+  blightweaver:{name:'Cascade',cost:3,desc:'Apply 2 effects simultaneously from Curse/Brittle/Marked.',unlockLevel:12}
+}
+};
+
+// --- Phase 6A: Out-of-combat class abilities ---
+
+const CLASS_OOC_ABILITIES={
+fighter:{stat:'movement',abilities:[
+  {id:'ooc_forced_entry',name:'Forced Entry',desc:'Break obstacles using Melee instead of Sight.',statSwap:{from:'sight',to:'melee'},passive:false},
+  {id:'ooc_endurance_march',name:'Endurance March',desc:'No movement penalties from consecutive combat nodes.',passive:true}
+]},
+ranger:{stat:'sight',abilities:[
+  {id:'ooc_tracker',name:'Tracker',desc:'Auto-reveals animal tracks at exploration events.',passive:true},
+  {id:'ooc_forager',name:'Forager',desc:'Small chance to find free consumable at Lore events.',passive:true}
+]},
+gunslinger:{stat:'movement',abilities:[
+  {id:'ooc_warning_shot',name:'Warning Shot',desc:'Use Ranged instead of Speech for intimidation.',statSwap:{from:'speech',to:'ranged'},passive:false},
+  {id:'ooc_quick_draw',name:'Quick Draw Reflexes',desc:'+5% to avoid ambush damage at trap events.',passive:true}
+]},
+rogue:{stat:'sight',abilities:[
+  {id:'ooc_lockpick',name:'Lockpick',desc:'Bonus to locked container/door checks innately.',passive:true},
+  {id:'ooc_case_joint',name:'Case the Joint',desc:'At shops, reveals full inventory including hidden items.',passive:true}
+]},
+paladin:{stat:'speech',abilities:[
+  {id:'ooc_holy_light',name:'Holy Light',desc:'Heal outside combat. Only class with OOC healing.',passive:false,mpCost:4},
+  {id:'ooc_consecrate_ground',name:'Consecrate Ground',desc:'At undead/spirit events: bonus Pedia entries + Spiritfire.',passive:false}
+]},
+necromancer:{stat:'speech',abilities:[
+  {id:'ooc_speak_dead',name:'Speak with Dead',desc:'At Lore events: lore entries, path reveals, or enemy intel.',passive:false},
+  {id:'ooc_sense_death',name:'Sense Death',desc:'Detect undead in upcoming nodes (mini-shroud reveal).',passive:true}
+]},
+wizard:{stat:'sight',abilities:[
+  {id:'ooc_arcane_analysis',name:'Arcane Analysis',desc:'At magical events: bonus lore, recipe hints, or buffs.',passive:false},
+  {id:'ooc_identify',name:'Identify',desc:'Identify unknown items on discovery before equipping.',passive:true}
+]},
+berserker:{stat:'movement',abilities:[
+  {id:'ooc_intimidate',name:'Intimidate',desc:'Use Melee instead of Speech at social encounters.',statSwap:{from:'speech',to:'melee'},passive:false},
+  {id:'ooc_brute_force',name:'Brute Force',desc:'Destroy obstacles. Always works but may cause collateral.',passive:false}
+]},
+warlock:{stat:'speech',abilities:[
+  {id:'ooc_hex_sense',name:'Hex Sense',desc:'Sense curses, dark magic, traps. +2 Sight for curse detection.',passive:true},
+  {id:'ooc_dark_bargain',name:'Dark Bargain',desc:'Trade HP for better rewards at Risk/Social events.',passive:false,hpCost:true}
+]}
 };
 
 // === BATCH 5: TAVERN NPCs + DIALOGUE + REPUTATION ===

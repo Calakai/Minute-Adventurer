@@ -1096,9 +1096,15 @@ const TIER_LABELS=['','Common','Uncommon','Dangerous','Elite','Boss'];
 const SHIELD_T3_CLASSES=['fighter','paladin'];
 function getAbilities(r){
   const clDef=CL[r.classes[0]];if(!clDef)return[];
-  if(clDef.abilities)return clDef.abilities.filter(a=>!a.unlockLevel||r.level>=a.unlockLevel);
-  if(clDef.ability)return[clDef.ability];
-  return[];
+  if(!clDef.abilities){return clDef.ability?[clDef.ability]:[]}
+  let abs=clDef.abilities.filter(a=>!a.unlockLevel||r.level>=a.unlockLevel);
+  // Batch 6: Swap subclass ability into slot 4 (unlockLevel:12, subclassSlot:true)
+  if(r.subclass&&r.level>=12&&SUBCLASS_ABILITIES){
+    const clKey=r.classes[0];
+    const sa=SUBCLASS_ABILITIES[clKey]&&SUBCLASS_ABILITIES[clKey][r.subclass];
+    if(sa){abs=abs.map(a=>a.subclassSlot?{...sa}:a)}
+  }
+  return abs;
 }
 function getVerb(r){
   const clDef=CL[r.classes[0]];return clDef?clDef.verb:null;
@@ -1118,26 +1124,36 @@ pct(v){return this.clamp(Math.round(v),5,95)},
 maxHP(r){return r.stats.health*4},
 maxMP(r){let b=r.stats.mana*4;if(r.subspecies==='brightelf'||r.subspecies==='ashborn')b+=4;return b},
 totalWt(r){return(r.wpn?r.wpn.wt||0:0)+(r.oh?r.oh.wt||0:0)+(r.arm?r.arm.wt||0:0)},
-effMov(r){let m=r.stats.movement-this.totalWt(r);if(r.subspecies==='quickfoot')m+=2;return Math.max(1,m)},
+effMov(r){let m=r.stats.movement-this.totalWt(r);if(r.subspecies==='quickfoot')m+=2;if(r._treeEffects)m+=r._treeEffects.effMov;return Math.max(1,m)},
 meleeHit(r,eDef){
   let h=55+(r.stats.melee-5)*5-eDef*3;
+  if(r._treeEffects)h+=r._treeEffects.meleeHit;
   if(r.debuffs){r.debuffs.forEach(d=>{if(d.type==='curse')h-=10;if(d.type==='blind')h-=20})}
   return this.pct(h)},
 rangedHit(r,eDef){
   let h=55+(r.stats.ranged-5)*5-eDef*3;
+  if(r._treeEffects)h+=r._treeEffects.rangedHit;
   if(r.debuffs){r.debuffs.forEach(d=>{if(d.type==='curse')h-=10;if(d.type==='blind')h-=20})}
   return this.pct(h)},
 enemyHit(eAtk,pDef){return this.pct(55+(eAtk-5)*5-pDef*3)},
 playerDef(r){let d=r.arm?r.arm.dB:0;if(r.oh&&r.oh.blk)d+=r.oh.blk;return d},
-flee(r){return this.pct(30+(this.effMov(r)-5)*5)},
-search(r,diff){return this.pct(50+(r.stats.sight-5)*7+(diff||0))},
-speech(r,diff){return this.pct(50+(r.stats.speech-5)*7+(diff||0))},
+flee(r){let f=30+(this.effMov(r)-5)*5;if(r._treeEffects)f+=r._treeEffects.fleeBonus;return this.pct(f)},
+search(r,diff){let s=50+(r.stats.sight-5)*7+(diff||0);if(r._treeEffects)s+=r._treeEffects.sight*7;return this.pct(s)},
+speech(r,diff){let s=50+(r.stats.speech-5)*7+(diff||0);if(r._treeEffects)s+=r._treeEffects.speech*7;return this.pct(s)},
 smarts(r,diff){return this.pct(50+(r.stats.smarts-5)*7+(diff||0))},
 meleeDmgMod(r){let d=r.stats.melee-5;
   if(r.subspecies==='bloodborn'){d+=1;if(r.hp<CALC.maxHP(r)*0.4)d+=1}
-  if(r.subspecies==='fireblood')d+=2;return d},
-rangedDmgMod(r){return r.stats.ranged-5},
-abilityCost(r,ability){let c=ability.cost;if(r.stats.smarts>=7)c=Math.max(1,c-1);return c},
+  if(r.subspecies==='fireblood')d+=2;
+  if(r._treeEffects)d+=r._treeEffects.meleeDmg;
+  return d},
+rangedDmgMod(r){let d=r.stats.ranged-5;
+  if(r._treeEffects)d+=r._treeEffects.rangedDmg;
+  return d},
+abilityCost(r,ability){let c=ability.cost;if(r.stats.smarts>=7)c=Math.max(1,c-1);
+  if(r._treeEffects&&r._treeEffects.abilityCostReduce){
+    const red=r._treeEffects.abilityCostReduce[ability.name]||0;
+    c=Math.max(1,c-red);
+  }return c},
 arcaneBoltHit(r,eDef){let h=55+(r.stats.smarts-5)*5-eDef*3;if(r.debuffs){r.debuffs.forEach(d=>{if(d.type==='curse')h-=10;if(d.type==='blind')h-=20})}return this.pct(h)},
 dodge(r){const m=this.effMov(r);let d=(m-4)*3;if(r.debuffs&&r.debuffs.find(db=>db.type==='slow'))d=Math.floor(d/2);return this.clamp(Math.round(d),0,25)},
 roll100(){return Math.floor(Math.random()*100)+1},
@@ -1148,7 +1164,7 @@ safeDmg(d){return isFinite(d)&&d>0?Math.floor(d):1}
 // === GAME STATE ===
 const GS={
 run:null,
-newRun(nm,sp,subsp,cl,humanBonus){
+newRun(nm,sp,subsp,cl,humanBonus,subclass){
   const s=SP[sp],c=CL[cl];
   const stats={};STAT_NAMES.forEach(k=>{stats[k]=s.stats[k]||5});
   if(sp==='human'&&humanBonus){humanBonus.forEach(k=>{if(stats[k]!==undefined)stats[k]++})}
@@ -1176,24 +1192,68 @@ newRun(nm,sp,subsp,cl,humanBonus){
   if(shr.shr_ration){const ration=ITEMS.ration;if(ration)this.run.bp.push({...ration})}
   if(shr.shr_gold){if(!this.run.gold)this.run.gold=0;this.run.gold+=25}
   if(shr.shr_lvl){this.run.level=2;this.run.xp=100;this.run.stats.health++}
-  // Batch 4: Apply Class Tree trunk effects
+  // Batch 6: Apply Class Tree structured effects + build _treeEffects cache
   const cu=jm.classUnlocks||{};const ct=CLASS_TREE[cl];
-  if(ct){ct.trunk.forEach(node=>{if(cu[node.id]){
-    if(node.desc.includes('+1 melee'))this.run.stats.melee++;
-    if(node.desc.includes('+1 ranged'))this.run.stats.ranged++;
-    if(node.desc.includes('+1 spell'))this.run.stats.smarts++;
-    if(node.desc.includes('+1 block')&&this.run.oh&&this.run.oh.blk)this.run.oh.blk++;
-    if(node.desc.includes('+5 max HP'))this.run.stats.health++;
-    if(node.desc.includes('+4 max MP'))this.run.stats.mana++;
-    if(node.desc.includes('+5% ranged'))this.run._treeRangedBonus=(this.run._treeRangedBonus||0)+5;
-    if(node.desc.includes('+5% dodge'))this.run._treeDodgeBonus=(this.run._treeDodgeBonus||0)+5;
-    if(node.desc.includes('+1 DEF')&&this.run.arm)this.run.arm.dB++;
-    if(node.desc.includes('+1 status duration'))this.run._treeStatusDur=(this.run._treeStatusDur||0)+1;
-    if(node.desc.includes('-1 ability cost'))this.run._treeAbilityCost=(this.run._treeAbilityCost||0)+1;
-    if(node.desc.includes('+1 starting Grave')&&this.run.cs){}// handled at combat start
-    if(node.desc.includes('+3 bonus ammo')&&this.run.wpn&&this.run.wpn.ammo!==undefined)this.run.wpn.ammo+=3;
-    if(node.desc.includes('+2 bonus ammo')&&this.run.wpn&&this.run.wpn.ammo!==undefined)this.run.wpn.ammo+=2;
-  }})}
+  this.run.subclass=subclass||null;
+  this.run._treeEffects={
+    maxHP:0,maxMP:0,meleeHit:0,rangedHit:0,meleeDmg:0,rangedDmg:0,
+    critBonus:0,effMov:0,sight:0,speech:0,
+    firstAttackBonus:0,firstHitReduction:0,damageReduction:0,
+    damageVsDebuffed:0,damageVsMarked:0,lifestealPct:0,
+    blockBonus:0,fleeBonus:0,freeZoneMove:0,
+    statusDurationSelfMod:0,
+    abilityCostReduce:{},abilityEnhance:{},
+    statusChanceBonuses:{},statusDurationBonuses:{},
+    passives:{},toggles:{},grantedAbilities:{},
+    subclassUnlocks:[]
+  };
+  const te=this.run._treeEffects;
+  if(ct){ct.nodes.forEach(node=>{if(!cu[node.id]||!node.effects)return;
+    node.effects.forEach(eff=>{
+      switch(eff.type){
+        case 'maxHP':te.maxHP+=eff.value;break;
+        case 'maxMP':te.maxMP+=eff.value;break;
+        case 'meleeHit':te.meleeHit+=eff.value;break;
+        case 'rangedHit':te.rangedHit+=eff.value;break;
+        case 'meleeDmg':te.meleeDmg+=eff.value;break;
+        case 'rangedDmg':te.rangedDmg+=eff.value;break;
+        case 'critBonus':te.critBonus+=eff.value;break;
+        case 'effMov':te.effMov+=eff.value;break;
+        case 'sight':te.sight+=eff.value;break;
+        case 'speech':te.speech+=eff.value;break;
+        case 'firstAttackBonus':te.firstAttackBonus+=eff.value;break;
+        case 'firstHitReduction':te.firstHitReduction+=eff.value;break;
+        case 'damageReduction':te.damageReduction+=eff.value;break;
+        case 'damageVsDebuffed':te.damageVsDebuffed+=eff.value;break;
+        case 'damageVsMarked':te.damageVsMarked+=eff.value;break;
+        case 'damageVsLowHP':te.passives.damageVsLowHP=eff;break;
+        case 'lifestealPct':te.lifestealPct+=eff.value;break;
+        case 'blockBonus':te.blockBonus+=eff.value;break;
+        case 'fleeBonus':te.fleeBonus+=eff.value;break;
+        case 'freeZoneMove':te.freeZoneMove+=eff.value;break;
+        case 'statusDurationSelfMod':te.statusDurationSelfMod+=eff.value;break;
+        case 'abilityCostReduce':
+          te.abilityCostReduce[eff.ability]=(te.abilityCostReduce[eff.ability]||0)+eff.value;break;
+        case 'abilityEnhance':
+          if(!te.abilityEnhance[eff.ability])te.abilityEnhance[eff.ability]={};
+          Object.assign(te.abilityEnhance[eff.ability],eff.mods||{});break;
+        case 'statusChanceBonus':
+          te.statusChanceBonuses[eff.status]=(te.statusChanceBonuses[eff.status]||0)+eff.value;break;
+        case 'statusDurationBonus':
+          te.statusDurationBonuses[eff.status]=(te.statusDurationBonuses[eff.status]||0)+eff.value;break;
+        case 'statusImmune':te.passives['immune_'+eff.status]=true;break;
+        case 'blockStatusReduce':te.passives.blockStatusReduce=(te.passives.blockStatusReduce||0)+eff.value;break;
+        case 'blockStatusImmune':te.passives.blockStatusImmune=eff.statuses;break;
+        case 'toggle':te.toggles[eff.id]=eff;break;
+        case 'grantAbility':te.grantedAbilities[eff.id]=eff;break;
+        case 'passive':te.passives[eff.id]=eff;break;
+        case 'subclassUnlock':te.subclassUnlocks.push(eff.subclass);break;
+      }
+    });
+  })}
+  // Apply stat-based tree effects to run
+  this.run.stats.health+=Math.floor(te.maxHP/4);// maxHP = health*4, so +4HP = +1 health
+  this.run.stats.mana+=Math.floor(te.maxMP/4);
   this.run.mHP=CALC.maxHP(this.run);this.run.mMP=CALC.maxMP(this.run);
   this.run.hp=this.run.mHP;this.run.mp=this.run.mMP;
   this.saveA();return this.run;
@@ -1208,7 +1268,9 @@ _validateSave(p){if(!(p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof
   if(!p.restBudget)p.restBudget={short:2,long:1};if(!p.dungeonState)p.dungeonState=null;
   if(!p.encounterHistory)p.encounterHistory=[];if(!p.deferredEffects)p.deferredEffects=[];
   if(p._mapReturnRegion===undefined)p._mapReturnRegion=null;if(!p.discoveredRecipes)p.discoveredRecipes={};
-  if(!p.modifiers)p.modifiers=[];if(p.legendMode===undefined)p.legendMode=false;if(!p.npcRepGains)p.npcRepGains={};return true},
+  if(!p.modifiers)p.modifiers=[];if(p.legendMode===undefined)p.legendMode=false;if(!p.npcRepGains)p.npcRepGains={};
+  if(p.subclass===undefined)p.subclass=null;if(!p._treeEffects)p._treeEffects={maxHP:0,maxMP:0,meleeHit:0,rangedHit:0,meleeDmg:0,rangedDmg:0,critBonus:0,effMov:0,sight:0,speech:0,firstAttackBonus:0,firstHitReduction:0,damageReduction:0,damageVsDebuffed:0,damageVsMarked:0,lifestealPct:0,blockBonus:0,fleeBonus:0,freeZoneMove:0,statusDurationSelfMod:0,abilityCostReduce:{},abilityEnhance:{},statusChanceBonuses:{},statusDurationBonuses:{},passives:{},toggles:{},grantedAbilities:{},subclassUnlocks:[]};
+  return true},
 saveA(){if(this.run)try{localStorage.setItem('activeRun',JSON.stringify(this.run));this._saveFail=false}catch(e){if(!this._saveFail){this._saveFail=true;console.warn('Auto-save failed:',e);
   if(e.name==='QuotaExceededError')showToast('Save failed \u2014 storage may be full.','error');else showToast('Auto-save failed.','error')}}},
 loadA(){try{const d=localStorage.getItem('activeRun');if(d){const p=JSON.parse(d);if(!this._validateSave(p))return'incompatible';this.run=p;return true}}catch(e){showToast('Save data corrupted. Starting fresh.','error')}return false},
@@ -1310,7 +1372,7 @@ awardNewEntrySF(){
 // --- Batch 4: journalMeta migration ---
 _migrateJM(){
   const m=this.getJM();
-  if(m.version>=5)return;
+  if(m.version>=6)return;
   if(!m.bestiary)m.bestiary={};
   // Migrate old bestiary entries to include seenCount/defeatCount/tier
   Object.keys(m.bestiary).forEach(id=>{
@@ -1346,6 +1408,37 @@ _migrateJM(){
   if(m.totalBounties===undefined)m.totalBounties=0;
   if(m.totalBountyGold===undefined)m.totalBountyGold=0;
   m.version=5;
+  // Batch 6: v5→v6 migration — refund old tree CP, add subclass fields
+  if(!m.unlockedSubclasses)m.unlockedSubclasses={};
+  // Refund CP from old node IDs that no longer exist in the new 135-node tree
+  if(m.classUnlocks){
+    const oldCosts={f_t1:2,f_t2:3,f_t3:5,f_ch1:8,f_wa1:8,f_wm1:8,
+      p_t1:2,p_t2:3,p_t3:5,p_te1:8,p_in1:8,p_cr1:8,
+      r_t1:2,r_t2:3,r_t3:5,r_bm1:8,r_mk1:8,r_wd1:8,
+      ro_t1:2,ro_t2:3,ro_t3:5,ro_as1:8,ro_th1:8,ro_du1:8,
+      w_t1:2,w_t2:3,w_t3:5,w_ev1:8,w_en1:8,w_ch1:8,
+      b_t1:2,b_t2:3,b_t3:5,b_rv1:8,b_jg1:8,b_wc1:8,
+      g_t1:2,g_t2:3,g_t3:5,g_de1:8,g_sh1:8,g_eg1:8,
+      n_t1:2,n_t2:3,n_t3:5,n_li1:8,n_db1:8,n_bl1:8,
+      wk_t1:2,wk_t2:3,wk_t3:5,wk_hb1:8,wk_dm1:8,wk_sc1:8};
+    const classFromId={f:'fighter',p:'paladin',r:'ranger',ro:'rogue',w:'wizard',
+      b:'berserker',g:'gunslinger',n:'necromancer',wk:'warlock'};
+    let refunded={};
+    for(const nid of Object.keys(m.classUnlocks)){
+      if(m.classUnlocks[nid]&&oldCosts[nid]){
+        const prefix=nid.replace(/_.*$/,'');
+        const cl=classFromId[prefix];
+        if(cl){refunded[cl]=(refunded[cl]||0)+oldCosts[nid]}
+      }
+    }
+    // Add refunded CP back and clear old unlocks
+    if(!m.classPoints)m.classPoints={};
+    for(const [cl,cp] of Object.entries(refunded)){
+      m.classPoints[cl]=(m.classPoints[cl]||0)+cp;
+    }
+    m.classUnlocks={};
+  }
+  m.version=6;
   try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}
 }
 };
@@ -1482,7 +1575,7 @@ pAct(act){
     const oh=r.oh;
     GS.trackClassStat('blocks',1);_unlockSystem('block_tiers');
     if(tier>=2&&oh&&oh.t==='shield'){
-      cs.pBlk=oh.blk||0;
+      cs.pBlk=(oh.blk||0)+(r._treeEffects?r._treeEffects.blockBonus:0);
       ms.push({t:`You raise your ${oh.name}. -${cs.pBlk} incoming damage!`,c:'c'});
       if(tier===3)ms.push({t:'(Shield mastery: full action freedom this turn)',c:'y'})
     }else{ms.push({t:'You brace yourself. Incoming damage halved!',c:'c'})}
@@ -1619,6 +1712,20 @@ _doPlayerAttack(r,cs,e){
     if(e.debuffs){const br=e.debuffs.find(d=>d.type==='brittle');if(br&&!isExposed)dmg=Math.floor(dmg*1.25)}
     // Player weaken
     if(r.debuffs&&r.debuffs.find(d=>d.type==='weaken'))dmg=Math.max(1,dmg-1);
+    // Batch 6: Tree combat effects
+    const te=r._treeEffects;
+    if(te){
+      // First attack bonus
+      if(te.firstAttackBonus&&!cs._firstAttackDone){dmg+=te.firstAttackBonus;ms.push({t:`Steel Conditioning: +${te.firstAttackBonus} first strike!`,c:'s'});cs._firstAttackDone=true}
+      // Damage vs debuffed enemies
+      if(te.damageVsDebuffed&&e.debuffs&&e.debuffs.length>0){dmg+=te.damageVsDebuffed;ms.push({t:`Exploit Weakness: +${te.damageVsDebuffed} vs debuffed!`,c:'s'})}
+      // Damage vs Marked enemies
+      if(te.damageVsMarked&&e.debuffs&&e.debuffs.find(d=>d.type==='marked')){dmg+=te.damageVsMarked;ms.push({t:`Lethal Precision: +${te.damageVsMarked} vs Marked!`,c:'s'})}
+      // Crit bonus — roll for crit on normal hits
+      if(te.critBonus&&!isExposed&&CALC.roll100()<=te.critBonus){dmg=Math.floor(dmg*1.5);ms.push({t:'Critical hit! (tree bonus)',c:'s'})}
+      // Lifesteal
+      if(te.lifestealPct>0){const steal=Math.max(1,Math.floor(dmg*te.lifestealPct/100));r.hp=Math.min(r.hp+steal,r.mHP);ms.push({t:`Lifesteal: +${steal} HP`,c:'s'})}
+    }
     // Frenzy stacks from berserker verb
     if(cs.frenzyStacks>0){dmg+=cs.frenzyStacks;ms.push({t:`Frenzy: +${cs.frenzyStacks} bonus damage!`,c:'s'});cs.frenzyStacks=0}
     // Shadow Dance (all attacks use backstab mult)
@@ -1658,6 +1765,8 @@ _resolveAbility(ab,r,cs,e,cost){
     if(eff.applyStatus){
       let chance=eff.baseChance||100;
       if(eff.guaranteedIfStatus&&e.debuffs&&e.debuffs.find(d=>d.type===eff.guaranteedIfStatus))chance=100;
+      // Batch 6: Tree status chance bonuses
+      if(r._treeEffects&&r._treeEffects.statusChanceBonuses&&r._treeEffects.statusChanceBonuses[eff.applyStatus])chance+=r._treeEffects.statusChanceBonuses[eff.applyStatus];
       if(CALC.roll100()<=chance){
         this._applyStatus(e,eff.applyStatus,eff.statusDuration||2,ms);
         if(eff.applyStatus2)this._applyStatus(e,eff.applyStatus2,eff.statusDuration||2,ms);
@@ -1806,11 +1915,17 @@ _applyStatus(target,type,duration,ms,dmg){
   if(!target.debuffs)target.debuffs=[];
   const seDef=STATUS_EFFECTS[type];const label=seDef?seDef.name:type;
   _unlockSystem('status_effects');
+  // Batch 6: Tree status duration bonuses (only when applying to enemies, not to player)
+  let dur=duration;
+  const r=GS.run;if(r&&r._treeEffects&&target!==r){
+    const tdb=r._treeEffects.statusDurationBonuses;
+    if(tdb&&tdb[type])dur+=tdb[type];
+  }
   const existing=target.debuffs.find(d=>d.type===type);
-  if(existing){existing.remaining=Math.max(existing.remaining,duration);
-    ms.push({t:`${label} on ${target.name||'target'} refreshed! (${duration} turns)`,c:'s'})}
-  else{target.debuffs.push({type,dmg:dmg||0,remaining:duration});
-    ms.push({t:`${target.name||'Target'} afflicted with ${label}! (${duration} turns${dmg>0?', '+dmg+' dmg/turn':''})`,c:'s'})}},
+  if(existing){existing.remaining=Math.max(existing.remaining,dur);
+    ms.push({t:`${label} on ${target.name||'target'} refreshed! (${dur} turns)`,c:'s'})}
+  else{target.debuffs.push({type,dmg:dmg||0,remaining:dur});
+    ms.push({t:`${target.name||'Target'} afflicted with ${label}! (${dur} turns${dmg>0?', '+dmg+' dmg/turn':''})`,c:'s'})}},
 
 // --- Synergy check ---
 _hasSynergy(target,synergyKey){
@@ -1925,6 +2040,13 @@ _enemyAttack(e,cs,r){
       if(b.effect.incomingDmgReduction)d=Math.max(1,d-b.effect.incomingDmgReduction)});
     // Frenzy: damage taken = bonus stacks
     cs.activeBuffs.forEach(b=>{if(b.effect.frenzy&&d>0){cs.frenzyStacks+=2;ms.push({t:`Frenzy! +2 bonus damage stored (${cs.frenzyStacks} total)`,c:'y'})}});
+    // Batch 6: Tree damage reduction
+    const te2=r._treeEffects;
+    if(te2){
+      if(te2.damageReduction>0){d=Math.max(1,d-te2.damageReduction)}
+      if(te2.firstHitReduction>0&&!cs._firstHitTaken){d=Math.max(1,d-te2.firstHitReduction);cs._firstHitTaken=true;ms.push({t:'Thick Skin: first hit reduced!',c:'y'})}
+      if(te2.statusDurationSelfMod<0&&r.debuffs){r.debuffs.forEach(db=>{db.remaining=Math.max(1,db.remaining+te2.statusDurationSelfMod)})}
+    }
     d=CALC.safeDmg(d);r.hp=Math.max(0,r.hp-d);
     // Stalwart Stand: can't drop below 1 HP
     if(r.hp<=0&&cs.activeBuff&&cs.activeBuff.effect.stalwart){r.hp=1;ms.push({t:'Stalwart Stand! You refuse to fall! (1 HP)',c:'s'})}
@@ -2181,7 +2303,8 @@ updateBattleScene(show){
 updateHUD(){const r=GS.run;if(!r)return;
   PA.renderPortrait(this.el.hp,r.species);
   const clName=CL[r.classes[0]]?CL[r.classes[0]].name:r.classes[0];
-  this.el.hnc.textContent=r.name+' · '+clName+' Lv'+r.level;
+  const subLabel=r.subclass&&CLASS_TREE[r.classes[0]]&&CLASS_TREE[r.classes[0]].subclasses[r.subclass]?' ('+CLASS_TREE[r.classes[0]].subclasses[r.subclass].name+')':'';
+  this.el.hnc.textContent=r.name+' · '+clName+subLabel+' Lv'+r.level;
   const hpp=Math.max(0,(r.hp/r.mHP)*100);this.el.hbi.style.width=hpp+'%';
   this.el.hbo.setAttribute('aria-valuenow',r.hp);this.el.hbo.setAttribute('aria-valuemax',r.mHP);
   this.el.htx.textContent=r.hp+'/'+r.mHP+' HP';
@@ -2606,6 +2729,8 @@ openChar(tab){
   if(traitName)sh+='<div class="ist">Species Trait</div><div class="trait-card"><strong>'+traitName+'</strong><p>'+traitDesc+'</p></div>';
   sh+='<div class="ist">Level</div><div style="font-size:.9rem;color:var(--text2)">Level '+r.level+' · '+(r.level<25?r.xp+'/'+r.level*100+' XP':'Max Level')+'</div>';
   if(r.level<25)sh+='<div class="xp-bar-o"><div class="xp-bar-i" style="width:'+Math.min(100,(r.xp/(r.level*100))*100)+'%"></div></div>';
+  if(r.subclass){const scData=CLASS_TREE[r.classes[0]]&&CLASS_TREE[r.classes[0]].subclasses[r.subclass];
+    if(scData)sh+='<div style="font-size:.9rem;color:var(--gold);margin-top:4px">Subclass: '+scData.name+'</div>'}
   sh+='<div style="font-size:.9rem;color:var(--gold);margin-top:4px">Gold: '+(r.gold||0)+'g</div>';
 
   // Class ability info
@@ -2859,33 +2984,69 @@ openClassTree(classKey){
   const clName=CL[classKey]?CL[classKey].name:classKey;
   const cpAmt=(m.classPoints&&m.classPoints[classKey])||0;
   if(!m.classUnlocks)m.classUnlocks={};
-  b.innerHTML='<div style="text-align:center;margin-bottom:12px"><p style="color:var(--gold);font-size:1.1rem;font-weight:600">'+clName+' Mastery</p><p style="color:var(--text2);font-size:.9rem">Class Points: '+cpAmt+'</p></div>';
-  // Trunk nodes
-  const trunkDiv=document.createElement('div');trunkDiv.style.cssText='display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px';
-  tree.trunk.forEach((node,i)=>{
-    const owned=!!m.classUnlocks[node.id];
-    const prereqMet=!node.prereq||!!m.classUnlocks[node.prereq];
-    const canBuy=!owned&&prereqMet&&cpAmt>=node.cost;
-    const nd=document.createElement('div');nd.style.cssText='width:100%;max-width:320px;background:var(--bg3);border:1px solid '+(owned?'var(--gold)':'var(--border)')+';border-radius:6px;padding:10px 14px';
-    nd.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="color:'+(owned?'var(--gold)':'var(--text)')+'">'+node.name+'</strong><span style="font-size:.8rem;color:var(--text3)">'+node.cost+' CP</span></div><p style="font-size:.85rem;color:var(--text2);margin-top:4px">'+node.desc+'</p>';
-    if(owned){const badge=document.createElement('span');badge.style.cssText='font-size:.8rem;color:var(--green)';badge.textContent='Owned';nd.appendChild(badge)}
-    else if(canBuy){const btn=document.createElement('button');btn.className='mbtn';btn.style.cssText='margin-top:6px;font-size:.85rem;min-height:36px';btn.textContent='Purchase ('+node.cost+' CP)';
-      btn.onclick=()=>{const mm=GS.getJM();if(!mm.classUnlocks)mm.classUnlocks={};if(!mm.classPoints)mm.classPoints={};
-        mm.classPoints[classKey]=(mm.classPoints[classKey]||0)-node.cost;mm.classUnlocks[node.id]=true;
-        GS.setJM({classPoints:mm.classPoints,classUnlocks:mm.classUnlocks});showToast('Unlocked: '+node.name,'success');this.openClassTree(classKey)};
-      nd.appendChild(btn)}
-    else if(!prereqMet){nd.style.opacity='.5'}
-    if(i<tree.trunk.length-1){const arrow=document.createElement('div');arrow.style.cssText='text-align:center;color:var(--text3);font-size:1rem';arrow.textContent='\u2193';trunkDiv.appendChild(nd);trunkDiv.appendChild(arrow)}
-    else trunkDiv.appendChild(nd)});
-  b.appendChild(trunkDiv);
-  // Branch stubs
-  const branchDiv=document.createElement('div');branchDiv.style.cssText='display:flex;gap:8px;flex-wrap:wrap;justify-content:center';
-  Object.values(tree.branches).forEach(branch=>{
-    const bd=document.createElement('div');bd.style.cssText='flex:1;min-width:120px;max-width:200px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;opacity:.5';
-    bd.innerHTML='<p style="color:var(--gold);font-size:.9rem;font-weight:600;text-align:center">'+branch.name+'</p>';
-    branch.nodes.forEach(n=>{bd.innerHTML+='<p style="font-size:.8rem;color:var(--text3);text-align:center">'+n.name+' ('+n.cost+' CP)<br>'+n.desc+'</p>'});
-    branchDiv.appendChild(bd)});
-  b.appendChild(branchDiv);
+  const owned=id=>!!m.classUnlocks[id];
+  const ownedCount=tree.nodes.filter(n=>owned(n.id)).length;
+  const generalOwned=tree.nodes.filter(n=>n.type==='general'&&owned(n.id)).length;
+  // Check if node prereqs met
+  const canPurchase=node=>{
+    if(owned(node.id))return false;
+    if(cpAmt<node.cost)return false;
+    // Check prereq groups (AND between groups, OR within each group)
+    if(node.prereq&&node.prereq.length){
+      for(const group of node.prereq){
+        if(!group.some(pid=>owned(pid)))return false;
+      }
+    }
+    if(node.minGeneral&&generalOwned<node.minGeneral)return false;
+    if(node.minNodes){
+      const nonUnlockOwned=tree.nodes.filter(n=>n.type!=='unlock'&&owned(n.id)).length;
+      if(nonUnlockOwned<node.minNodes)return false;
+    }
+    return true;
+  };
+  // Header
+  b.innerHTML='<div style="text-align:center;margin-bottom:12px"><p style="color:var(--gold);font-size:1.1rem;font-weight:600">'+clName+' Mastery</p><p style="color:var(--text2);font-size:.9rem">Class Points: <span style="color:var(--gold)">'+cpAmt+'</span> \u2014 Nodes: '+ownedCount+'/15</p></div>';
+  // Subclass legend
+  const scLeg=document.createElement('div');scLeg.style.cssText='display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px';
+  const subColors={};const colorPool=['#4fc3f7','#aed581','#ff8a65'];let ci=0;
+  Object.entries(tree.subclasses).forEach(([k,sc])=>{subColors[k]=colorPool[ci]||'#ccc';
+    scLeg.innerHTML+='<span style="font-size:.75rem;color:'+colorPool[ci]+'">'+sc.name+'</span>';ci++});
+  b.appendChild(scLeg);
+  // Render nodes by tier
+  for(let tier=1;tier<=5;tier++){
+    const tierNodes=tree.nodes.filter(n=>n.tier===tier);
+    if(!tierNodes.length)continue;
+    const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px';
+    tierNodes.forEach(node=>{
+      const isOwned=owned(node.id);const canBuy=canPurchase(node);
+      const isUnlock=node.type==='unlock';
+      const subColor=subColors[node.type]||subColors[node.subclass]||'';
+      const borderColor=isOwned?'var(--gold)':canBuy?'var(--green)':'var(--border)';
+      const opacity=isOwned||canBuy?'1':'.5';
+      const nd=document.createElement('div');
+      nd.style.cssText='flex:1;min-width:130px;max-width:200px;background:var(--bg3);border:2px solid '+borderColor+';border-radius:6px;padding:8px 10px;opacity:'+opacity+(isUnlock?';border-style:dashed':'');
+      // Node header
+      const typeLabel=node.type==='general'?'':' <span style="color:'+(subColor||'var(--text3)')+';font-size:.7rem">['+((tree.subclasses[node.type]||tree.subclasses[node.subclass]||{}).name||(isUnlock?'Unlock':''))+']</span>';
+      nd.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:.85rem;color:'+(isOwned?'var(--gold)':'var(--text)')+'">'+node.name+'</strong><span style="font-size:.75rem;color:var(--text3)">'+node.cost+'CP</span></div>'+typeLabel+'<p style="font-size:.8rem;color:var(--text2);margin-top:3px">'+node.desc+'</p>';
+      if(isOwned){nd.innerHTML+='<span style="font-size:.75rem;color:var(--green)">\u2714 Owned</span>'}
+      else if(canBuy){
+        const btn=document.createElement('button');btn.className='mbtn';btn.style.cssText='margin-top:4px;font-size:.8rem;min-height:30px;width:100%';
+        btn.textContent=isUnlock?'Unlock ('+node.cost+' CP)':'Purchase ('+node.cost+' CP)';
+        btn.onclick=()=>{const mm=GS.getJM();if(!mm.classUnlocks)mm.classUnlocks={};if(!mm.classPoints)mm.classPoints={};
+          mm.classPoints[classKey]=(mm.classPoints[classKey]||0)-node.cost;mm.classUnlocks[node.id]=true;
+          if(node.type==='unlock'&&node.subclass){if(!mm.unlockedSubclasses)mm.unlockedSubclasses={};mm.unlockedSubclasses[classKey]=node.subclass}
+          GS.setJM({classPoints:mm.classPoints,classUnlocks:mm.classUnlocks,unlockedSubclasses:mm.unlockedSubclasses||{}});
+          showToast((isUnlock?'Subclass unlocked: ':'Unlocked: ')+node.name,'success');this.openClassTree(classKey)};
+        nd.appendChild(btn)}
+      row.appendChild(nd)});
+    b.appendChild(row);
+    if(tier<5){const sep=document.createElement('div');sep.style.cssText='text-align:center;color:var(--text3);font-size:.7rem;margin:2px 0';sep.textContent='\u2500\u2500\u2500';b.appendChild(sep)}
+  }
+  // Unlocked subclasses summary
+  const unlocked=m.unlockedSubclasses&&m.unlockedSubclasses[classKey];
+  if(unlocked){
+    const scInfo=tree.subclasses[unlocked];
+    b.innerHTML+='<div style="text-align:center;margin-top:12px;padding:8px;border:1px solid var(--gold);border-radius:6px"><p style="color:var(--gold);font-size:.9rem;font-weight:600">Active Subclass: '+(scInfo?scInfo.name:unlocked)+'</p>'+(scInfo?'<p style="font-size:.8rem;color:var(--text2)">'+scInfo.desc+'</p>':'')+'</div>'}
   this.open('m-ctree')},
 
 // --- Batch 4: Spiritfire Shrine UI ---
@@ -2934,9 +3095,10 @@ openMemorial(){
       const row=document.createElement('div');
       row.style.cssText='padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
       const clName=CL[entry.cls]?CL[entry.cls].name:entry.cls;
+      const scName=entry.subclass&&CLASS_TREE[entry.cls]&&CLASS_TREE[entry.cls].subclasses[entry.subclass]?CLASS_TREE[entry.cls].subclasses[entry.subclass].name:'';
       const advNames={muddy_trail:'The Muddy Trail',iron_hollows:'The Iron Hollows',ashen_waste:'The Ashen Waste'};
       const advName=advNames[entry.adventure]||entry.adventure||'Unknown';
-      row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="color:var(--text)">'+entry.name+'</strong><span style="font-size:.8rem;color:var(--text3)">Lv'+entry.level+' '+clName+'</span></div>';
+      row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="color:var(--text)">'+entry.name+'</strong><span style="font-size:.8rem;color:var(--text3)">Lv'+entry.level+' '+clName+(scName?' ('+scName+')':'')+'</span></div>';
       row.innerHTML+='<div style="font-size:.85rem;color:var(--red)">Slain by '+entry.cause+' in '+advName+'</div>';
       b.appendChild(row)})
   }
@@ -2949,8 +3111,8 @@ openMemorial(){
 
 // === CHARACTER CREATION ===
 const CC={
-step:1,sp:null,subsp:null,cl:null,humanBonus:[],
-reset(){this.step=1;this.sp=null;this.subsp=null;this.cl=null;this.humanBonus=[];this.showStep(1);UI.el.ni.value='';UI.el.cbk.style.display='none';UI.el.cnx.textContent='Continue';UI.el.cc.style.opacity='1';this.buildSP();this.buildCL()},
+step:1,sp:null,subsp:null,cl:null,humanBonus:[],subclass:null,
+reset(){this.step=1;this.sp=null;this.subsp=null;this.cl=null;this.humanBonus=[];this.subclass=null;this.showStep(1);UI.el.ni.value='';UI.el.cbk.style.display='none';UI.el.cnx.textContent='Continue';UI.el.cc.style.opacity='1';this.buildSP();this.buildCL()},
 showStep(n){
   const prev=document.querySelector('.ccs.act');const next=$('ccs'+n);
   if(prev&&next&&prev!==next&&!REDUCED_MOTION){
@@ -2975,7 +3137,7 @@ async next(){
   if(this.step===5&&!this.cl){this._addHint($('ccs5'),'Select a class to continue.');return}
   if(this.step===6){
     const nm=UI.el.ni.value.trim();
-    GS.newRun(nm,this.sp,this.subsp,this.cl,this.sp==='human'?this.humanBonus:null);
+    GS.newRun(nm,this.sp,this.subsp,this.cl,this.sp==='human'?this.humanBonus:null,this.subclass);
     const m=GS.getJM();if(m.guideFound||m.handbookFound){GS.run.jrnUnlk=true;GS.saveA()}
     const d=REDUCED_MOTION?0:300;
     UI.el.cc.style.transition='opacity '+d+'ms ease';UI.el.cc.style.opacity='0';
@@ -3059,6 +3221,34 @@ buildSum(){const c=$('cc-sum');const nm=UI.el.ni.value.trim(),sp=SP[this.sp],cl=
   const sumAb=cl.abilities?cl.abilities[0]:cl.ability;if(sumAb)h.push(['Ability',sumAb.name+' ('+sumAb.cost+' MP)']);
   if(traitName)h.push(['Trait',traitName]);
   let html=h.map(([l,v])=>'<div class="csr"><span class="csl">'+l+'</span><span class="csv">'+v+'</span></div>').join('');
+  // Batch 6: Subclass selection if available
+  const jm=GS.getJM();const unlockedSubs=jm.unlockedSubclasses&&jm.unlockedSubclasses[this.cl];
+  const classTree=CLASS_TREE[this.cl];
+  if(classTree&&classTree.subclasses){
+    const availableSubs=[];
+    if(unlockedSubs){
+      // Player has at least one subclass unlocked — could be one or more
+      // Check all subclasses for this class
+      Object.entries(classTree.subclasses).forEach(([key,sc])=>{
+        const unlockNode=classTree.nodes.find(n=>n.type==='unlock'&&n.subclass===key);
+        if(unlockNode&&jm.classUnlocks&&jm.classUnlocks[unlockNode.id])availableSubs.push({key,name:sc.name,desc:sc.desc})
+      });
+    }
+    if(availableSubs.length>0){
+      this.subclass=this.subclass||null;
+      html+='<div class="ist" style="margin-top:10px">Subclass</div>';
+      html+='<div id="cc-sub-pick" style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">';
+      html+='<button class="mbtn'+(this.subclass===null?' sel':'')+'" style="font-size:.8rem;min-height:28px" onclick="CC.subclass=null;CC.buildSum()">None</button>';
+      availableSubs.forEach(s=>{
+        html+='<button class="mbtn'+(this.subclass===s.key?' sel':'')+'" style="font-size:.8rem;min-height:28px" onclick="CC.subclass=\''+s.key+'\';CC.buildSum()">'+s.name+'</button>'});
+      html+='</div>';
+      if(this.subclass){
+        const sc=classTree.subclasses[this.subclass];
+        if(sc)html+='<p style="font-size:.8rem;color:var(--text2);margin:4px 0">'+sc.desc+'</p>';
+        const sa=SUBCLASS_ABILITIES[this.cl]&&SUBCLASS_ABILITIES[this.cl][this.subclass];
+        if(sa)html+='<p style="font-size:.8rem;color:var(--gold);margin:2px 0">Ability: '+sa.name+' — '+sa.desc+'</p>'}
+    }
+  }
   html+='<div class="ist" style="margin-top:10px">Stats</div>';
   STAT_NAMES.forEach(k=>{html+=statBar(STAT_LABELS[k],stats[k])});
   if(traitDesc)html+='<div style="margin-top:10px;color:var(--text2);font-size:.9rem;font-style:italic">'+traitDesc+'</div>';
@@ -3462,7 +3652,7 @@ async onDeath(){
   this._syncReputation();
   // Batch 5: Memorial wall entry
   const lastEnemy=r.cs&&r.cs.enemy?r.cs.enemy.name:'the darkness';
-  const memEntry={name:r.name,cls:r.classes[0],species:r.species,level:r.level,cause:lastEnemy,adventure:r.adventure,ts:Date.now()};
+  const memEntry={name:r.name,cls:r.classes[0],subclass:r.subclass||null,species:r.species,level:r.level,cause:lastEnemy,adventure:r.adventure,ts:Date.now()};
   const jmMem=GS.getJM();if(!jmMem.memorialWall)jmMem.memorialWall=[];
   jmMem.memorialWall.push(memEntry);if(jmMem.memorialWall.length>100)jmMem.memorialWall.shift();
   GS.setJM({memorialWall:jmMem.memorialWall});
@@ -4571,6 +4761,14 @@ resolveStatCheck(stat,dc,run){
   return{chance,passed:CALC.roll100()<=chance};
 },
 
+// Batch 6: OOC ability helpers
+_getOOC(r){const clKey=r.classes[0];return CLASS_OOC_ABILITIES&&CLASS_OOC_ABILITIES[clKey]?CLASS_OOC_ABILITIES[clKey].abilities:[]},
+_hasOOC(r,id){return this._getOOC(r).some(a=>a.id===id)},
+_getStatSwap(r,stat){
+  // Find an OOC ability that swaps the given stat to another
+  return this._getOOC(r).find(a=>a.statSwap&&a.statSwap.from===stat);
+},
+
 // === HELPERS ===
 
 getCurrentNode(){
@@ -4677,6 +4875,11 @@ renderMap(container){
       nodeEl.textContent=icon;
       if(isRevealed&&node.intensity){
         nodeEl.title=node.type+' (intensity '+node.intensity+')';
+      }
+      // Batch 6: Sense Death — mark upcoming undead combat nodes for necromancer
+      if(!node.completed&&node.type==='combat'&&isRevealed&&this._hasOOC&&this._hasOOC(r,'ooc_sense_death')){
+        if(node.encounter&&node.encounter.enemy){const eData=ENEMIES[node.encounter.enemy];
+          if(eData&&eData.type==='undead'){nodeEl.style.boxShadow='0 0 6px var(--red)';nodeEl.title+=' (Undead detected)'}}
       }
       rowEl.appendChild(nodeEl);
     });
@@ -4872,10 +5075,21 @@ _resolveExploration(node){
     // Stat-gated check
     const dc=ev.dc+(r.mapPos.region||0); // DC scales with adventure progress
     const result=this.resolveStatCheck(ev.stat,dc,r);
+    // Batch 6: Passive OOC bonuses — Lockpick (+1 eff stat for sight checks on locks/containers)
+    if(ev.stat==='sight'&&this._hasOOC(r,'ooc_lockpick')&&(ev.desc||'').match(/lock|chest|door|container/i)){
+      result.chance=Math.min(95,result.chance+10);result.passed=CALC.roll100()<=result.chance;
+      UI.addN('Lockpick: Your nimble fingers give you an edge.','y');
+    }
+    // Batch 6: Hex Sense passive (+2 eff sight for curse/trap detection)
+    if(ev.stat==='sight'&&this._hasOOC(r,'ooc_hex_sense')&&(ev.desc||'').match(/curse|trap|dark magic|hex/i)){
+      result.chance=Math.min(95,result.chance+20);result.passed=CALC.roll100()<=result.chance;
+      UI.addN('Hex Sense: You feel the dark energy ahead.','y');
+    }
+    const _clearBtns=()=>{UI.el.nw.querySelectorAll('.scene-act-btn').forEach(b=>b.remove())};
     const btn=document.createElement('button');btn.className='scene-act-btn';
     btn.textContent='Attempt '+ev.stat+' check ('+result.chance+'%)';
     btn.onclick=()=>{
-      btn.remove();
+      _clearBtns();
       if(result.passed){
         UI.addN(ev.passText,'s');
         this._giveReward(ev.reward,r);
@@ -4887,10 +5101,31 @@ _resolveExploration(node){
       this._showContinueBtn(node);
     };
     UI.addEl(btn);
+    // Batch 6: Stat swap OOC ability — alternate check button
+    const swap=this._getStatSwap(r,ev.stat);
+    if(swap){
+      const swapResult=this.resolveStatCheck(swap.statSwap.to,dc,r);
+      const swapBtn=document.createElement('button');swapBtn.className='scene-act-btn';
+      swapBtn.textContent=swap.name+': Use '+swap.statSwap.to+' instead ('+swapResult.chance+'%)';
+      swapBtn.style.color='var(--gold)';
+      swapBtn.onclick=()=>{
+        _clearBtns();
+        if(swapResult.passed){
+          UI.addN(swap.name+'! '+ev.passText,'s');
+          this._giveReward(ev.reward,r);
+        }else{
+          UI.addN(ev.failText,'d');
+          if(ev.failPenalty)this._applyPenalty(ev.failPenalty,r);
+        }
+        GS.saveA();UI.updateHUD();
+        this._showContinueBtn(node);
+      };
+      UI.addEl(swapBtn);
+    }
     // Also show a "Walk away" option
     const skipBtn=document.createElement('button');skipBtn.className='scene-act-btn';
     skipBtn.textContent='Walk away';skipBtn.style.opacity='.7';
-    skipBtn.onclick=()=>{btn.remove();skipBtn.remove();
+    skipBtn.onclick=()=>{_clearBtns();
       UI.addN('You decide not to risk it and move on.','f');
       this._showContinueBtn(node)};
     UI.addEl(skipBtn);
@@ -4918,10 +5153,96 @@ _resolveExploration(node){
       };
       UI.addEl(btn);
     });
+    // Batch 6: Dark Bargain OOC — trade HP for better outcome at risk/social events
+    if(this._hasOOC(r,'ooc_dark_bargain')){
+      const dbBtn=document.createElement('button');dbBtn.className='scene-act-btn';
+      dbBtn.textContent='Dark Bargain: Sacrifice HP for better rewards';dbBtn.style.color='var(--red)';
+      dbBtn.onclick=()=>{
+        UI.el.nw.querySelectorAll('.scene-act-btn').forEach(b=>b.remove());
+        const cost=Math.max(3,Math.floor(r.mHP*0.15));
+        r.hp=Math.max(1,r.hp-cost);
+        UI.addN('Dark Bargain: You sacrifice '+cost+' HP...','d');
+        // Always give best outcome
+        const best=ev.choices[0]&&ev.choices[0].outcomes?ev.choices[0].outcomes.find(o=>o.reward)||ev.choices[0].outcomes[0]:null;
+        if(best){
+          UI.addN(best.text,'s');
+          if(best.reward)this._giveReward(best.reward,r);
+          // Bonus gold from dark pact
+          r.gold=(r.gold||0)+5;UI.addN('The darkness pays: +5 gold.','y');
+        }
+        GS.saveA();UI.updateHUD();this._showContinueBtn(node);
+      };
+      UI.addEl(dbBtn);
+    }
+    // Batch 6: Brute Force OOC — destroy obstacle (always works, HP cost)
+    if(this._hasOOC(r,'ooc_brute_force')&&ev.stat){
+      const bfBtn=document.createElement('button');bfBtn.className='scene-act-btn';
+      bfBtn.textContent='Brute Force: Smash through (costs HP)';bfBtn.style.color='var(--red)';
+      bfBtn.onclick=()=>{
+        UI.el.nw.querySelectorAll('.scene-act-btn').forEach(b=>b.remove());
+        const cost=Math.max(2,Math.floor(r.mHP*0.1));
+        r.hp=Math.max(1,r.hp-cost);
+        UI.addN('You smash through with raw force! (-'+cost+' HP)','s');
+        this._giveReward(ev.reward,r);
+        GS.saveA();UI.updateHUD();this._showContinueBtn(node);
+      };
+      UI.addEl(bfBtn);
+    }
   }else if(ev.cat==='lore'){
     // Lore: always succeed
     UI.addN(ev.text,'f');
     this._giveReward(ev.reward,r);
+    // Batch 6: Tracker passive — auto-reveal animal tracks at lore events
+    if(this._hasOOC(r,'ooc_tracker')&&(ev.text||'').match(/animal|beast|wolf|bear|track|trail/i)){
+      UI.addN('Tracker: You notice tracks — an enemy type revealed in your bestiary.','y');
+      // Auto-discover a random enemy in bestiary
+      const jm2=GS.getJM();if(!jm2.bestiary)jm2.bestiary={};
+      const unknown=Object.keys(ENEMIES).filter(k=>!jm2.bestiary[k]);
+      if(unknown.length){jm2.bestiary[unknown[Math.floor(Math.random()*unknown.length)]]={kills:0,intel:'basic'};GS.setJM({bestiary:jm2.bestiary})}
+    }
+    // Batch 6: Forager passive — chance for free consumable at lore events
+    if(this._hasOOC(r,'ooc_forager')&&Math.random()<0.25){
+      const forageLoot=['hpot','mpot','mushroom_brew','antidote','bandage'];
+      const fItem=ITEMS[forageLoot[Math.floor(Math.random()*forageLoot.length)]];
+      if(fItem){r.bp.push({...fItem});UI.addN('Forager: You spot useful herbs nearby — found '+fItem.name+'!','s')}
+    }
+    // Batch 6: Speak with Dead active — extra lore/intel at lore events
+    if(this._hasOOC(r,'ooc_speak_dead')){
+      const sdBtn=document.createElement('button');sdBtn.className='scene-act-btn';
+      sdBtn.textContent='Speak with Dead (4 MP)';sdBtn.style.color='var(--gold)';
+      sdBtn.onclick=()=>{
+        sdBtn.remove();
+        if(r.mp<4){UI.addN('Not enough MP.','d');return}
+        r.mp-=4;
+        UI.addN('The spirits whisper secrets of the dead...','s');
+        // Reveal enemy intel or grant XP
+        const jm2=GS.getJM();if(!jm2.bestiary)jm2.bestiary={};
+        const partial=Object.keys(jm2.bestiary).filter(k=>jm2.bestiary[k].intel==='basic');
+        if(partial.length){const k=partial[Math.floor(Math.random()*partial.length)];jm2.bestiary[k].intel='full';GS.setJM({bestiary:jm2.bestiary});UI.addN('Gained full intel on '+ENEMIES[k].name+'.','y')}
+        else{GS.addXP(15);UI.addN('The dead grant wisdom. +15 XP.','y')}
+        GS.saveA();UI.updateHUD();
+      };
+      UI.addEl(sdBtn);
+      this._showContinueBtn(node);return;
+    }
+    // Batch 6: Arcane Analysis active — bonus at magical lore events
+    if(this._hasOOC(r,'ooc_arcane_analysis')&&(ev.text||'').match(/magic|arcane|rune|glyph|spell|enchant/i)){
+      const aaBtn=document.createElement('button');aaBtn.className='scene-act-btn';
+      aaBtn.textContent='Arcane Analysis (3 MP)';aaBtn.style.color='var(--gold)';
+      aaBtn.onclick=()=>{
+        aaBtn.remove();
+        if(r.mp<3){UI.addN('Not enough MP.','d');return}
+        r.mp-=3;
+        UI.addN('Your arcane knowledge reveals hidden details...','s');
+        // Bonus: recipe hint or XP
+        const undiscovered=Object.keys(CRAFTING_RECIPES||{}).filter(k=>!r.discoveredRecipes[k]);
+        if(undiscovered.length&&Math.random()<0.4){const rk=undiscovered[Math.floor(Math.random()*undiscovered.length)];r.discoveredRecipes[rk]=true;UI.addN('Discovered recipe: '+CRAFTING_RECIPES[rk].name+'!','s')}
+        else{GS.addXP(20);UI.addN('Arcane insight grants +20 XP.','y')}
+        GS.saveA();UI.updateHUD();
+      };
+      UI.addEl(aaBtn);
+      this._showContinueBtn(node);return;
+    }
     GS.saveA();UI.updateHUD();
     this._showContinueBtn(node);
   }else if(ev.cat==='class_specific'){
@@ -4933,6 +5254,24 @@ _resolveExploration(node){
     }else{
       UI.addN(ev.genericText,'f');
       this._giveReward(ev.genericReward,r);
+    }
+    // Batch 6: Consecrate Ground — paladin bonus at undead/spirit events
+    if(this._hasOOC(r,'ooc_consecrate_ground')&&(ev.desc||'').match(/undead|spirit|ghost|skeleton|zombie|revenant/i)){
+      const cgBtn=document.createElement('button');cgBtn.className='scene-act-btn';
+      cgBtn.textContent='Consecrate Ground (3 MP)';cgBtn.style.color='var(--gold)';
+      cgBtn.onclick=()=>{
+        cgBtn.remove();
+        if(r.mp<3){UI.addN('Not enough MP.','d');return}
+        r.mp-=3;
+        UI.addN('Holy light sanctifies the ground. The restless spirits find peace.','s');
+        // Bonus: Spiritfire + pedia entry
+        const jm2=GS.getJM();jm2.spiritfire=(jm2.spiritfire||0)+2;GS.setJM({spiritfire:jm2.spiritfire});
+        UI.addN('+2 Spiritfire from consecration.','y');
+        GS.addXP(10);UI.addN('+10 XP.','y');
+        GS.saveA();UI.updateHUD();
+      };
+      UI.addEl(cgBtn);
+      this._showContinueBtn(node);return;
     }
     GS.saveA();UI.updateHUD();
     this._showContinueBtn(node);
@@ -4951,7 +5290,12 @@ _resolveTreasure(node){
   const item=ITEMS[pool[Math.floor(Math.random()*pool.length)]];
   if(item){
     r.bp.push({...item});
-    UI.addN('Found: '+item.name+'!','s');
+    UI.addN('Found: '+item.name+(this._hasOOC(r,'ooc_identify')?' — '+item.desc:'')+'!','s');
+  }
+  // Batch 6: Lockpick passive — bonus item from locked containers at treasure
+  if(this._hasOOC(r,'ooc_lockpick')&&Math.random()<0.3){
+    const bonusItem=ITEMS[pool[Math.floor(Math.random()*pool.length)]];
+    if(bonusItem){r.bp.push({...bonusItem});UI.addN('Lockpick: You crack open a hidden compartment — found '+bonusItem.name+'!','s')}
   }
   // Random gold
   const gold=5+Math.floor(Math.random()*15);
@@ -5004,6 +5348,19 @@ _showRestOptions(node){
     };
     UI.addEl(lb);
   }
+  // Batch 6: Holy Light OOC — heal outside combat (Paladin only)
+  if(this._hasOOC(GS.run,'ooc_holy_light')&&r.hp<r.mHP){
+    const hlBtn=document.createElement('button');hlBtn.className='scene-act-btn';hlBtn.style.display='block';hlBtn.style.color='var(--gold)';
+    hlBtn.textContent='Holy Light: Heal '+Math.ceil(r.mHP*0.3)+' HP (4 MP)';
+    hlBtn.onclick=()=>{
+      if(r.mp<4){UI.addN('Not enough MP.','d');return}
+      r.mp-=4;const heal=Math.min(Math.ceil(r.mHP*0.3),r.mHP-r.hp);
+      r.hp+=heal;GS.saveA();UI.updateHUD();
+      UI.addN('Holy Light restores '+heal+' HP.','s');
+      hlBtn.remove();
+    };
+    UI.addEl(hlBtn);
+  }
   // Always offer skip
   const skip=document.createElement('button');skip.className='scene-act-btn';skip.style.display='block';skip.style.opacity='.7';
   skip.textContent='Skip rest';
@@ -5018,6 +5375,15 @@ _resolveShop(node,rDef){
   const r=GS.run;
   UI.clearN();
   UI.addN('You come across a merchant camp along the path.','f');
+  // Batch 6: Case the Joint — rogue reveals inventory + possible hidden item
+  if(this._hasOOC&&this._hasOOC(r,'ooc_case_joint')){
+    UI.addN('Case the Joint: You scope out the merchant\'s full stock.','y');
+    if(Math.random()<0.25){
+      const bonusPool=['ghpot','gmpot','elixir','scroll_dispel','strength_tonic','focus_draught'];
+      const bItem=ITEMS[bonusPool[Math.floor(Math.random()*bonusPool.length)]];
+      if(bItem){r.bp.push({...bItem});UI.addN('You spot something tucked away — swiped '+bItem.name+'!','s')}
+    }
+  }
   const npcId=rDef.shopNPCs&&rDef.shopNPCs.length?
     rDef.shopNPCs[Math.floor(Math.random()*rDef.shopNPCs.length)]:'garrett';
   node.encounter={npc:npcId};
@@ -5260,7 +5626,9 @@ _applyPenalty(penalty,r){
   if(!penalty)return;
   switch(penalty.type){
     case'damage':
-      const dmg=penalty.amount||5;
+      let dmg=penalty.amount||5;
+      // Batch 6: Quick Draw Reflexes — reduce trap/hazard damage by 5%
+      if(this._hasOOC&&this._hasOOC(r,'ooc_quick_draw')){const red=Math.max(1,Math.ceil(dmg*0.05));dmg=Math.max(1,dmg-red)}
       r.hp=Math.max(1,r.hp-dmg);
       UI.addN('Took '+dmg+' damage!','d');
       break;
