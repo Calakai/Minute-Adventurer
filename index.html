@@ -3434,6 +3434,18 @@ openMenu(){
     b.appendChild(_row('Ambient Volume',_slider(st.vol_ambient!==undefined?st.vol_ambient:30,v=>{st.vol_ambient=v;GS.setSettings(st)})));
     b.appendChild(_row('Mute All',_toggle(!st.muteAll,e=>{st.muteAll=!e.target.checked;GS.setSettings(st);if(st.muteAll)SFX.stopAmbient()})));
     b.appendChild(backBtn('Back to menu'))};b.appendChild(setBtn);
+  const credBtn=document.createElement('button');credBtn.className='slb';credBtn.textContent='Credits & About';credBtn.style.cssText='margin-top:8px;width:100%';
+  credBtn.onclick=()=>{b.innerHTML='<h3 class="mt" style="margin-bottom:16px">Credits & About</h3>'
+    +'<div class="ist" style="margin-bottom:8px">Created by</div>'
+    +'<p style="color:var(--text2);font-size:.9rem;margin:0 0 16px 0">Caleb</p>'
+    +'<div class="ist" style="margin-bottom:8px">Special Thanks</div>'
+    +'<p style="color:var(--text2);font-size:.9rem;margin:0 0 4px 0">My beloved Molly</p>'
+    +'<p style="color:var(--text2);font-size:.9rem;margin:0 0 16px 0">Pennelope S. Monk & Percy-Man M. Monk \u2014 the cats</p>'
+    +'<div class="ist" style="margin-bottom:8px">Inspirations</div>'
+    +'<p style="color:var(--text2);font-size:.9rem;margin:0 0 16px 0">Zork, D&D / Wizards of the Coast, Diablo, Baldur\u2019s Gate 3, Divinity, Pathfinder, The Legend of Zelda, Final Fantasy, Hades, Slay the Spire 1 & 2, Ember Knights, Darkest Dungeon, The Binding of Isaac, Mewgenics, Hideo Kojima, Edmund McMillen, and the game design books on my shelf.</p>'
+    +'<div class="ist" style="margin-bottom:8px">Built With</div>'
+    +'<p style="color:var(--text2);font-size:.9rem;margin:0 0 16px 0">AI tools (Claude & Claude Code by Anthropic) were used as development assistants for coding, debugging, and iteration. All creative direction, game design, writing, and artistic vision are entirely my own.</p>';
+    b.appendChild(backBtn('Back to menu'))};b.appendChild(credBtn);
   this.open('m-menu')},
 
 openDlg(speaker,title,text,opts,cb){
