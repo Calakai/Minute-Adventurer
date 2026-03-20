@@ -3,117 +3,171 @@
    Enemies, items, NPCs, scenes, bounties, quests, death quotes
    ===================================================================== */
 
+// === v1.0 STATUS EFFECTS (14 total) ===
+const STATUS_EFFECTS={
+// Damage-over-Time (3) — reworked mechanics
+burn:{name:'Burn',type:'dot',desc:'Erodes DEF by 1 per tick.',icon:'🔥',
+  tick(target,eff){if(target._defEroded===undefined)target._defEroded=0;target._defEroded++;target.def=Math.max(0,(target._baseDef||target.def)-target._defEroded);return{msg:`Burn erodes defense! (DEF now ${target.def})`,dmg:0}}},
+bleed:{name:'Bleed',type:'dot',desc:'Tick damage increases +1 each time target is hit.',icon:'🩸',
+  tick(target,eff){const d=eff.dmg||1;return{msg:`Bleed deals ${d} damage!`,dmg:d}}},
+poison:{name:'Poison',type:'dot',desc:'Self-escalates +1 damage per turn.',icon:'☠️',
+  tick(target,eff){const d=eff.dmg||1;eff.dmg=(eff.dmg||1)+1;return{msg:`Poison deals ${d} damage! (escalating)`,dmg:d}}},
+// Accuracy/Perception (2)
+stagger:{name:'Stagger',type:'accuracy',desc:'-10% hit chance for 2 turns.',icon:'💫',hitMod:-10},
+blind:{name:'Blind',type:'accuracy',desc:'-30% hit chance for 1 turn.',icon:'🌑',hitMod:-30},
+// Movement/Action Denial (4)
+stun:{name:'Stun',type:'denial',desc:'Skip turn entirely.',icon:'⚡'},
+slow:{name:'Slow',type:'denial',desc:"Can't change zones freely.",icon:'🐌'},
+rooted:{name:'Rooted',type:'denial',desc:"Can't change zones at all for 2 turns.",icon:'🌿'},
+silenced:{name:'Silenced',type:'denial',desc:"Can't use abilities or cast spells for 2 turns.",icon:'🤐'},
+// Damage Modification (2)
+weaken:{name:'Weaken',type:'dmg_mod',desc:'Target deals -1 damage.',icon:'⬇️',dmgMod:-1},
+brittle:{name:'Brittle',type:'dmg_mod',desc:'Target takes +25% damage from all sources.',icon:'💎',dmgMult:1.25},
+// Tactical Setup (2)
+exposed:{name:'Exposed',type:'setup',desc:'Next hit = guaranteed crit (consumed on hit).',icon:'🎯',consumeOnHit:true},
+marked:{name:'Marked',type:'setup',desc:'All attacks vs target get +15% hit.',icon:'❌',hitBonus:15},
+// Healing Denial (1)
+curse:{name:'Curse',type:'heal_deny',desc:"Can't heal or regenerate.",icon:'💀'}
+};
+
+// === v1.0 SYNERGIES (4 total) ===
+const SYNERGIES={
+searing_wound:{name:'Searing Wound',requires:['burn','bleed'],trigger:'automatic',
+  desc:'Bleed hit-scaling +2/hit instead of +1 while both active.'},
+festering:{name:'Festering',requires:['poison','curse'],trigger:'automatic',
+  desc:'Poison escalation doubles (+2/turn instead of +1).'},
+hemorrhage:{name:'Hemorrhage',requires:['bleed','slow'],trigger:'automatic',
+  desc:'Bleed tick damage doubled.'},
+shatter:{name:'Shatter',requires:['brittle','exposed'],trigger:'triggered',
+  desc:'Guaranteed crit does triple damage (not double). Exposed consumed; Brittle remains.'}
+};
+
+// === v1.0 INTENT ICONS ===
+const INTENT_ICONS={attack:'⚔️',defend:'🛡️',move:'🏃',cast:'✨',special:'💀'};
+
+// === v1.0 ENEMY TIER COLORS ===
+const ENEMY_TIERS={
+1:{name:'Common',color:'#888'},
+2:{name:'Uncommon',color:'#fff'},
+3:{name:'Dangerous',color:'#fc3'},
+4:{name:'Elite',color:'#f80'},
+5:{name:'Boss',color:'#f33'}
+};
+
+// === v1.0 WEIGHT LABELS ===
+const WEIGHT_LABELS=['Weightless','Very Light','Light','Medium','Heavy','Very Heavy','Crushing'];
+
 const ENEMIES={
 // === TIER 1 — COMMON (8 total) ===
-gray_ooze:{name:'Gray Ooze',id:'gray_ooze',tier:1,lore:'A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.',hp:15,mHP:15,atk:5,def:0,dD:4,dB:1,xp:50,gold:8,
+gray_ooze:{name:'Gray Ooze',id:'gray_ooze',tier:1,lore:'A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.',hp:15,mHP:15,atk:5,def:0,dD:4,dB:1,xp:50,gold:8,preferredZone:'close',
   loot:[{item:'hpot',weight:50},{item:null,weight:50}]},
-bog_wraith:{name:'Bog Wraith',id:'bog_wraith',tier:1,lore:'A half-material spectre born of drowned souls and marsh gas. It drifts through the mist, reaching with cold, grasping tendrils.',hp:14,mHP:14,atk:5,def:0,dD:4,dB:1,xp:60,gold:9,
+bog_wraith:{name:'Bog Wraith',id:'bog_wraith',tier:1,lore:'A half-material spectre born of drowned souls and marsh gas. It drifts through the mist, reaching with cold, grasping tendrils.',hp:14,mHP:14,atk:5,def:0,dD:4,dB:1,xp:60,gold:9,preferredZone:'mid',
   loot:[{item:'marsh_root',weight:35},{item:'mpot',weight:30},{item:null,weight:35}]},
-moss_rat:{name:'Moss Rat',id:'moss_rat',tier:1,lore:'An oversized rodent covered in damp green moss. More nuisance than threat, but its teeth are sharp.',hp:10,mHP:10,atk:3,def:0,dD:4,dB:0,xp:30,gold:6,
+moss_rat:{name:'Moss Rat',id:'moss_rat',tier:1,lore:'An oversized rodent covered in damp green moss. More nuisance than threat, but its teeth are sharp.',hp:10,mHP:10,atk:3,def:0,dD:4,dB:0,xp:30,gold:6,preferredZone:'close',
   loot:[{item:'marsh_root',weight:40},{item:null,weight:60}]},
-marsh_toad:{name:'Marsh Toad',id:'marsh_toad',tier:1,lore:'A bloated amphibian the size of a dog. It spits caustic slime and retreats into the muck.',hp:12,mHP:12,atk:4,def:0,dD:4,dB:0,xp:35,gold:6,
+marsh_toad:{name:'Marsh Toad',id:'marsh_toad',tier:1,lore:'A bloated amphibian the size of a dog. It spits caustic slime and retreats into the muck.',hp:12,mHP:12,atk:4,def:0,dD:4,dB:0,xp:35,gold:6,preferredZone:'mid',
   loot:[{item:'marsh_root',weight:50},{item:null,weight:50}]},
-spore_mite:{name:'Spore Mite',id:'spore_mite',tier:1,lore:'A thumb-sized insect that travels in swarms. Individually harmless; in numbers, they fill the air with choking spores.',hp:10,mHP:10,atk:3,def:0,dD:4,dB:0,xp:30,gold:5,
+spore_mite:{name:'Spore Mite',id:'spore_mite',tier:1,lore:'A thumb-sized insect that travels in swarms. Individually harmless; in numbers, they fill the air with choking spores.',hp:10,mHP:10,atk:3,def:0,dD:4,dB:0,xp:30,gold:5,preferredZone:'mid',
   loot:[{item:null,weight:70},{item:'hpot',weight:30}]},
-ember_beetle:{name:'Ember Beetle',id:'ember_beetle',tier:1,lore:'A fist-sized beetle with a carapace that glows like a dying coal. It skitters toward warmth and bites reflexively.',hp:11,mHP:11,atk:4,def:0,dD:4,dB:0,xp:35,gold:6,
+ember_beetle:{name:'Ember Beetle',id:'ember_beetle',tier:1,lore:'A fist-sized beetle with a carapace that glows like a dying coal. It skitters toward warmth and bites reflexively.',hp:11,mHP:11,atk:4,def:0,dD:4,dB:0,xp:35,gold:6,preferredZone:'close',
   loot:[{item:null,weight:60},{item:'hpot',weight:40}]},
-ash_worm:{name:'Ash Worm',id:'ash_worm',tier:1,lore:'A pale, segmented worm that burrows through volcanic ash. It surfaces to feed on anything organic.',hp:13,mHP:13,atk:4,def:0,dD:4,dB:1,xp:40,gold:7,
+ash_worm:{name:'Ash Worm',id:'ash_worm',tier:1,lore:'A pale, segmented worm that burrows through volcanic ash. It surfaces to feed on anything organic.',hp:13,mHP:13,atk:4,def:0,dD:4,dB:1,xp:40,gold:7,preferredZone:'close',
   loot:[{item:'ration',weight:40},{item:null,weight:60}]},
-tunnel_bat:{name:'Tunnel Bat',id:'tunnel_bat',tier:1,lore:'A cave-dwelling bat with a wingspan wider than a man is tall. Its screech disorients, and its fangs draw blood.',hp:10,mHP:10,atk:4,def:0,dD:4,dB:0,xp:30,gold:6,
+tunnel_bat:{name:'Tunnel Bat',id:'tunnel_bat',tier:1,lore:'A cave-dwelling bat with a wingspan wider than a man is tall. Its screech disorients, and its fangs draw blood.',hp:10,mHP:10,atk:4,def:0,dD:4,dB:0,xp:30,gold:6,preferredZone:'close',
   loot:[{item:null,weight:65},{item:'hpot',weight:35}]},
 
 // === TIER 2 — UNCOMMON (12 total) ===
-giant_spider:{name:'Giant Spider',id:'giant_spider',tier:2,lore:'A forest-dwelling predator that lurks in the canopy, spitting venom and descending on silk threads to ambush travelers below.',hp:18,mHP:18,atk:6,def:1,dD:6,dB:1,xp:75,gold:8,
+giant_spider:{name:'Giant Spider',id:'giant_spider',tier:2,lore:'A forest-dwelling predator that lurks in the canopy, spitting venom and descending on silk threads to ambush travelers below.',hp:18,mHP:18,atk:6,def:1,dD:6,dB:1,xp:75,gold:8,preferredZone:'mid',
   onHit:{effect:'poison',chance:40,duration:3,dmg:2},
   loot:[{item:'antidote',weight:40},{item:'hpot',weight:25},{item:null,weight:35}]},
-dire_wolf:{name:'Dire Wolf',id:'dire_wolf',tier:2,lore:'A massive grey wolf, scarred and cunning. It circles its prey with unnerving patience before closing with terrifying speed.',hp:22,mHP:22,atk:7,def:1,dD:8,dB:1,xp:90,gold:12,
+dire_wolf:{name:'Dire Wolf',id:'dire_wolf',tier:2,lore:'A massive grey wolf, scarred and cunning. It circles its prey with unnerving patience before closing with terrifying speed.',hp:22,mHP:22,atk:7,def:1,dD:8,dB:1,xp:90,gold:12,preferredZone:'close',
   onHit:{effect:'bleed',chance:30,duration:3,dmg:1},
   loot:[{item:'wolf_pelt',weight:35},{item:'hpot',weight:20},{item:'mpot',weight:15},{item:null,weight:30}]},
-venomfang_snake:{name:'Venomfang Snake',id:'venomfang_snake',tier:2,lore:'A black-scaled serpent with translucent fangs. Its venom works fast, shutting down muscles within minutes.',hp:16,mHP:16,atk:6,def:0,dD:6,dB:1,xp:70,gold:7,
+venomfang_snake:{name:'Venomfang Snake',id:'venomfang_snake',tier:2,lore:'A black-scaled serpent with translucent fangs. Its venom works fast, shutting down muscles within minutes.',hp:16,mHP:16,atk:6,def:0,dD:6,dB:1,xp:70,gold:7,preferredZone:'close',
   onHit:{effect:'poison',chance:45,duration:3,dmg:2},
   loot:[{item:'antidote',weight:50},{item:null,weight:50}]},
-shadow_hound:{name:'Shadow Hound',id:'shadow_hound',tier:2,lore:'A spectral canine that flickers between solid and immaterial. Its claws leave wounds that refuse to close.',hp:20,mHP:20,atk:6,def:1,dD:6,dB:1,xp:80,gold:9,
+shadow_hound:{name:'Shadow Hound',id:'shadow_hound',tier:2,lore:'A spectral canine that flickers between solid and immaterial. Its claws leave wounds that refuse to close.',hp:20,mHP:20,atk:6,def:1,dD:6,dB:1,xp:80,gold:9,preferredZone:'close',
   onHit:{effect:'bleed',chance:35,duration:3,dmg:1},
   loot:[{item:'bandage',weight:40},{item:'hpot',weight:25},{item:null,weight:35}]},
-fungal_horror:{name:'Fungal Horror',id:'fungal_horror',tier:2,lore:'A shambling mass of rotting vegetation animated by parasitic fungi. It releases clouds of toxic spores.',hp:20,mHP:20,atk:5,def:1,dD:6,dB:0,xp:75,gold:7,
+fungal_horror:{name:'Fungal Horror',id:'fungal_horror',tier:2,lore:'A shambling mass of rotting vegetation animated by parasitic fungi. It releases clouds of toxic spores.',hp:20,mHP:20,atk:5,def:1,dD:6,dB:0,xp:75,gold:7,preferredZone:'mid',
   onHit:{effect:'poison',chance:35,duration:2,dmg:2},
   loot:[{item:'antidote',weight:35},{item:'mushroom_brew',weight:30},{item:null,weight:35}]},
-ironscale_lizard:{name:'Ironscale Lizard',id:'ironscale_lizard',tier:2,lore:'A thick-bodied lizard with metallic scales. Slow but armored, it charges with lowered head and snapping jaws.',hp:22,mHP:22,atk:6,def:2,dD:6,dB:1,xp:80,gold:9,
+ironscale_lizard:{name:'Ironscale Lizard',id:'ironscale_lizard',tier:2,lore:'A thick-bodied lizard with metallic scales. Slow but armored, it charges with lowered head and snapping jaws.',hp:22,mHP:22,atk:6,def:2,dD:6,dB:1,xp:80,gold:9,preferredZone:'close',
   loot:[{item:'iron_shard',weight:20},{item:'hpot',weight:30},{item:null,weight:50}]},
-ghoul:{name:'Ghoul',id:'ghoul',tier:2,lore:'A corpse that refused to stay buried. Its touch paralyzes, and its hunger is endless.',hp:18,mHP:18,atk:6,def:0,dD:6,dB:1,xp:75,gold:8,tags:['undead'],
+ghoul:{name:'Ghoul',id:'ghoul',tier:2,lore:'A corpse that refused to stay buried. Its touch paralyzes, and its hunger is endless.',hp:18,mHP:18,atk:6,def:0,dD:6,dB:1,xp:75,gold:8,tags:['undead'],preferredZone:'close',
   onHit:{effect:'stun',chance:20,duration:1,dmg:0},
   loot:[{item:'smelling_salts',weight:35},{item:'hpot',weight:25},{item:null,weight:40}]},
-bone_sentinel:{name:'Bone Sentinel',id:'bone_sentinel',tier:2,lore:'An animate skeleton in rusted armor. It stands guard long after its master turned to dust.',hp:20,mHP:20,atk:6,def:2,dD:6,dB:0,xp:80,gold:8,tags:['undead'],
+bone_sentinel:{name:'Bone Sentinel',id:'bone_sentinel',tier:2,lore:'An animate skeleton in rusted armor. It stands guard long after its master turned to dust.',hp:20,mHP:20,atk:6,def:2,dD:6,dB:0,xp:80,gold:8,tags:['undead'],preferredZone:'close',
   loot:[{item:'iron_sword',weight:10},{item:'hpot',weight:30},{item:null,weight:60}]},
-rock_troll:{name:'Rock Troll',id:'rock_troll',tier:2,lore:'A squat, stone-skinned brute that lurks under bridges and in shallow caves. Stupid but dangerously strong.',hp:24,mHP:24,atk:7,def:1,dD:8,dB:0,xp:90,gold:12,
+rock_troll:{name:'Rock Troll',id:'rock_troll',tier:2,lore:'A squat, stone-skinned brute that lurks under bridges and in shallow caves. Stupid but dangerously strong.',hp:24,mHP:24,atk:7,def:1,dD:8,dB:0,xp:90,gold:12,preferredZone:'close',
   loot:[{item:'troll_blood',weight:15},{item:'hpot',weight:30},{item:null,weight:55}]},
-wyvern_hatchling:{name:'Wyvern Hatchling',id:'wyvern_hatchling',tier:2,lore:'A juvenile wyvern, too young to fly but old enough to kill. Its venomous tail whips with surprising reach.',hp:18,mHP:18,atk:6,def:1,dD:6,dB:1,xp:85,gold:10,
+wyvern_hatchling:{name:'Wyvern Hatchling',id:'wyvern_hatchling',tier:2,lore:'A juvenile wyvern, too young to fly but old enough to kill. Its venomous tail whips with surprising reach.',hp:18,mHP:18,atk:6,def:1,dD:6,dB:1,xp:85,gold:10,preferredZone:'mid',
   onHit:{effect:'poison',chance:25,duration:2,dmg:1},
   loot:[{item:'hpot',weight:40},{item:null,weight:60}]},
 
 // === TIER 3 — DANGEROUS (9 total) ===
-cave_crawler:{name:'Cave Crawler',id:'cave_crawler',tier:3,lore:'A bloated, segmented horror that drags itself through the tunnels on dozens of pale legs. Its chitinous hide turns blades.',hp:25,mHP:25,atk:6,def:2,dD:6,dB:1,xp:80,gold:8,
+cave_crawler:{name:'Cave Crawler',id:'cave_crawler',tier:3,lore:'A bloated, segmented horror that drags itself through the tunnels on dozens of pale legs. Its chitinous hide turns blades.',hp:25,mHP:25,atk:6,def:2,dD:6,dB:1,xp:80,gold:8,preferredZone:'close',
   onHit:{effect:'slow',chance:25,duration:2,dmg:0},
   loot:[{item:'dwarven_ale',weight:40},{item:'hpot',weight:25},{item:null,weight:35}]},
-flame_elemental:{name:'Flame Elemental',id:'flame_elemental',tier:3,lore:'A pillar of living fire that drifts through volcanic fissures. Its touch ignites flesh and warps metal.',hp:22,mHP:22,atk:7,def:1,dD:8,dB:0,xp:100,gold:12,
+flame_elemental:{name:'Flame Elemental',id:'flame_elemental',tier:3,lore:'A pillar of living fire that drifts through volcanic fissures. Its touch ignites flesh and warps metal.',hp:22,mHP:22,atk:7,def:1,dD:8,dB:0,xp:100,gold:12,preferredZone:'mid',
   onHit:{effect:'burn',chance:40,duration:3,dmg:2},
   loot:[{item:'burn_salve',weight:35},{item:'ghpot',weight:20},{item:null,weight:45}]},
-darkwood_treant:{name:'Darkwood Treant',id:'darkwood_treant',tier:3,lore:'An ancient tree twisted by dark magic into a shambling predator. Its roots entangle; its branches crush.',hp:28,mHP:28,atk:6,def:3,dD:6,dB:1,xp:95,gold:10,
+darkwood_treant:{name:'Darkwood Treant',id:'darkwood_treant',tier:3,lore:'An ancient tree twisted by dark magic into a shambling predator. Its roots entangle; its branches crush.',hp:28,mHP:28,atk:6,def:3,dD:6,dB:1,xp:95,gold:10,preferredZone:'close',
   onHit:{effect:'slow',chance:30,duration:2,dmg:0},
   loot:[{item:'marsh_root',weight:30},{item:'ghpot',weight:25},{item:null,weight:45}]},
-banshee:{name:'Banshee',id:'banshee',tier:3,lore:'The wailing spirit of a woman betrayed. Her scream curdles the blood and clouds the mind.',hp:22,mHP:22,atk:7,def:1,dD:6,dB:1,xp:100,gold:12,tags:['undead'],
+banshee:{name:'Banshee',id:'banshee',tier:3,lore:'The wailing spirit of a woman betrayed. Her scream curdles the blood and clouds the mind.',hp:22,mHP:22,atk:7,def:1,dD:6,dB:1,xp:100,gold:12,tags:['undead'],preferredZone:'far',
   onHit:{effect:'curse',chance:35,duration:3,dmg:0},
   loot:[{item:'purification_scroll',weight:35},{item:'banshee_essence',weight:15},{item:null,weight:50}]},
-chimera_spawn:{name:'Chimera Spawn',id:'chimera_spawn',tier:3,lore:'A malformed beast with the heads of a lion, goat, and serpent. Each head attacks independently.',hp:26,mHP:26,atk:7,def:2,dD:8,dB:0,xp:110,gold:14,
+chimera_spawn:{name:'Chimera Spawn',id:'chimera_spawn',tier:3,lore:'A malformed beast with the heads of a lion, goat, and serpent. Each head attacks independently.',hp:26,mHP:26,atk:7,def:2,dD:8,dB:0,xp:110,gold:14,preferredZone:'close',
   loot:[{item:'ghpot',weight:30},{item:'strength_tonic',weight:15},{item:null,weight:55}]},
-corrupted_knight:{name:'Corrupted Knight',id:'corrupted_knight',tier:3,lore:'Once a champion of the realm, now a shell of rusted armor animated by spite. Its sword remembers its training.',hp:28,mHP:28,atk:8,def:2,dD:8,dB:1,xp:115,gold:15,tags:['undead'],
+corrupted_knight:{name:'Corrupted Knight',id:'corrupted_knight',tier:3,lore:'Once a champion of the realm, now a shell of rusted armor animated by spite. Its sword remembers its training.',hp:28,mHP:28,atk:8,def:2,dD:8,dB:1,xp:115,gold:15,tags:['undead'],preferredZone:'close',
   onHit:{effect:'bleed',chance:30,duration:3,dmg:1},
   loot:[{item:'steel_sword',weight:10},{item:'scale_mail',weight:8},{item:'ghpot',weight:25},{item:null,weight:57}]},
-crystal_golem:{name:'Crystal Golem',id:'crystal_golem',tier:3,lore:'A construct of living quartz, refracting light into blinding patterns. Each blow sends razor shards in all directions.',hp:30,mHP:30,atk:6,def:3,dD:6,dB:1,xp:100,gold:12,
+crystal_golem:{name:'Crystal Golem',id:'crystal_golem',tier:3,lore:'A construct of living quartz, refracting light into blinding patterns. Each blow sends razor shards in all directions.',hp:30,mHP:30,atk:6,def:3,dD:6,dB:1,xp:100,gold:12,preferredZone:'mid',
   onHit:{effect:'blind',chance:25,duration:2,dmg:0},
   loot:[{item:'iron_shard',weight:30},{item:'ghpot',weight:20},{item:null,weight:50}]},
-plague_bearer:{name:'Plague Bearer',id:'plague_bearer',tier:3,lore:'A shambling corpse wreathed in flies and decay. Its mere proximity sickens; its touch brings fever and rot.',hp:24,mHP:24,atk:7,def:1,dD:6,dB:1,xp:105,gold:11,tags:['undead'],
+plague_bearer:{name:'Plague Bearer',id:'plague_bearer',tier:3,lore:'A shambling corpse wreathed in flies and decay. Its mere proximity sickens; its touch brings fever and rot.',hp:24,mHP:24,atk:7,def:1,dD:6,dB:1,xp:105,gold:11,tags:['undead'],preferredZone:'close',
   onHit:{effect:'poison',chance:45,duration:3,dmg:2},
   loot:[{item:'antidote',weight:40},{item:'ghpot',weight:20},{item:null,weight:40}]},
-wyvern:{name:'Wyvern',id:'wyvern',tier:3,lore:'A fully grown wyvern, scales hardened by years of territorial battles. It dives from above, striking with talons and venomous tail.',hp:26,mHP:26,atk:8,def:2,dD:8,dB:0,xp:120,gold:14,
+wyvern:{name:'Wyvern',id:'wyvern',tier:3,lore:'A fully grown wyvern, scales hardened by years of territorial battles. It dives from above, striking with talons and venomous tail.',hp:26,mHP:26,atk:8,def:2,dD:8,dB:0,xp:120,gold:14,preferredZone:'mid',
   onHit:{effect:'poison',chance:30,duration:2,dmg:2},
   loot:[{item:'dragon_scale',weight:10},{item:'ghpot',weight:25},{item:null,weight:65}]},
 
 // === TIER 4 — ELITE (7 total) ===
-mine_shade:{name:'Mine Shade',id:'mine_shade',tier:4,lore:'A flickering silhouette that darts between pillars of stone. It strikes from impossible angles, its touch numbing mind and muscle.',hp:12,mHP:12,atk:8,def:0,dD:4,dB:1,xp:100,gold:10,
+mine_shade:{name:'Mine Shade',id:'mine_shade',tier:4,lore:'A flickering silhouette that darts between pillars of stone. It strikes from impossible angles, its touch numbing mind and muscle.',hp:12,mHP:12,atk:8,def:0,dD:4,dB:1,xp:100,gold:10,preferredZone:'far',
   onHit:{effect:'stun',chance:20,duration:1,dmg:0},
   loot:[{item:'mpot',weight:35},{item:'antidote',weight:25},{item:null,weight:40}]},
-death_knight:{name:'Death Knight',id:'death_knight',tier:4,lore:'A lord of the undead in blackened plate. Two curses attend its blade: decay and endless bleeding.',hp:28,mHP:28,atk:9,def:3,dD:8,dB:2,xp:150,gold:20,tags:['undead'],
+death_knight:{name:'Death Knight',id:'death_knight',tier:4,lore:'A lord of the undead in blackened plate. Two curses attend its blade: decay and endless bleeding.',hp:28,mHP:28,atk:9,def:3,dD:8,dB:2,xp:150,gold:20,tags:['undead'],preferredZone:'close',
   onHit:{effect:'curse',chance:30,duration:3,dmg:0},
   loot:[{item:'enchanted_blade',weight:8},{item:'knights_plate',weight:5},{item:'ghpot',weight:30},{item:null,weight:57}]},
-void_stalker:{name:'Void Stalker',id:'void_stalker',tier:4,lore:'A creature from between worlds. It flickers in and out of reality, striking from angles that shouldn\'t exist.',hp:22,mHP:22,atk:9,def:1,dD:8,dB:1,xp:140,gold:18,
+void_stalker:{name:'Void Stalker',id:'void_stalker',tier:4,lore:'A creature from between worlds. It flickers in and out of reality, striking from angles that shouldn\'t exist.',hp:22,mHP:22,atk:9,def:1,dD:8,dB:1,xp:140,gold:18,preferredZone:'far',
   onHit:{effect:'blind',chance:35,duration:2,dmg:0},
   loot:[{item:'eye_drops',weight:30},{item:'shadow_cloak',weight:8},{item:'ghpot',weight:25},{item:null,weight:37}]},
-ash_wyrm:{name:'Ash Wyrm',id:'ash_wyrm',tier:4,lore:'A serpentine dragon that nests in volcanic vents. Its breath is superheated ash that chars flesh and blinds eyes.',hp:26,mHP:26,atk:9,def:2,dD:8,dB:1,xp:145,gold:18,
+ash_wyrm:{name:'Ash Wyrm',id:'ash_wyrm',tier:4,lore:'A serpentine dragon that nests in volcanic vents. Its breath is superheated ash that chars flesh and blinds eyes.',hp:26,mHP:26,atk:9,def:2,dD:8,dB:1,xp:145,gold:18,preferredZone:'mid',
   onHit:{effect:'burn',chance:40,duration:3,dmg:2},
   loot:[{item:'dragon_scale',weight:20},{item:'burn_salve',weight:25},{item:'ghpot',weight:20},{item:null,weight:35}]},
-lich_apprentice:{name:'Lich Apprentice',id:'lich_apprentice',tier:4,lore:'A mage who traded death for undeath. Its mastery of dark magic is incomplete but potent enough to end the unwary.',hp:20,mHP:20,atk:8,def:1,dD:6,dB:2,xp:140,gold:18,tags:['undead'],
+lich_apprentice:{name:'Lich Apprentice',id:'lich_apprentice',tier:4,lore:'A mage who traded death for undeath. Its mastery of dark magic is incomplete but potent enough to end the unwary.',hp:20,mHP:20,atk:8,def:1,dD:6,dB:2,xp:140,gold:18,tags:['undead'],preferredZone:'far',
   onHit:{effect:'curse',chance:40,duration:3,dmg:0},
   loot:[{item:'purification_scroll',weight:30},{item:'lich_dust',weight:15},{item:'gmpot',weight:20},{item:null,weight:35}]},
-storm_elemental:{name:'Storm Elemental',id:'storm_elemental',tier:4,lore:'A howling vortex of wind and lightning. It moves erratically, striking with bolts that leave muscles locked and twitching.',hp:24,mHP:24,atk:9,def:1,dD:8,dB:1,xp:145,gold:18,
+storm_elemental:{name:'Storm Elemental',id:'storm_elemental',tier:4,lore:'A howling vortex of wind and lightning. It moves erratically, striking with bolts that leave muscles locked and twitching.',hp:24,mHP:24,atk:9,def:1,dD:8,dB:1,xp:145,gold:18,preferredZone:'mid',
   onHit:{effect:'stun',chance:25,duration:1,dmg:0},
   loot:[{item:'smelling_salts',weight:30},{item:'gmpot',weight:25},{item:null,weight:45}]},
-troll_warlord:{name:'Troll Warlord',id:'troll_warlord',tier:4,lore:'A massive troll chieftain covered in war paint and old scars. Its crushing blows leave victims weakened and broken.',hp:28,mHP:28,atk:10,def:2,dD:10,dB:0,xp:155,gold:22,
+troll_warlord:{name:'Troll Warlord',id:'troll_warlord',tier:4,lore:'A massive troll chieftain covered in war paint and old scars. Its crushing blows leave victims weakened and broken.',hp:28,mHP:28,atk:10,def:2,dD:10,dB:0,xp:155,gold:22,preferredZone:'close',
   onHit:{effect:'weaken',chance:30,duration:3,dmg:0},
   loot:[{item:'troll_blood',weight:25},{item:'war_hammer',weight:5},{item:'ghpot',weight:25},{item:null,weight:45}]},
 
 // === TIER 5 — BOSS (5 total) ===
-iron_golem:{name:'Iron Golem',id:'iron_golem',tier:5,lore:'A construct of living iron, forged in the old dwarven wars and left to guard the deep forge. It moves with grinding deliberation, each blow like a collapsing wall.',hp:35,mHP:35,atk:9,def:3,dD:10,dB:1,xp:150,gold:20,
+iron_golem:{name:'Iron Golem',id:'iron_golem',tier:5,lore:'A construct of living iron, forged in the old dwarven wars and left to guard the deep forge. It moves with grinding deliberation, each blow like a collapsing wall.',hp:35,mHP:35,atk:9,def:3,dD:10,dB:1,xp:150,gold:20,preferredZone:'close',
   loot:[{item:'iron_shard',weight:50},{item:'hpot',weight:25},{item:null,weight:25}]},
-elder_dragon:{name:'Elder Dragon',id:'elder_dragon',tier:5,lore:'The oldest living dragon in the Ashen Waste. Its scales are volcanic glass, its breath a river of liquid fire. Kingdoms have fallen to feed its hunger.',hp:45,mHP:45,atk:11,def:3,dD:10,dB:2,xp:300,gold:50,
+elder_dragon:{name:'Elder Dragon',id:'elder_dragon',tier:5,lore:'The oldest living dragon in the Ashen Waste. Its scales are volcanic glass, its breath a river of liquid fire. Kingdoms have fallen to feed its hunger.',hp:45,mHP:45,atk:11,def:3,dD:10,dB:2,xp:300,gold:50,preferredZone:'mid',
   onHit:{effect:'burn',chance:50,duration:3,dmg:3},
   loot:[{item:'dragon_scale',weight:60},{item:'flaming_sword',weight:10},{item:null,weight:30}]},
-lich_king:{name:'Lich King',id:'lich_king',tier:5,lore:'The master of undeath, enthroned in a crypt of crystallized souls. His magic unravels the will to live.',hp:40,mHP:40,atk:10,def:2,dD:8,dB:3,xp:280,gold:45,tags:['undead'],
+lich_king:{name:'Lich King',id:'lich_king',tier:5,lore:'The master of undeath, enthroned in a crypt of crystallized souls. His magic unravels the will to live.',hp:40,mHP:40,atk:10,def:2,dD:8,dB:3,xp:280,gold:45,tags:['undead'],preferredZone:'far',
   onHit:{effect:'curse',chance:45,duration:4,dmg:0},
   loot:[{item:'lich_dust',weight:50},{item:'grimoire',weight:10},{item:null,weight:40}]},
-ancient_construct:{name:'Ancient Construct',id:'ancient_construct',tier:5,lore:'A war machine from a forgotten age. Powered by a gem that pulses with dying starlight. Every joint screams with neglected centuries.',hp:50,mHP:50,atk:10,def:4,dD:10,dB:1,xp:300,gold:50,
+ancient_construct:{name:'Ancient Construct',id:'ancient_construct',tier:5,lore:'A war machine from a forgotten age. Powered by a gem that pulses with dying starlight. Every joint screams with neglected centuries.',hp:50,mHP:50,atk:10,def:4,dD:10,dB:1,xp:300,gold:50,preferredZone:'close',
   loot:[{item:'iron_shard',weight:40},{item:'knights_plate',weight:10},{item:null,weight:50}]},
-demon_lord:{name:'Demon Lord',id:'demon_lord',tier:5,lore:'A being of pure malice given form. It wields fear as a weapon and pain as a tool. Where it walks, hope dies.',hp:42,mHP:42,atk:11,def:2,dD:10,dB:2,xp:320,gold:55,
+demon_lord:{name:'Demon Lord',id:'demon_lord',tier:5,lore:'A being of pure malice given form. It wields fear as a weapon and pain as a tool. Where it walks, hope dies.',hp:42,mHP:42,atk:11,def:2,dD:10,dB:2,xp:320,gold:55,preferredZone:'mid',
   onHit:{effect:'weaken',chance:35,duration:3,dmg:0},
   loot:[{item:'demon_horn',weight:50},{item:'enchanted_blade',weight:10},{item:null,weight:40}]}
 };
@@ -139,35 +193,43 @@ marsh_root:{name:'Marsh Root',t:'consumable',wt:0,heal:5,desc:'A bitter root. Re
 dwarven_ale:{name:'Dwarven Ale',t:'consumable',wt:0,heal:3,cure:'bleed',desc:'Burns going down. Cures bleed, heals 3 HP.',value:10},
 
 // === WEAPONS — MELEE ===
-iron_sword:{name:'Iron Sword',t:'melee',wt:1,dD:6,dB:1,desc:'Melee, 1d6+1. Reliable.',value:20},
-steel_sword:{name:'Steel Sword',t:'melee',wt:1,dD:8,dB:1,desc:'Melee, 1d8+1. Well-forged.',value:35},
-enchanted_blade:{name:'Enchanted Blade',t:'melee',wt:1,dD:8,dB:3,desc:'Melee, 1d8+3. Glows faintly blue.',value:60},
-war_hammer:{name:'War Hammer',t:'melee',wt:2,dD:10,dB:1,desc:'Melee, 1d10+1. Two-handed.',twoHand:true,value:40},
-mace:{name:'Mace',t:'melee',wt:1,dD:6,dB:2,desc:'Melee, 1d6+2. Crushes armor.',value:25},
-rapier:{name:'Rapier',t:'melee',wt:0,dD:6,dB:1,desc:'Melee, 1d6+1. Light and fast.',value:22},
-broadsword:{name:'Broadsword',t:'melee',wt:1,dD:8,dB:0,desc:'Melee, 1d8. Versatile blade.',value:28},
-flaming_sword:{name:'Flaming Sword',t:'melee',wt:1,dD:8,dB:2,desc:'Melee, 1d8+2. Wreathed in flame.',value:70},
-halberd:{name:'Halberd',t:'melee',wt:2,dD:10,dB:0,desc:'Melee, 1d10. Two-handed reach.',twoHand:true,value:35},
-bone_cleaver:{name:'Bone Cleaver',t:'melee',wt:2,dD:10,dB:2,desc:'Melee, 1d10+2. Two-handed. Grim.',twoHand:true,value:50},
+iron_sword:{name:'Iron Sword',t:'melee',wt:2,dD:6,dB:1,desc:'Melee, 1d6+1. Reliable.',value:20},
+steel_sword:{name:'Steel Sword',t:'melee',wt:2,dD:8,dB:1,desc:'Melee, 1d8+1. Well-forged.',value:35},
+enchanted_blade:{name:'Enchanted Blade',t:'melee',wt:2,dD:8,dB:3,desc:'Melee, 1d8+3. Glows faintly blue.',value:60},
+war_hammer:{name:'War Hammer',t:'melee',wt:3,dD:10,dB:1,desc:'Melee, 1d10+1. Two-handed.',twoHand:true,value:40},
+mace:{name:'Mace',t:'melee',wt:2,dD:6,dB:2,desc:'Melee, 1d6+2. Crushes armor.',value:25},
+rapier:{name:'Rapier',t:'melee',wt:1,dD:6,dB:1,desc:'Melee, 1d6+1. Light and fast.',value:22},
+broadsword:{name:'Broadsword',t:'melee',wt:2,dD:8,dB:0,desc:'Melee, 1d8. Versatile blade.',value:28},
+flaming_sword:{name:'Flaming Sword',t:'melee',wt:2,dD:8,dB:2,desc:'Melee, 1d8+2. Wreathed in flame.',value:70},
+halberd:{name:'Halberd',t:'melee',wt:3,dD:10,dB:0,desc:'Melee, 1d10. Two-handed reach.',twoHand:true,value:35},
+bone_cleaver:{name:'Bone Cleaver',t:'melee',wt:3,dD:10,dB:2,desc:'Melee, 1d10+2. Two-handed. Grim.',twoHand:true,value:50},
 
 // === WEAPONS — RANGED ===
-longbow:{name:'Longbow',t:'ranged',wt:1,dD:8,dB:0,desc:'Ranged, 1d8. 12 arrows.',ammo:12,twoHand:true,value:30},
-crossbow:{name:'Crossbow',t:'ranged',wt:1,dD:10,dB:0,desc:'Ranged, 1d10. 6 bolts.',ammo:6,twoHand:true,value:40},
-throwing_knives:{name:'Throwing Knives',t:'ranged',wt:0,dD:4,dB:3,desc:'Ranged, 1d4+3. 12 knives.',ammo:12,value:25},
+longbow:{name:'Longbow',t:'ranged',wt:2,dD:8,dB:0,desc:'Ranged, 1d8. 12 arrows.',ammo:12,twoHand:true,value:30},
+crossbow:{name:'Crossbow',t:'ranged',wt:2,dD:10,dB:0,desc:'Ranged, 1d10. 6 bolts.',ammo:6,twoHand:true,value:40},
+throwing_knives:{name:'Throwing Knives',t:'ranged',wt:1,dD:4,dB:3,desc:'Ranged, 1d4+3. 12 knives.',ammo:12,value:25},
+pistol:{name:'Pistol',t:'ranged',wt:1,dD:6,dB:1,desc:'Ranged, 1d6+1. 6 shots.',ammo:6,value:30},
 
 // === ARMOR ===
-padded_armor:{name:'Padded Armor',t:'armor',wt:0,dB:1,desc:'+1 defense (Light).',value:15},
-scale_mail:{name:'Scale Mail',t:'armor',wt:1,dB:2,desc:'+2 defense (Medium).',value:30},
-iron_plate:{name:'Iron Plate',t:'armor',wt:2,dB:3,desc:'+3 defense (Heavy).',value:50},
-knights_plate:{name:"Knight's Plate",t:'armor',wt:2,dB:4,desc:'+4 defense (Heavy).',value:80},
+padded_armor:{name:'Padded Armor',t:'armor',wt:0,dB:1,desc:'+1 defense (Weightless).',value:15},
+leather_armor:{name:'Leather Armor',t:'armor',wt:2,dB:1,desc:'+1 defense (Light).',value:18},
+scale_mail:{name:'Scale Mail',t:'armor',wt:2,dB:2,desc:'+2 defense (Light).',value:30},
+iron_plate:{name:'Iron Plate',t:'armor',wt:4,dB:3,desc:'+3 defense (Heavy).',value:50},
+knights_plate:{name:"Knight's Plate",t:'armor',wt:5,dB:4,desc:'+4 defense (Very Heavy).',value:80},
 mage_vestments:{name:'Mage Vestments',t:'armor',wt:0,dB:0,desc:'+0 defense. Enhances magic.',value:20},
-shadow_cloak:{name:'Shadow Cloak',t:'armor',wt:0,dB:1,desc:'+1 defense (Light). Whisper-quiet.',value:35},
+shadow_cloak:{name:'Shadow Cloak',t:'armor',wt:0,dB:1,desc:'+1 defense (Weightless). Whisper-quiet.',value:35},
 
 // === OFFHAND ===
-iron_shield:{name:'Iron Shield',t:'shield',wt:1,blk:3,desc:'+3 block (Medium).',value:25},
-tower_shield:{name:'Tower Shield',t:'shield',wt:2,blk:4,desc:'+4 block (Heavy).',value:45},
-grimoire:{name:'Grimoire',t:'spellbook',wt:0,desc:'Dark tome. Required for spell abilities.',value:40},
-crystal_orb:{name:'Crystal Orb',t:'spellbook',wt:0,desc:'Arcane focus. Required for spell abilities.',value:45},
+iron_shield:{name:'Iron Shield',t:'shield',wt:2,blk:3,desc:'+3 block (Light).',value:25},
+tower_shield:{name:'Tower Shield',t:'shield',wt:3,blk:4,desc:'+4 block (Medium).',value:45},
+wooden_shield:{name:'Wooden Shield',t:'shield',wt:2,blk:2,desc:'+2 block (Light).',value:15},
+grimoire:{name:'Grimoire',t:'spellbook',wt:1,desc:'Dark tome. Required for spell abilities.',value:40},
+crystal_orb:{name:'Crystal Orb',t:'spellbook',wt:1,desc:'Arcane focus. Required for spell abilities.',value:45},
+tome_of_dead:{name:'Tome of the Dead',t:'spellbook',wt:1,desc:'Necromantic focus. Required for death magic.',value:35},
+hex_totem:{name:'Hex Totem',t:'spellbook',wt:1,desc:'Warlock focus. Channels curse energy.',value:35},
+
+// === CONSUMABLES — NEW ===
+smoke_bomb:{name:'Smoke Bomb',t:'consumable',wt:0,desc:'Guaranteed flee from any zone. Any class.',value:18,guaranteedFlee:true},
 
 // === MISC/LOOT ===
 wolf_pelt:{name:'Wolf Pelt',t:'misc',wt:1,desc:'A thick grey pelt. Proof of the kill.',value:15},

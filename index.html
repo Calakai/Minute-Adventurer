@@ -118,7 +118,19 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #bbar.combat-mode #combat-bar{display:block}
 .acts-btn{min-height:48px;padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:var(--fn);font-size:.9rem;cursor:pointer;white-space:nowrap;transition:border-color .15s}
 .acts-btn:active{border-color:var(--gold)}
-.cmd-menu{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.cmd-menu{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+#cb-flee{grid-column:1/-1}
+.cb-info-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:.75rem;color:var(--text2);padding:2px 4px}
+.cb-zone-tag{color:var(--gold);font-weight:600;text-transform:uppercase;font-size:.8rem}
+.cb-intent{font-style:italic;color:var(--text3);max-width:60%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cb-status-bar{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px;padding:0 4px;font-size:.68rem}
+.cb-status-bar:empty{display:none}
+.cb-debuff{padding:1px 5px;border-radius:3px;background:rgba(196,64,84,.12);color:var(--red)}
+.cb-target-bar{display:flex;gap:4px;margin-bottom:4px;padding:0 4px}
+.cb-target-bar:empty{display:none}
+.cb-tgt-btn{flex:1;min-height:24px;font-size:.72rem;font-family:var(--fn);padding:2px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text2);cursor:pointer;transition:border-color .15s}
+.cb-tgt-btn.act{border-color:var(--gold);color:var(--gold)}
+.cb-tgt-btn:hover{border-color:var(--gold)}
 .cmd-btn{display:flex;align-items:center;gap:6px;min-height:40px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--fn);font-size:.85rem;cursor:pointer;padding:6px 10px;transition:background .15s,border-color .15s}
 .cmd-btn:active,.cmd-btn:hover{background:var(--bg2);border-color:var(--gold)}
 .cmd-btn[disabled]{opacity:.35;cursor:default;pointer-events:none}
@@ -380,15 +392,21 @@ html.settings-large-text{font-size:1.1rem}
 <button class="acts-btn" id="b-acts" aria-label="Choose an action">Actions</button>
 </div>
 <div id="combat-bar">
+  <div class="cb-info-bar"><span>Zone: <span class="cb-zone-tag" id="cb-zone-tag">MID</span></span><span class="cb-intent" id="cb-intent"></span></div>
+  <div class="cb-target-bar" id="cb-target-bar"></div>
+  <div class="cb-status-bar" id="cb-status-bar"></div>
   <div class="cmd-menu" id="cmd-menu-main">
     <button class="cmd-btn" id="cb-atk"><span class="cmd-icon">⚔</span>Attack<span class="cmd-pct" id="cb-atk-pct"></span></button>
     <button class="cmd-btn" id="cb-ability" style="display:none"><span class="cmd-icon">✦</span><span id="cb-ability-name">Ability</span><span class="cmd-pct" id="cb-ability-cost"></span></button>
+    <button class="cmd-btn" id="cb-verb" style="display:none"><span class="cmd-icon">⚡</span><span id="cb-verb-name">Verb</span></button>
     <button class="cmd-btn" id="cb-block"><span class="cmd-icon">🛡</span>Defend</button>
+    <button class="cmd-btn" id="cb-move"><span class="cmd-icon">🏃</span>Move</button>
     <button class="cmd-btn" id="cb-item"><span class="cmd-icon">⚗</span>Item</button>
     <button class="cmd-btn" id="cb-flee"><span class="cmd-icon">↩</span>Flee<span class="cmd-pct" id="cb-flee-pct"></span></button>
   </div>
   <div class="cmd-sub hidden" id="cmd-sub-ability"></div>
   <div class="cmd-sub hidden" id="cmd-sub-item"></div>
+  <div class="cmd-sub hidden" id="cmd-sub-move"></div>
 </div>
 </div></div>
 <div class="mo" id="m-act" role="dialog" aria-label="Actions" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Actions</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-act-b"></div></div></div>
@@ -935,61 +953,126 @@ halfling:{name:'Halfling',desc:'Small, fast, and dangerously resourceful. Halfli
 // === CLASS DATA ===
 const WT_NAMES=['Light','Medium','Heavy'];
 const CL={
-fighter:{name:'Fighter',desc:'No tricks, no magic. Just steel and the skill to use it.',
+fighter:{name:'Fighter',desc:'No tricks, no magic. Just steel and the skill to use it.',complexity:'simple',
+  verb:{name:'Rally',desc:'Clear 1 status effect and gain +1 DEF for 2 turns.',cost:0,limit:'once_per_combat'},
+  shieldBlock:'tier3',
   abilities:[
-    {name:'Power Strike',desc:'Next melee attack deals double damage.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:2},requirement:null,unlockLevel:1},
-    {name:'Shield Bash',desc:'Melee attack with 30% stun chance.',cost:3,type:'attack',effect:{dmgDice:[6],statusChance:30,status:'stun',statusDuration:1},requirement:null,unlockLevel:4},
-    {name:'Battle Cry',desc:'+1 dmg, +5% hit for 4 turns.',cost:6,type:'buff',trigger:'sustained',effect:{dmgBonus:1,hitBonus:5,duration:4},requirement:null,unlockLevel:8}],
-  wpn:{name:'Sword',t:'melee',wt:1,dD:8,dB:0,desc:'Melee, 1d8'},oh:null,
-  arm:{name:'Chainmail',dB:2,wt:1,desc:'+2 defense (Medium)'},bp:[]},
-paladin:{name:'Paladin',desc:'Faith is my shield. Duty is my blade.',
+    {name:'Power Strike',desc:'Next melee deals double damage.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:2},requirement:null,unlockLevel:1},
+    {name:'Shield Bash',desc:'Melee attack with 50% Stagger chance.',cost:3,type:'attack',effect:{dmgDice:[6],statusChance:50,status:'stagger',statusDuration:2},requirement:null,unlockLevel:4},
+    {name:'Battle Cry',desc:'+3 dmg, +5% hit for 4 turns. Bleed on attacks.',cost:6,type:'buff',trigger:'sustained',effect:{dmgBonus:3,hitBonus:5,duration:4,bleedOnHit:true},requirement:null,unlockLevel:8},
+    {name:'Second Wind',desc:'Heal 5 HP. (Subclass slot — generic fallback.)',cost:0,type:'heal',effect:{healAmt:5},requirement:null,unlockLevel:12,limit:'once_per_combat',subclassSlot:true},
+    {name:'Stalwart Stand',desc:"Can't drop below 1 HP for 2 turns, then heal 3.",cost:7,type:'buff',trigger:'sustained',effect:{stalwart:true,duration:2,healAfter:3},requirement:null,unlockLevel:16,limit:'once_per_combat'}],
+  wpn:{name:'Sword',t:'melee',wt:2,dD:8,dB:0,desc:'Melee, 1d8'},oh:null,
+  arm:{name:'Chainmail',t:'armor',dB:2,wt:4,desc:'+2 defense (Heavy)'},bp:[]},
+paladin:{name:'Paladin',desc:'Faith is my shield. Duty is my blade.',complexity:'medium',
+  verb:{name:'Consecrate',desc:'Bless current zone for 3 turns. Enemies in zone take 2 holy dmg/turn. Undead also Weakened.',cost:0,limit:'once_per_combat'},
+  shieldBlock:'tier3',
   abilities:[
-    {name:'Holy Light',desc:'Heal self for 8 HP.',cost:5,type:'heal',effect:{healAmt:8},requirement:null,unlockLevel:1},
-    {name:'Smite',desc:'2d8 holy damage, +50% vs undead.',cost:5,type:'attack',effect:{dmgDice:[8,8],bonusVsTag:'undead',bonusMult:1.5},requirement:null,unlockLevel:4},
-    {name:'Divine Shield',desc:'Immune to damage for 1 turn.',cost:8,type:'buff',trigger:'sustained',effect:{dmgImmunity:true,duration:1},requirement:null,unlockLevel:8}],
-  wpn:{name:'Sword',t:'melee',wt:1,dD:8,dB:0,desc:'Melee, 1d8'},
-  oh:{name:'Wooden Shield',t:'shield',wt:1,blk:2,desc:'+2 block (Medium)'},
-  arm:{name:'Chainmail',dB:2,wt:1,desc:'+2 defense (Medium)'},bp:[]},
-ranger:{name:'Ranger',desc:'One arrow. One kill. That\'s all it takes if you\'re patient.',
+    {name:'Holy Light',desc:'Heal self for 8 HP.',cost:4,type:'heal',effect:{healAmt:8},requirement:null,unlockLevel:1},
+    {name:'Smite',desc:'2d8 holy damage. 50% Burn, guaranteed Weaken vs undead.',cost:5,type:'attack',effect:{dmgDice:[8,8],bonusVsTag:'undead',bonusMult:1.5,statusChance:50,status:'burn',statusDuration:3,weakenUndead:true},requirement:null,unlockLevel:4},
+    {name:'Divine Shield',desc:'Immune to all damage for 1 turn.',cost:8,type:'buff',trigger:'sustained',effect:{dmgImmunity:true,duration:1},requirement:null,unlockLevel:8},
+    {name:'Lay on Hands',desc:'Heal 10 HP. (Subclass slot — generic fallback.)',cost:0,type:'heal',effect:{healAmt:10},requirement:null,unlockLevel:12,limit:'once_per_combat',subclassSlot:true},
+    {name:'Divine Intervention',desc:'Full heal + cleanse all + 2 DEF for 2 turns.',cost:10,type:'heal',effect:{fullHeal:true,cleanseAll:true,defBonus:2,defDuration:2},requirement:null,unlockLevel:16,limit:'once_per_combat'}],
+  wpn:{name:'Sword',t:'melee',wt:2,dD:8,dB:0,desc:'Melee, 1d8'},
+  oh:{name:'Wooden Shield',t:'shield',wt:2,blk:2,desc:'+2 block (Light)'},
+  arm:{name:'Chainmail',t:'armor',dB:2,wt:4,desc:'+2 defense (Heavy)'},bp:[]},
+ranger:{name:'Ranger',desc:'One arrow. One kill. That\'s all it takes if you\'re patient.',complexity:'simple',
+  verb:{name:'Surveyor',desc:'Reveal full enemy stats + next 2 intents for rest of combat.',cost:0,limit:'once_per_combat'},
   abilities:[
-    {name:'Aimed Shot',desc:'Next ranged attack gains +20% hit.',cost:3,type:'buff',trigger:'ranged_hit',effect:{hitBonus:20},requirement:null,unlockLevel:1},
-    {name:'Multi-Shot',desc:'Two attacks at -15% accuracy each.',cost:4,type:'attack',effect:{dmgDice:[6],multiHit:2,hitPenalty:-15},requirement:null,unlockLevel:4},
-    {name:'Track',desc:'+25% hit on next attack.',cost:2,type:'buff',trigger:'any_hit',effect:{hitBonus:25},requirement:null,unlockLevel:8}],
-  wpn:{name:'Shortbow',t:'ranged',wt:0,dD:6,dB:0,desc:'Ranged, 1d6',ammo:10},
-  oh:{name:'Quiver',t:'quiver',wt:0,desc:'10 arrows',arrows:10},
-  arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[{name:'Dagger',t:'melee',wt:0,dD:4,dB:2,desc:'Melee, 1d4+2'}]},
-rogue:{name:'Rogue',desc:'Fair fights are for people who can\'t plan ahead.',
+    {name:'Aimed Shot',desc:'Ranged +20% hit, guaranteed Bleed.',cost:3,type:'buff',trigger:'ranged_hit',effect:{hitBonus:20,guaranteedStatus:'bleed',statusDuration:3,statusDmg:1},requirement:null,unlockLevel:1},
+    {name:'Multi-Shot',desc:'Two attacks at -15% each. Slow chance per arrow.',cost:4,type:'attack',effect:{dmgDice:[6],multiHit:2,hitPenalty:-15,statusChance:30,status:'slow',statusDuration:2},requirement:null,unlockLevel:4},
+    {name:'Track',desc:'Apply Marked guaranteed (+15% hit all sources).',cost:1,type:'special',effect:{applyStatus:'marked',statusDuration:3},requirement:null,unlockLevel:8},
+    {name:"Nature's Boon",desc:'Heal 4, cleanse Poison/Bleed. (Subclass slot — generic fallback.)',cost:0,type:'heal',effect:{healAmt:4,cleanse:['poison','bleed']},requirement:null,unlockLevel:12,limit:'once_per_combat',subclassSlot:true},
+    {name:"Predator's Mark",desc:'Apply Marked + Exposed, all attacks vs target +2 dmg for 3 turns.',cost:6,type:'special',effect:{applyStatus:'marked',applyStatus2:'exposed',bonusDmg:2,statusDuration:3},requirement:null,unlockLevel:16,limit:'once_per_combat'}],
+  wpn:{name:'Shortbow',t:'ranged',wt:2,dD:6,dB:0,desc:'Ranged, 1d6',ammo:10},
+  oh:{name:'Quiver',t:'quiver',wt:1,desc:'10 arrows',arrows:10},
+  arm:{name:'Leather Armor',t:'armor',dB:1,wt:2,desc:'+1 defense (Light)'},bp:[{name:'Dagger',t:'melee',wt:1,dD:4,dB:2,desc:'Melee, 1d4+2'}]},
+rogue:{name:'Rogue',desc:'Fair fights are for people who can\'t plan ahead.',complexity:'medium',
+  verb:{name:'Vanish',desc:'Untargetable 1 turn. Can use items + move, can\'t attack.',cost:0,limit:'once_per_combat'},
   abilities:[
-    {name:'Backstab',desc:'Triple damage on first turn.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:3,condDmgMult:1},conditions:['first_turn'],requirement:null,unlockLevel:1},
-    {name:'Smoke Bomb',desc:'Guaranteed flee from any range.',cost:3,type:'special',effect:{guaranteedFlee:true},requirement:null,unlockLevel:4},
-    {name:'Assassinate',desc:'5x damage if hidden (Vanish).',cost:6,type:'buff',trigger:'melee_hit',effect:{dmgMult:5,condDmgMult:1},conditions:['hidden'],requirement:null,unlockLevel:8}],
-  wpn:{name:'Dagger',t:'melee',wt:0,dD:4,dB:2,desc:'Melee, 1d4+2'},
-  oh:{name:'Lantern',t:'light',wt:0,desc:'Illuminates dark areas'},
-  arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[]},
-wizard:{name:'Wizard',desc:'While you were learning to swing a sword, I was reading. And reading wins.',
+    {name:'Backstab',desc:'Triple damage on first turn of combat.',cost:4,type:'buff',trigger:'melee_hit',effect:{dmgMult:3,condDmgMult:1},conditions:['first_turn'],requirement:null,unlockLevel:1},
+    {name:'Nerve Damage',desc:'Melee + 70% Weaken chance.',cost:3,type:'attack',effect:{dmgDice:[4],dB:2,useWeapon:true,statusChance:70,status:'weaken',statusDuration:3},requirement:null,unlockLevel:4},
+    {name:'Assassinate',desc:'5x damage if hidden (Vanish).',cost:6,type:'buff',trigger:'melee_hit',effect:{dmgMult:5,condDmgMult:1},conditions:['hidden'],requirement:null,unlockLevel:8},
+    {name:'Evasion',desc:'Dodge next attack. (Subclass slot — generic fallback.)',cost:0,type:'buff',trigger:'sustained',effect:{evasion:true,duration:1},requirement:null,unlockLevel:12,limit:'once_per_combat',subclassSlot:true},
+    {name:'Shadow Dance',desc:'All attacks use Backstab multiplier for 2 turns.',cost:7,type:'buff',trigger:'sustained',effect:{backstabAll:true,duration:2},requirement:null,unlockLevel:16,limit:'once_per_combat'}],
+  wpn:{name:'Dagger',t:'melee',wt:1,dD:4,dB:2,desc:'Melee, 1d4+2'},
+  oh:{name:'Lantern',t:'light',wt:1,desc:'Illuminates dark areas'},
+  arm:{name:'Leather Armor',t:'armor',dB:1,wt:2,desc:'+1 defense (Light)'},bp:[]},
+wizard:{name:'Wizard',desc:'While you were learning to swing a sword, I was reading. And reading wins.',complexity:'complex',
+  verb:{name:'Dispel',desc:'Remove 1 status from self OR strip 1 buff from enemy.',cost:2,limit:'unlimited'},
+  innatePassive:{name:'Arcane Binding',desc:'Far-zone ranged attacks have 30% Slow chance.',zone:'far',statusChance:30,status:'slow',statusDuration:2},
   abilities:[
-    {name:'Arcane Bolt',desc:'Ranged magic attack: 2d6 damage, uses Smarts to hit.',cost:3,type:'attack',effect:{dmgDice:[6,6],statOverride:'smarts'},requirement:'spellbook_equipped',unlockLevel:1},
-    {name:'Fireball',desc:'3d6 fire damage. Burns the enemy.',cost:6,type:'attack',effect:{dmgDice:[6,6,6],statusChance:50,status:'burn',statusDuration:3,statusDmg:2},requirement:'spellbook_equipped',unlockLevel:4},
-    {name:'Mana Shield',desc:'Absorb damage with MP for 3 turns.',cost:4,type:'buff',trigger:'sustained',effect:{manaShield:true,duration:3},requirement:null,unlockLevel:8}],
-  wpn:{name:'Staff',t:'melee',wt:0,dD:4,dB:0,desc:'Melee, 1d4'},
-  oh:{name:'Spellbook',t:'spellbook',wt:0,desc:'Required for spell abilities'},
-  arm:{name:'Robes',dB:0,wt:0,desc:'+0 defense (Light)'},bp:[]},
-berserker:{name:'Berserker',desc:'You think pain stops me? Pain makes me STRONGER.',
+    {name:'Arcane Bolt',desc:'Ranged magic: 2d6 damage, Smarts-based hit.',cost:2,type:'attack',effect:{dmgDice:[6,6],statOverride:'smarts'},requirement:'spellbook_equipped',unlockLevel:1},
+    {name:'Fireball',desc:'3d6 fire damage. 50% Burn.',cost:6,type:'attack',effect:{dmgDice:[6,6,6],statusChance:50,status:'burn',statusDuration:3},requirement:'spellbook_equipped',unlockLevel:4},
+    {name:'Mana Shield',desc:'Absorb damage with MP for 3 turns.',cost:4,type:'buff',trigger:'sustained',effect:{manaShield:true,duration:3},requirement:null,unlockLevel:8},
+    {name:'Arcane Ward',desc:'Absorb next 8 damage. (Subclass slot — generic fallback.)',cost:0,type:'buff',trigger:'sustained',effect:{ward:8,duration:99},requirement:null,unlockLevel:12,limit:'once_per_combat',subclassSlot:true},
+    {name:'Arcane Surge',desc:'Spell damage +50%, Burn/Slow chances doubled for 2 turns.',cost:8,type:'buff',trigger:'sustained',effect:{spellDmgMult:1.5,doubleStatusChance:true,duration:2},requirement:null,unlockLevel:16,limit:'once_per_combat'}],
+  wpn:{name:'Staff',t:'melee',wt:1,dD:4,dB:0,desc:'Melee, 1d4'},
+  oh:{name:'Spellbook',t:'spellbook',wt:1,desc:'Required for spell abilities'},
+  arm:{name:'Robes',t:'armor',dB:0,wt:0,desc:'+0 defense (Weightless)'},bp:[]},
+berserker:{name:'Berserker',desc:'You think pain stops me? Pain makes me STRONGER.',complexity:'complex',
+  verb:{name:'Frenzy',desc:'Next 2 turns, every damage taken = +2 bonus damage on next attack.',cost:0,limit:'once_per_combat',condition:'hp_below_50'},
   abilities:[
-    {name:'Aggro',desc:'+2 melee dmg, +10% hit, +1 incoming dmg for 3 turns.',cost:5,type:'buff',trigger:'sustained',effect:{dmgBonus:2,hitBonus:10,incomingDmgBonus:1,duration:3},requirement:null,unlockLevel:1},
+    {name:'Aggro',desc:'+3 dmg, +10% hit, +1 incoming for 3 turns. Bleed on attacks.',cost:5,type:'buff',trigger:'sustained',effect:{dmgBonus:3,hitBonus:10,incomingDmgBonus:1,duration:3,bleedOnHit:true,bleedChance:75},requirement:null,unlockLevel:1},
     {name:'Rampage',desc:'Attack twice this turn.',cost:5,type:'attack',effect:{multiHit:2,dmgDice:null,useWeapon:true},requirement:null,unlockLevel:4},
-    {name:'Undying Rage',desc:'Survive lethal damage once (1 HP). Lasts until triggered.',cost:7,type:'buff',trigger:'sustained',effect:{undying:true,duration:99},requirement:null,unlockLevel:8}],
-  wpn:{name:'Greataxe',t:'melee',wt:2,dD:10,dB:0,desc:'Melee, 1d10',twoHand:true},
+    {name:'Undying Rage',desc:'Survive lethal damage once (1 HP). Lasts until triggered.',cost:7,type:'buff',trigger:'sustained',effect:{undying:true,duration:99},requirement:null,unlockLevel:8},
+    {name:'War Cry',desc:'-10% enemy hit for 2 turns. (Subclass slot — generic fallback.)',cost:0,type:'special',effect:{enemyHitDebuff:-10,duration:2},requirement:null,unlockLevel:12,limit:'once_per_combat',subclassSlot:true},
+    {name:'Blood Rage',desc:'Every damage taken = +1 next attack for 3 turns (stacks, uncapped).',cost:8,type:'buff',trigger:'sustained',effect:{bloodRage:true,duration:3},requirement:null,unlockLevel:16,limit:'once_per_combat'}],
+  wpn:{name:'Greataxe',t:'melee',wt:3,dD:10,dB:0,desc:'Melee, 1d10',twoHand:true},
   oh:null,
-  arm:{name:'Leather Armor',dB:1,wt:0,desc:'+1 defense (Light)'},bp:[]}
+  arm:{name:'Leather Armor',t:'armor',dB:1,wt:2,desc:'+1 defense (Light)'},bp:[]},
+gunslinger:{name:'Gunslinger',desc:'Six shots. Make each one count.',complexity:'simple',
+  verb:{name:'Quickdraw',desc:'When enemy telegraphs Attack/Cast, fire first — damage before enemy action resolves.',cost:0,limit:'once_per_combat'},
+  abilities:[
+    {name:'Steady Shot',desc:'Pistol +15% hit, Marked on hit.',cost:2,type:'attack',effect:{dmgDice:[6],dB:1,hitBonus:15,statusChance:100,status:'marked',statusDuration:3},requirement:null,unlockLevel:1},
+    {name:'Sidearm Volley',desc:'2 shots at -10%, each rolls status independently.',cost:3,type:'attack',effect:{dmgDice:[6],multiHit:2,hitPenalty:-10,useWeapon:true},requirement:null,unlockLevel:4},
+    {name:'Dead Eye',desc:'Next shot ignores DEF. If Marked, also Exposed.',cost:4,type:'buff',trigger:'ranged_hit',effect:{ignoreDef:true,exposedIfMarked:true},requirement:null,unlockLevel:8},
+    {name:'Reload',desc:'Restore 3 MP, +10% next shot. (Subclass slot — generic fallback.)',cost:0,type:'special',effect:{restoreMP:3,hitBonus:10},requirement:null,unlockLevel:12,limit:'once_per_combat',subclassSlot:true},
+    {name:'Bullet Time',desc:'Act first regardless of initiative. 2 actions this turn.',cost:6,type:'special',effect:{actFirst:true,doubleAction:true},requirement:null,unlockLevel:16,limit:'once_per_combat'}],
+  wpn:{name:'Pistol',t:'ranged',wt:1,dD:6,dB:1,desc:'Ranged, 1d6+1',ammo:6},oh:null,
+  arm:{name:'Leather Armor',t:'armor',dB:1,wt:2,desc:'+1 defense (Light)'},bp:[]},
+necromancer:{name:'Necromancer',desc:'Death is not an ending. It is a resource.',complexity:'medium',
+  verb:{name:'Harvest',desc:'Sacrifice minion to restore HP/MP or deal area damage.',cost:0,limit:'once_per_combat',condition:'has_minion'},
+  graveCharges:{start:1,max:6,perKill:1,resetPerCombat:true},
+  abilities:[
+    {name:'Raise Dead',desc:'Summon undead minion (HP = level, 1d4 attack).',cost:0,type:'special',effect:{summon:true,summonHP:'level',summonDmg:[4]},requirement:null,unlockLevel:1,chargeCost:2},
+    {name:'Necrotic Bolt',desc:'2d6 necrotic ranged. 40% Curse.',cost:3,type:'attack',effect:{dmgDice:[6,6],statOverride:'smarts',statusChance:40,status:'curse',statusDuration:3},requirement:'spellbook_equipped',unlockLevel:4},
+    {name:"Death's Grasp",desc:'Silenced 2 turns (60%, guaranteed if Cursed).',cost:4,type:'special',effect:{applyStatus:'silenced',statusDuration:2,baseChance:60,guaranteedIfStatus:'curse'},requirement:null,unlockLevel:8},
+    {name:'Bone Armor',desc:'+2 DEF for 3 turns. (Subclass slot — generic fallback.)',cost:0,type:'buff',trigger:'sustained',effect:{defBonus:2,duration:3},requirement:null,unlockLevel:12,limit:'once_per_combat',subclassSlot:true},
+    {name:'Army of the Damned',desc:'All undead +2 dmg +3 HP rest of combat. If none, raise 2.',cost:4,type:'special',effect:{buffMinions:true,bonusDmg:2,bonusHP:3,raiseIfNone:2},requirement:null,unlockLevel:16,limit:'once_per_combat',chargeCost:4}],
+  wpn:{name:'Staff',t:'melee',wt:1,dD:4,dB:0,desc:'Melee, 1d4'},
+  oh:{name:'Tome of the Dead',t:'spellbook',wt:1,desc:'Necromantic focus'},
+  arm:{name:'Robes',t:'armor',dB:0,wt:0,desc:'+0 defense (Weightless)'},bp:[]},
+warlock:{name:'Warlock',desc:'Every curse is a promise. Every hex, a gift.',complexity:'complex',
+  verb:{name:'Effigy',desc:'Create sympathetic link to target (3 turns). Status ticks amplified; effects bleed through in 1v2.',cost:0,limit:'once_per_combat'},
+  abilities:[
+    {name:'Hex Bolt',desc:'2d4 ranged curse. 40% Curse.',cost:3,type:'attack',effect:{dmgDice:[4,4],statOverride:'smarts',statusChance:40,status:'curse',statusDuration:3},requirement:'spellbook_equipped',unlockLevel:1},
+    {name:'Brittle Hex',desc:'Brittle (+25% damage, 2 turns, +1 if Cursed).',cost:4,type:'special',effect:{applyStatus:'brittle',statusDuration:2,bonusDurIfCursed:1},requirement:null,unlockLevel:4},
+    {name:'Mark of Ruin',desc:'Guaranteed Marked. Status ticks +1/tick on Marked.',cost:3,type:'special',effect:{applyStatus:'marked',statusDuration:3,amplifyTicks:true},requirement:null,unlockLevel:8},
+    {name:'Dark Shield',desc:'Absorb next 6 damage. (Subclass slot — generic fallback.)',cost:0,type:'buff',trigger:'sustained',effect:{ward:6,duration:99},requirement:null,unlockLevel:12,limit:'once_per_combat',subclassSlot:true},
+    {name:'Doom',desc:'Apply Curse + Brittle + Marked guaranteed. Lifesteal doubled vs target 3 turns.',cost:8,type:'special',effect:{applyStatus:'curse',applyStatus2:'brittle',applyStatus3:'marked',statusDuration:3,doubleLifesteal:true},requirement:null,unlockLevel:16,limit:'once_per_combat'}],
+  wpn:{name:'Hexing Focus',t:'melee',wt:1,dD:4,dB:1,desc:'Melee, 1d4+1. Curse focus.'},
+  oh:{name:'Hex Totem',t:'spellbook',wt:1,desc:'Warlock focus. Channels curse energy.'},
+  arm:{name:'Tattered Robes',t:'armor',dB:0,wt:0,desc:'+0 defense (Weightless)'},bp:[]}
 };
 // ENEMIES, ITEMS, NPCS, SCENE_DATA, DEATH_QUOTES loaded from data.js
 const TIER_LABELS=['','Common','Uncommon','Dangerous','Elite','Boss'];
+// v1.0: Classes that get Tier 3 shield block (block as bonus action + full action freedom)
+const SHIELD_T3_CLASSES=['fighter','paladin'];
 function getAbilities(r){
   const clDef=CL[r.classes[0]];if(!clDef)return[];
   if(clDef.abilities)return clDef.abilities.filter(a=>!a.unlockLevel||r.level>=a.unlockLevel);
   if(clDef.ability)return[clDef.ability];
   return[];
+}
+function getVerb(r){
+  const clDef=CL[r.classes[0]];return clDef?clDef.verb:null;
+}
+function getBlockTier(r){
+  const hasShield=r.oh&&r.oh.t==='shield';
+  if(!hasShield)return 1;
+  if(SHIELD_T3_CLASSES.includes(r.classes[0]))return 3;
+  return 2;
 }
 const REDUCED_MOTION=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1041,7 +1124,8 @@ newRun(nm,sp,subsp,cl,humanBonus){
     wpn:c.wpn?{...c.wpn}:null,oh:c.oh?{...c.oh}:null,arm:c.arm?{...c.arm}:null,
     bp:c.bp.map(i=>({...i})),gold:0,adventure:'muddy_trail',scene:'trailhead',ss:{},cs:null,
     nlog:[],traitState:{},jrnUnlk:false,hbFound:false,bSeen:{},bDef:{},srch:{},debuffs:[],
-    activeBounty:null,bountyBoard:null,activeQuests:[],completedQuests:{},questProgress:{}};
+    activeBounty:null,bountyBoard:null,activeQuests:[],completedQuests:{},questProgress:{},
+    verbUsed:false,usedAbilities:{},graveCharges:0};
   this.run.mHP=CALC.maxHP(this.run);this.run.mMP=CALC.maxMP(this.run);
   this.run.hp=this.run.mHP;this.run.mp=this.run.mMP;
   this.saveA();return this.run;
@@ -1050,7 +1134,8 @@ recalcDerived(){if(!this.run)return;this.run.mHP=CALC.maxHP(this.run);this.run.m
 _saveFail:false,
 _validateSave(p){if(!(p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof p.level==='number'&&typeof p.hp==='number'&&typeof p.mHP==='number'))return false;
   if(!p.activeQuests)p.activeQuests=[];if(!p.completedQuests)p.completedQuests={};if(!p.questProgress)p.questProgress={};
-  if(!p.activeBounty)p.activeBounty=null;if(!p.bountyBoard)p.bountyBoard=null;return true},
+  if(!p.activeBounty)p.activeBounty=null;if(!p.bountyBoard)p.bountyBoard=null;
+  if(p.verbUsed===undefined)p.verbUsed=false;if(!p.usedAbilities)p.usedAbilities={};if(p.graveCharges===undefined)p.graveCharges=0;return true},
 saveA(){if(this.run)try{localStorage.setItem('activeRun',JSON.stringify(this.run));this._saveFail=false}catch(e){if(!this._saveFail){this._saveFail=true;console.warn('Auto-save failed:',e);
   if(e.name==='QuotaExceededError')showToast('Save failed \u2014 storage may be full.','error');else showToast('Auto-save failed.','error')}}},
 loadA(){try{const d=localStorage.getItem('activeRun');if(d){const p=JSON.parse(d);if(!this._validateSave(p))return'incompatible';this.run=p;return true}}catch(e){showToast('Save data corrupted. Starting fresh.','error')}return false},
@@ -1076,157 +1161,139 @@ addXP(amt){if(!this.run)return{};this.run.xp+=amt;let lv=false,lvls=[];
   this.saveA();return{gained:amt,leveled:lv,level:this.run.level,lvls}}
 };
 
-// === COMBAT ===
+// === v1.0 COMBAT ENGINE ===
 const CMB={
-start(ek){
+// --- Combat initialization ---
+start(ek,ek2){
   const t=ENEMIES[ek];
   if(!t){console.error('Missing enemy:',ek);showToast('Combat error: unknown enemy.','error');return null}
-  const e={...t,hp:t.mHP};
-  GS.run.cs={enemy:e,turnCount:0,fled:false,over:false,won:false,
-    activeBuff:null,blocking:false,pBlk:0};
-  GS.run.traitState.advantageUsed=false;GS.run.traitState.vanishUsed=false;GS.run.traitState.hidden=false;
-  GS.recEnc(ek);GS.saveA();return GS.run.cs},
+  const mkEnemy=(tpl)=>{const e={...tpl,hp:tpl.mHP,zone:tpl.preferredZone||'mid',debuffs:[],intent:null,_baseDef:tpl.def,_defEroded:0,_bleedHits:0};return e};
+  const enemies=[mkEnemy(t)];
+  if(ek2&&ENEMIES[ek2])enemies.push(mkEnemy(ENEMIES[ek2]));
+  const r=GS.run;
+  r.cs={enemies,turnCount:0,fled:false,over:false,won:false,
+    activeBuff:null,activeBuffs:[],blocking:false,pBlk:0,
+    playerZone:'mid',usedItemThisTurn:false,usedVerbThisCombat:false,
+    usedAbilitiesThisCombat:{},targetIdx:0,
+    summons:[],consecrate:null,frenzyStacks:0,effigy:null,
+    graveCharges:CL[r.classes[0]]&&CL[r.classes[0]].graveCharges?CL[r.classes[0]].graveCharges.start:0,
+    surveyorActive:false};
+  // Back-compat: expose cs.enemy as first enemy
+  Object.defineProperty(r.cs,'enemy',{get(){return this.enemies[this.targetIdx]||this.enemies[0]},enumerable:false});
+  r.traitState.advantageUsed=false;r.traitState.vanishUsed=false;r.traitState.hidden=false;
+  r.verbUsed=false;
+  enemies.forEach(e=>GS.recEnc(e.id));
+  // Generate initial intents
+  enemies.forEach(e=>{e.intent=this._genIntent(e,r)});
+  GS.saveA();return r.cs},
 gs(){return GS.run?GS.run.cs:null},
+// --- Target the enemy at index i ---
+setTarget(i){const cs=this.gs();if(cs&&cs.enemies[i]&&cs.enemies[i].hp>0)cs.targetIdx=i},
+// --- Main player action ---
 pAct(act){
   const cs=this.gs();if(!cs||cs.over)return[];const r=GS.run,ms=[];let eActs=true;
-  if(cs.enemy.hp<=0){cs.over=true;cs.won=true;GS.saveA();return ms}
+  const alive=cs.enemies.filter(e=>e.hp>0);
+  if(alive.length===0){cs.over=true;cs.won=true;GS.saveA();return ms}
   if(r.hp<=0){cs.over=true;cs.won=false;GS.saveA();return ms}
   if(!r.debuffs)r.debuffs=[];
-  cs.turnCount++;
-  ms.push({t:`— Turn ${cs.turnCount} —`,c:'y'});
-  cs.blocking=false;
-  const wasStunned=r.debuffs.some(d=>d.type==='stun');
-  for(let i=r.debuffs.length-1;i>=0;i--){const d=r.debuffs[i];
-    const label=d.type.charAt(0).toUpperCase()+d.type.slice(1);
-    if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);r.hp=Math.max(0,r.hp-dd);ms.push({t:`${label} deals ${dd} damage! (${r.hp}/${r.mHP} HP)`,c:'d'})}
-    else if(d.type!=='stun'){ms.push({t:`${label} afflicts you.`,c:'y'})}
-    d.remaining=Math.max(0,d.remaining-1);
-    if(d.remaining<=0){r.debuffs.splice(i,1);ms.push({t:`The ${d.type} fades.`,c:'y'})}
-    else ms.push({t:`${label}: ${d.remaining} turn${d.remaining!==1?'s':''} remaining.`,c:'y'})}
-  if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'});GS.saveA();return ms}
-  if(wasStunned){ms.push({t:'You are stunned! Your action is lost!',c:'d'});
-    const eMs=this.eTurn();ms.push(...eMs);GS.saveA();return ms}
-  const clDef=CL[r.classes[0]];const abilities=getAbilities(r);
+  const e=cs.enemy;const clDef=CL[r.classes[0]];const abilities=getAbilities(r);
   let abilityIdx=0;if(typeof act==='string'&&act.startsWith('ability_')){abilityIdx=parseInt(act.split('_')[1])||0;act='ability'}
+  const isSilenced=r.debuffs.some(d=>d.type==='silenced');
+  // Pre-validate: reject actions that clearly can't be done without consuming the turn
+  if(act==='attack'&&r.wpn&&r.wpn.t==='melee'&&cs.playerZone!=='close'){ms.push({t:'Too far for melee! Move to Close range.',c:'d'});return ms}
+  if(act==='ability'){
+    if(isSilenced){ms.push({t:'You are Silenced! Cannot use abilities!',c:'d'});return ms}
+    const ab=abilities[abilityIdx];
+    if(!ab){ms.push({t:'You have no class ability.',c:'y'});return ms}
+    if(ab.limit==='once_per_combat'&&cs.usedAbilitiesThisCombat[ab.name]){ms.push({t:`${ab.name} already used this combat!`,c:'y'});return ms}
+    if(ab.chargeCost&&cs.graveCharges<ab.chargeCost){ms.push({t:`Not enough Grave Charges! Need ${ab.chargeCost}, have ${cs.graveCharges}.`,c:'y'});return ms}
+    const cost=CALC.abilityCost(r,ab);if(r.mp<cost){ms.push({t:`Not enough MP! Need ${cost} MP for ${ab.name}.`,c:'y'});return ms}
+    if(ab.requirement==='spellbook_equipped'&&(!r.oh||r.oh.t!=='spellbook')){ms.push({t:`Need a Spellbook equipped for ${ab.name}.`,c:'y'});return ms}}
+  if(act==='flee'&&cs.playerZone==='close'){ms.push({t:'Too close to flee! Move to Mid or Far first.',c:'d'});return ms}
+  if(act==='verb'){
+    if(isSilenced){ms.push({t:'You are Silenced! Cannot use class verb!',c:'d'});return ms}
+    const verb=getVerb(r);
+    if(!verb){ms.push({t:'No class verb available.',c:'y'});return ms}
+    if(verb.limit==='once_per_combat'&&cs.usedVerbThisCombat){ms.push({t:`${verb.name} already used this combat!`,c:'y'});return ms}
+    if(verb.condition==='hp_below_50'&&r.hp>=r.mHP*0.5){ms.push({t:`${verb.name} requires below 50% HP!`,c:'y'});return ms}
+    if(verb.condition==='has_minion'&&cs.summons.length===0){ms.push({t:`${verb.name} requires an active minion!`,c:'y'});return ms}
+    if(verb.cost&&r.mp<verb.cost){ms.push({t:`Not enough MP for ${verb.name}! Need ${verb.cost}.`,c:'y'});return ms}}
+  if(act&&act.startsWith('move_')){const dest=act.replace('move_','');
+    if(dest===cs.playerZone){ms.push({t:`You are already at ${dest} range.`,c:'y'});return ms}
+    if(r.debuffs.some(d=>d.type==='rooted')){ms.push({t:'You are Rooted! Cannot move!',c:'d'});return ms}}
+  // === Turn commits here ===
+  cs.turnCount++;cs.usedItemThisTurn=false;
+  ms.push({t:`— Turn ${cs.turnCount} —`,c:'y'});
+  alive.forEach(en=>{if(en.intent){
+    const icon=INTENT_ICONS[en.intent.type]||'';
+    const known=r.bDef[en.id]&&r.bDef[en.id]>=1;
+    const detail=known?` (${en.intent.desc||en.intent.type})`:'';
+    ms.push({t:`${icon} ${en.name} intends to ${en.intent.type}${detail}`,c:'y'})}});
+  cs.blocking=false;
+  ms.push(...this._tickPlayerDebuffs(r,cs));
+  if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'});GS.saveA();return ms}
+  const wasStunned=r.debuffs.some(d=>d.type==='stun');
+  if(wasStunned){ms.push({t:'You are stunned! Your action is lost!',c:'d'});
+    ms.push({t:'__ENEMY_TURN__',c:'_sep'});ms.push(...this._allEnemyTurns(cs,r));this._tickBuffs(cs,ms);GS.saveA();return ms}
   switch(act){
   case'attack':{
-    const w=r.wpn;if(!w){ms.push({t:'You have no weapon equipped!',c:'d'});GS.saveA();return ms}
-    const isMelee=w.t==='melee';
-    if(w.t==='ranged'&&w.ammo!==undefined&&w.ammo<=0){ms.push({t:'No arrows remain!',c:'d'});GS.saveA();return ms}
-    if(w.t==='ranged'&&w.ammo!==undefined){w.ammo--;if(r.oh&&r.oh.t==='quiver'){r.oh.arrows=w.ammo;r.oh.desc=w.ammo+' arrow'+(w.ammo!==1?'s':'')}}
-    let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
-    const buff=cs.activeBuff;
-    if(buff&&buff.trigger==='ranged_hit'&&!isMelee&&buff.effect.hitBonus){
-      hitPct=CALC.pct(hitPct+buff.effect.hitBonus)}
-    if(buff&&buff.trigger==='sustained'&&buff.effect.hitBonus&&isMelee)hitPct=CALC.pct(hitPct+buff.effect.hitBonus);
-    if(buff&&buff.trigger==='any_hit'&&buff.effect.hitBonus){hitPct=CALC.pct(hitPct+buff.effect.hitBonus);ms.push({t:`${buff.name}: +${buff.effect.hitBonus}% accuracy!`,c:'s'})}
-    let roll=CALC.roll100();
-    if(r.subspecies==='duskelf'&&!r.traitState.advantageUsed){
-      const roll2=CALC.roll100();ms.push({t:'Twilight Instinct! Rolling twice: '+roll+', '+roll2,c:'y'});
-      roll=Math.min(roll,roll2);r.traitState.advantageUsed=true}
-    if(r.traitState.hidden){ms.push({t:'You strike from the shadows!',c:'s'});r.traitState.hidden=false}
-    if(roll<=hitPct){
-      let dmg=CALC.rollDice(w.dD)+(w.dB||0)+(isMelee?CALC.meleeDmgMod(r):CALC.rangedDmgMod(r));
-      if(buff&&buff.trigger==='sustained'&&buff.effect.dmgBonus&&isMelee){dmg+=buff.effect.dmgBonus;ms.push({t:`Aggro: +${buff.effect.dmgBonus} damage!`,c:'s'})}
-      if(buff&&buff.trigger==='melee_hit'&&isMelee&&buff.effect.dmgMult&&!buff.conditions){
-        dmg*=buff.effect.dmgMult;ms.push({t:`Power Strike! ${buff.effect.dmgMult}\u00d7 damage!`,c:'s'});cs.activeBuff=null}
-      if(buff&&buff.trigger==='melee_hit'&&isMelee&&buff.conditions){
-        let condMet=false;
-        if(buff.conditions.includes('hidden'))condMet=r.traitState.hidden;
-        else condMet=cs.turnCount<=1;
-        if(condMet){dmg*=buff.effect.dmgMult;ms.push({t:`${buff.name}! ${buff.effect.dmgMult}\u00d7 damage!`,c:'s'})}
-        else{dmg*=(buff.effect.condDmgMult||1);ms.push({t:`${buff.name} conditions not met \u2014 normal damage.`,c:'y'})}
-        cs.activeBuff=null}
-      if(buff&&buff.trigger==='ranged_hit'&&!isMelee){ms.push({t:'Aimed Shot strikes true!',c:'s'});cs.activeBuff=null}
-      if(buff&&buff.trigger==='any_hit'){ms.push({t:`${buff.name} spent!`,c:'y'});cs.activeBuff=null}
-      if(r.traitState.hidden===false&&GS.run.traitState._wasHidden){dmg*=2;delete GS.run.traitState._wasHidden;ms.push({t:'Double damage from Vanish!',c:'s'})}
-      if(r.debuffs&&r.debuffs.find(d=>d.type==='weaken'))dmg=Math.max(1,dmg-1);
-      dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
-      ms.push({t:`You swing your ${w.name}. ${hitPct}% \u2192 HIT. ${dmg} damage \u2192 ${cs.enemy.name} (${cs.enemy.hp} HP).`,c:'s'});
-      if(w.t==='ranged'&&w.ammo!==undefined)ms.push({t:`(${w.ammo} arrows left)`,c:'y'})
-    }else{ms.push({t:`Your ${w.name} misses! ${hitPct}% \u2192 MISS`,c:'d'});
-      if(buff&&buff.trigger!=='sustained')cs.activeBuff=null}
-    break}
+    ms.push(...this._doPlayerAttack(r,cs,e));break}
   case'ability':{
-    const ab=abilities[abilityIdx]||null;
-    if(!ab){ms.push({t:'You have no class ability.',c:'y'});GS.saveA();return ms}
-    const cost=CALC.abilityCost(r,ab);
-    if(r.mp<cost){ms.push({t:`Not enough MP! Need ${cost} MP for ${ab.name}.`,c:'y'});GS.saveA();return ms}
-    if(ab.requirement==='ranged_equipped'&&(!r.wpn||r.wpn.t!=='ranged')){ms.push({t:`Need a ranged weapon for ${ab.name}.`,c:'y'});GS.saveA();return ms}
-    if(ab.requirement==='spellbook_equipped'&&(!r.oh||r.oh.t!=='spellbook')){ms.push({t:`Need a Spellbook equipped for ${ab.name}.`,c:'y'});GS.saveA();return ms}
+    // Pre-validation passed; execute ability
+    const ab=abilities[abilityIdx];const cost=CALC.abilityCost(r,ab);
     r.mp-=cost;
-    if(ab.type==='special'&&ab.effect.guaranteedFlee){
-      ms.push({t:`${ab.name}! Smoke fills the air! (${cost} MP)`,c:'s'});cs.fled=true;cs.over=true;eActs=false;break}
-    if(ab.type==='buff'){
-      if(ab.trigger==='sustained'){
-        cs.activeBuff={name:ab.name,trigger:ab.trigger,effect:{...ab.effect},turnsLeft:ab.effect.duration};
-        ms.push({t:`${ab.name} activated! (${cost} MP)`,c:'s'});
-        if(ab.effect.duration<50)ms.push({t:`${ab.name}: ${ab.effect.duration} turns remaining.`,c:'y'})}
-      else{
-        cs.activeBuff={name:ab.name,trigger:ab.trigger,effect:{...ab.effect},conditions:ab.conditions||null};
-        let lbl=ab.name;
-        if(ab.conditions){
-          const condMet=ab.conditions.includes('hidden')?r.traitState.hidden:cs.turnCount<=1;
-          lbl+=condMet?' ('+ab.effect.dmgMult+'\u00d7)':' (1\u00d7)'}
-        ms.push({t:`${lbl} ready! (${cost} MP)`,c:'s'})}
-      break}
-    if(ab.type==='attack'){
-      const eff=ab.effect;
-      const hits=eff.multiHit||1;
-      if(eff.useWeapon&&r.wpn){
-        const w=r.wpn,isMelee=w.t==='melee';
-        for(let hi=0;hi<hits;hi++){
-          let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
-          const roll=CALC.roll100();
-          if(roll<=hitPct){let dmg=CALC.rollDice(w.dD)+(w.dB||0)+(isMelee?CALC.meleeDmgMod(r):CALC.rangedDmgMod(r));
-            dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
-            ms.push({t:`${ab.name}! ${w.name} hits for ${dmg}! (${cs.enemy.hp} HP)`,c:'s'})}
-          else ms.push({t:`${ab.name} swing misses! (${hitPct}%)`,c:'d'})}
-        break}
-      for(let hi=0;hi<hits;hi++){
-        let hitPct=eff.statOverride==='smarts'?CALC.arcaneBoltHit(r,cs.enemy.def):(r.wpn&&r.wpn.t==='ranged'?CALC.rangedHit(r,cs.enemy.def):CALC.meleeHit(r,cs.enemy.def));
-        if(eff.hitPenalty)hitPct=CALC.pct(hitPct+eff.hitPenalty);
-        const roll=CALC.roll100();
-        if(r.subspecies==='duskelf'&&!r.traitState.advantageUsed){
-          const roll2=CALC.roll100();ms.push({t:'Twilight Instinct! Rolling twice: '+roll+', '+roll2,c:'y'});
-          r.traitState.advantageUsed=true}
-        if(roll<=hitPct){
-          let dmg=0;if(eff.dmgDice)for(const d of eff.dmgDice)dmg+=CALC.rollDice(d);
-          if(eff.bonusVsTag&&cs.enemy.tags&&cs.enemy.tags.includes(eff.bonusVsTag))dmg=Math.floor(dmg*eff.bonusMult);
-          dmg=CALC.safeDmg(dmg);cs.enemy.hp=Math.max(0,cs.enemy.hp-dmg);
-          ms.push({t:`${ab.name} strikes the ${cs.enemy.name} for ${dmg} damage! (${hitPct}%)`,c:'s'});
-          if(eff.statusChance&&CALC.roll100()<=eff.statusChance){
-            if(!cs.enemy.debuffs)cs.enemy.debuffs=[];
-            const existing=cs.enemy.debuffs.find(db=>db.type===eff.status);
-            if(!existing){cs.enemy.debuffs.push({type:eff.status,dmg:eff.statusDmg||0,remaining:eff.statusDuration||1});
-              ms.push({t:`${cs.enemy.name} is afflicted with ${eff.status}!`,c:'s'})}
-            else{existing.remaining=eff.statusDuration||1;ms.push({t:`${eff.status.charAt(0).toUpperCase()+eff.status.slice(1)} on ${cs.enemy.name} refreshed!`,c:'s'})}
-          }}
-        else ms.push({t:`${ab.name} misses the ${cs.enemy.name}! (${hitPct}%)`,c:'d'})}
-      break}
-    if(ab.type==='heal'){
-      const h=Math.min(ab.effect.healAmt,r.mHP-r.hp);r.hp+=h;
-      ms.push({t:`${ab.name}! Restored ${h} HP. (${r.hp}/${r.mHP} HP, ${cost} MP)`,c:'s'});break}
+    if(ab.chargeCost)cs.graveCharges-=ab.chargeCost;
+    if(ab.limit==='once_per_combat')cs.usedAbilitiesThisCombat[ab.name]=true;
+    ms.push(...this._resolveAbility(ab,r,cs,e,cost));
     break}
   case'block':{
     cs.blocking=true;
+    const tier=getBlockTier(r);
     const oh=r.oh;
-    if(oh&&oh.t==='shield'){ms.push({t:`You raise your ${oh.name}. Incoming damage halved!`,c:'c'})}
-    else{ms.push({t:'You brace yourself. Incoming damage halved!',c:'c'})}
+    if(tier>=2&&oh&&oh.t==='shield'){
+      cs.pBlk=oh.blk||0;
+      ms.push({t:`You raise your ${oh.name}. -${cs.pBlk} incoming damage!`,c:'c'});
+      if(tier===3)ms.push({t:'(Shield mastery: full action freedom this turn)',c:'y'})
+    }else{ms.push({t:'You brace yourself. Incoming damage halved!',c:'c'})}
     break}
-  case'use_potion':case'use_hpot':case'use_mpot':case'use_antidote':case'use_item':{
+  case'move_close':case'move_mid':case'move_far':{
+    const dest=act.replace('move_','');
+    if(r.debuffs.some(d=>d.type==='slow')){
+      const zones=['close','mid','far'];const ci=zones.indexOf(cs.playerZone),di=zones.indexOf(dest);
+      if(Math.abs(di-ci)>1){ms.push({t:'You are Slowed! Can only move one zone.',c:'d'});GS.saveA();return ms}}
+    cs.playerZone=dest;ms.push({t:`You move to ${dest} range.`,c:'s'});break}
+  case'use_item':{
+    if(cs.usedItemThisTurn){ms.push({t:'Already used an item this turn!',c:'y'});GS.saveA();return ms}
+    let it=r.bp.find(i=>i.t==='consumable');
+    if(!it){ms.push({t:'No usable items!',c:'y'});GS.saveA();return ms}
+    // Check for smoke bomb
+    if(it.guaranteedFlee){
+      ms.push({t:`${it.name}! Smoke fills the air!`,c:'s'});
+      r.bp.splice(r.bp.indexOf(it),1);cs.fled=true;cs.over=true;eActs=false;
+      cs.usedItemThisTurn=true;break}
+    const msg=useConsumable(it,r);ms.push({t:msg,c:'s'});cs.usedItemThisTurn=true;
+    // Consumable is a free action — don't end turn
+    GS.saveA();return ms}
+  case'use_potion':case'use_hpot':case'use_mpot':case'use_antidote':{
+    if(cs.usedItemThisTurn){ms.push({t:'Already used an item this turn!',c:'y'});GS.saveA();return ms}
     let it=null;
     if(act==='use_hpot')it=r.bp.find(i=>i.t==='consumable'&&i.heal);
     else if(act==='use_mpot')it=r.bp.find(i=>i.t==='consumable'&&i.mana);
     else if(act==='use_antidote')it=r.bp.find(i=>i.t==='consumable'&&i.cure);
     else it=r.bp.find(i=>i.t==='consumable'&&(i.heal||i.mana||i.cure));
     if(!it){ms.push({t:'No usable items!',c:'y'});GS.saveA();return ms}
-    const msg=useConsumable(it,r);ms.push({t:msg,c:'s'});break}
+    if(it.guaranteedFlee){
+      ms.push({t:`${it.name}! Smoke fills the air!`,c:'s'});
+      r.bp.splice(r.bp.indexOf(it),1);cs.fled=true;cs.over=true;eActs=false;
+      cs.usedItemThisTurn=true;break}
+    const msg=useConsumable(it,r);ms.push({t:msg,c:'s'});cs.usedItemThisTurn=true;
+    // Free action — return without ending turn
+    GS.saveA();return ms}
   case'flee':{
     const fleePct=CALC.flee(r);const roll=CALC.roll100();
-    if(roll<=fleePct){ms.push({t:`You turn and run! (${fleePct}% \u2192 rolled ${roll})`,c:'s'});cs.fled=true;cs.over=true;eActs=false}
-    else{ms.push({t:`You try to flee but can't escape! (${fleePct}% \u2192 rolled ${roll})`,c:'d'});
-      ms.push({t:'The enemy gets a free attack!',c:'d'});ms.push(...this._enemyAttack(cs,r))}
+    if(roll<=fleePct){ms.push({t:`You turn and run! (${fleePct}% → rolled ${roll})`,c:'s'});cs.fled=true;cs.over=true;eActs=false}
+    else{ms.push({t:`You try to flee but can't escape! (${fleePct}% → rolled ${roll})`,c:'d'});
+      ms.push({t:'The enemy gets a free attack!',c:'d'});ms.push(...this._enemyAttack(e,cs,r))}
     break}
   case'vanish':{
     if(r.subspecies!=='shadowstep'){ms.push({t:'You can\u2019t do that.',c:'y'});GS.saveA();return ms}
@@ -1234,58 +1301,432 @@ pAct(act){
     if(r.mp<2){ms.push({t:'Not enough MP! Need 2 MP.',c:'y'});GS.saveA();return ms}
     r.mp-=2;r.traitState.vanishUsed=true;r.traitState.hidden=true;GS.run.traitState._wasHidden=true;
     ms.push({t:'You melt into the shadows... (2 MP spent)',c:'s'});ms.push({t:'Your next attack will deal double damage!',c:'y'});break}
+  case'verb':{
+    ms.push(...this._resolveVerb(r,cs));break}
   default:ms.push({t:'You hesitate.',c:'d'})}
-  if(cs.enemy.hp<=0){cs.over=true;cs.won=true;eActs=false;
-    ms.push({t:`The ${cs.enemy.name} falls! Victory!`,c:'s'});GS.recDef(cs.enemy.id);cs.activeBuff=null}
-  if(eActs&&!cs.over){ms.push(...this.eTurn());this._tickBuff(cs,ms)}
+  // Check all enemies dead
+  const aliveNow=cs.enemies.filter(en=>en.hp>0);
+  if(aliveNow.length===0){cs.over=true;cs.won=true;eActs=false;
+    cs.enemies.forEach(en=>{GS.recDef(en.id)});
+    ms.push({t:'Victory!',c:'s'});cs.activeBuff=null;
+    // Grave charges on kill
+    if(cs.graveCharges!==undefined){const gc=CL[r.classes[0]]&&CL[r.classes[0]].graveCharges;
+      if(gc)cs.graveCharges=Math.min(gc.max,cs.graveCharges+gc.perKill)}}
+  // Enemy turns
+  if(eActs&&!cs.over){ms.push({t:'__ENEMY_TURN__',c:'_sep'});ms.push(...this._allEnemyTurns(cs,r));this._tickBuffs(cs,ms)}
   if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'})}
+  // Re-generate intents for next turn
+  if(!cs.over)cs.enemies.filter(en=>en.hp>0).forEach(en=>{en.intent=this._genIntent(en,r)});
   cs.pBlk=0;GS.saveA();return ms},
-_tickBuff(cs,ms){
+
+// --- Player attack logic ---
+_doPlayerAttack(r,cs,e){
+  const ms=[];const w=r.wpn;
+  if(!w){ms.push({t:'You have no weapon equipped!',c:'d'});return ms}
+  const isMelee=w.t==='melee';
+  if(w.t==='ranged'&&w.ammo!==undefined&&w.ammo<=0){ms.push({t:'No ammo remains!',c:'d'});return ms}
+  if(w.t==='ranged'&&w.ammo!==undefined){w.ammo--;if(r.oh&&r.oh.t==='quiver'){r.oh.arrows=w.ammo;r.oh.desc=w.ammo+' arrow'+(w.ammo!==1?'s':'')}}
+  // Hit calculation
+  let hitPct=isMelee?CALC.meleeHit(r,e.def):CALC.rangedHit(r,e.def);
+  // Ranged zone penalties
+  if(!isMelee){if(cs.playerZone==='close')hitPct=CALC.pct(hitPct-15);if(cs.playerZone==='far')hitPct=CALC.pct(hitPct-10)}
+  // Buff hit bonuses
+  const buff=cs.activeBuff;
+  if(buff&&buff.trigger==='ranged_hit'&&!isMelee&&buff.effect.hitBonus)hitPct=CALC.pct(hitPct+buff.effect.hitBonus);
+  if(buff&&buff.trigger==='sustained'&&buff.effect.hitBonus)hitPct=CALC.pct(hitPct+buff.effect.hitBonus);
+  if(buff&&buff.trigger==='any_hit'&&buff.effect.hitBonus){hitPct=CALC.pct(hitPct+buff.effect.hitBonus);ms.push({t:`${buff.name}: +${buff.effect.hitBonus}% accuracy!`,c:'s'})}
+  // Marked bonus
+  if(e.debuffs){const mk=e.debuffs.find(d=>d.type==='marked');if(mk)hitPct=CALC.pct(hitPct+15)}
+  // Stagger on player
+  if(r.debuffs.some(d=>d.type==='stagger'))hitPct=CALC.pct(hitPct-10);
+  let roll=CALC.roll100();
+  if(r.subspecies==='duskelf'&&!r.traitState.advantageUsed){
+    const roll2=CALC.roll100();ms.push({t:'Twilight Instinct! Rolling twice: '+roll+', '+roll2,c:'y'});
+    roll=Math.min(roll,roll2);r.traitState.advantageUsed=true}
+  if(r.traitState.hidden){ms.push({t:'You strike from the shadows!',c:'s'});r.traitState.hidden=false}
+  // Exposed = guaranteed crit
+  const isExposed=e.debuffs&&e.debuffs.find(d=>d.type==='exposed');
+  if(isExposed)roll=1; // auto hit
+  if(roll<=hitPct||isExposed){
+    let dmg=CALC.rollDice(w.dD)+(w.dB||0)+(isMelee?CALC.meleeDmgMod(r):CALC.rangedDmgMod(r));
+    // Buff damage bonuses
+    if(buff&&buff.trigger==='sustained'&&buff.effect.dmgBonus)dmg+=buff.effect.dmgBonus;
+    if(buff&&buff.trigger==='melee_hit'&&isMelee&&buff.effect.dmgMult&&!buff.conditions){
+      dmg*=buff.effect.dmgMult;ms.push({t:`Power Strike! ${buff.effect.dmgMult}× damage!`,c:'s'});cs.activeBuff=null}
+    if(buff&&buff.trigger==='melee_hit'&&isMelee&&buff.conditions){
+      let condMet=false;
+      if(buff.conditions.includes('hidden'))condMet=GS.run.traitState._wasHidden;
+      else condMet=cs.turnCount<=1;
+      if(condMet){dmg*=buff.effect.dmgMult;ms.push({t:`${buff.name}! ${buff.effect.dmgMult}× damage!`,c:'s'})}
+      else{dmg*=(buff.effect.condDmgMult||1);ms.push({t:`${buff.name} conditions not met — normal damage.`,c:'y'})}
+      cs.activeBuff=null}
+    if(buff&&buff.trigger==='ranged_hit'&&!isMelee){
+      if(buff.effect.ignoreDef){dmg+=e.def;ms.push({t:'Dead Eye ignores defense!',c:'s'})}
+      if(buff.effect.exposedIfMarked&&e.debuffs&&e.debuffs.find(d=>d.type==='marked')){
+        this._applyStatus(e,'exposed',1,ms)}
+      ms.push({t:'Aimed Shot strikes true!',c:'s'});cs.activeBuff=null}
+    if(buff&&buff.trigger==='any_hit'){ms.push({t:`${buff.name} spent!`,c:'y'});cs.activeBuff=null}
+    if(r.traitState.hidden===false&&GS.run.traitState._wasHidden){dmg*=2;delete GS.run.traitState._wasHidden;ms.push({t:'Double damage from Vanish!',c:'s'})}
+    // Exposed: crit = double damage (or triple with Shatter synergy)
+    if(isExposed){
+      const hasBrittle=e.debuffs&&e.debuffs.find(d=>d.type==='brittle');
+      if(hasBrittle){dmg*=3;ms.push({t:'SHATTER! Triple critical damage!',c:'s'})}
+      else{dmg*=2;ms.push({t:'Exposed! Critical hit — double damage!',c:'s'})}
+      const idx=e.debuffs.indexOf(isExposed);if(idx>=0)e.debuffs.splice(idx,1)}
+    // Brittle: +25% damage
+    if(e.debuffs){const br=e.debuffs.find(d=>d.type==='brittle');if(br&&!isExposed)dmg=Math.floor(dmg*1.25)}
+    // Player weaken
+    if(r.debuffs&&r.debuffs.find(d=>d.type==='weaken'))dmg=Math.max(1,dmg-1);
+    // Frenzy stacks from berserker verb
+    if(cs.frenzyStacks>0){dmg+=cs.frenzyStacks;ms.push({t:`Frenzy: +${cs.frenzyStacks} bonus damage!`,c:'s'});cs.frenzyStacks=0}
+    // Shadow Dance (all attacks use backstab mult)
+    if(buff&&buff.trigger==='sustained'&&buff.effect.backstabAll&&isMelee){dmg*=3;ms.push({t:'Shadow Dance! Triple damage!',c:'s'})}
+    dmg=CALC.safeDmg(dmg);e.hp=Math.max(0,e.hp-dmg);
+    ms.push({t:`You strike with ${w.name}. ${hitPct}% → HIT. ${dmg} damage → ${e.name} (${e.hp} HP).`,c:'s'});
+    // Bleed hit-scaling: increase bleed damage on hit
+    if(e.debuffs){const bl=e.debuffs.find(d=>d.type==='bleed');
+      if(bl){const inc=this._hasSynergy(e,'searing_wound')?2:1;bl.dmg=(bl.dmg||1)+inc;
+        ms.push({t:`Bleed worsens! (+${inc} per tick)`,c:'s'})}}
+    // Battle Cry / Aggro bleed-on-hit
+    if(buff&&buff.trigger==='sustained'&&buff.effect.bleedOnHit){
+      const ch=buff.effect.bleedChance||100;
+      if(CALC.roll100()<=ch)this._applyStatus(e,'bleed',3,ms,1)}
+    // Wizard innate passive: far-zone ranged 30% Slow
+    if(!isMelee&&cs.playerZone==='far'){const clKey=r.classes[0];
+      if(CL[clKey]&&CL[clKey].innatePassive&&CL[clKey].innatePassive.status==='slow'){
+        if(CALC.roll100()<=CL[clKey].innatePassive.statusChance)this._applyStatus(e,'slow',CL[clKey].innatePassive.statusDuration,ms)}}
+    // Aimed Shot guaranteed bleed
+    if(buff&&buff.trigger==='ranged_hit'&&buff.effect.guaranteedStatus){
+      this._applyStatus(e,buff.effect.guaranteedStatus,buff.effect.statusDuration||3,ms,buff.effect.statusDmg||1)}
+    if(w.t==='ranged'&&w.ammo!==undefined)ms.push({t:`(${w.ammo} ammo left)`,c:'y'});
+    // Check kill → grave charges
+    if(e.hp<=0){ms.push({t:`The ${e.name} falls!`,c:'s'});GS.recDef(e.id);
+      if(cs.graveCharges!==undefined){const gc=CL[r.classes[0]]&&CL[r.classes[0]].graveCharges;
+        if(gc){cs.graveCharges=Math.min(gc.max,cs.graveCharges+gc.perKill);ms.push({t:`Grave Charge earned! (${cs.graveCharges}/${gc.max})`,c:'y'})}}}
+  }else{ms.push({t:`Your ${w.name} misses! ${hitPct}% → MISS`,c:'d'});
+    if(buff&&buff.trigger!=='sustained')cs.activeBuff=null}
+  return ms},
+
+// --- Ability resolution ---
+_resolveAbility(ab,r,cs,e,cost){
+  const ms=[];const eff=ab.effect;
+  // Special effects
+  if(ab.type==='special'){
+    if(eff.guaranteedFlee){ms.push({t:`${ab.name}! Smoke fills the air! (${cost} MP)`,c:'s'});cs.fled=true;cs.over=true;return ms}
+    if(eff.applyStatus){
+      let chance=eff.baseChance||100;
+      if(eff.guaranteedIfStatus&&e.debuffs&&e.debuffs.find(d=>d.type===eff.guaranteedIfStatus))chance=100;
+      if(CALC.roll100()<=chance){
+        this._applyStatus(e,eff.applyStatus,eff.statusDuration||2,ms);
+        if(eff.applyStatus2)this._applyStatus(e,eff.applyStatus2,eff.statusDuration||2,ms);
+        if(eff.applyStatus3)this._applyStatus(e,eff.applyStatus3,eff.statusDuration||2,ms);
+        ms.push({t:`${ab.name}! (${cost} MP)`,c:'s'})}
+      else ms.push({t:`${ab.name} fails to take hold! (${cost} MP)`,c:'d'});
+      return ms}
+    if(eff.summon){
+      const hp=eff.summonHP==='level'?r.level:eff.summonHP;
+      cs.summons.push({name:'Undead Minion',hp,mHP:hp,dmgDice:eff.summonDmg||[4],order:'attack'});
+      ms.push({t:`${ab.name}! An undead rises to serve you! (HP: ${hp})`,c:'s'});return ms}
+    if(eff.restoreMP){r.mp=Math.min(r.mMP,r.mp+eff.restoreMP);ms.push({t:`${ab.name}! Restored ${eff.restoreMP} MP.`,c:'s'});return ms}
+    if(eff.buffMinions){
+      if(cs.summons.length>0){cs.summons.forEach(s=>{s.hp+=eff.bonusHP;s.mHP+=eff.bonusHP;s._bonusDmg=(s._bonusDmg||0)+eff.bonusDmg});
+        ms.push({t:`${ab.name}! Minions empowered!`,c:'s'})}
+      else{for(let i=0;i<(eff.raiseIfNone||1);i++){cs.summons.push({name:'Undead Minion',hp:r.level,mHP:r.level,dmgDice:[4],order:'attack'})}
+        ms.push({t:`${ab.name}! Undead rise from nothing!`,c:'s'})}
+      return ms}
+    if(eff.enemyHitDebuff){ms.push({t:`${ab.name}! Enemy accuracy reduced!`,c:'s'});return ms}
+    if(eff.actFirst){ms.push({t:`${ab.name}! Time slows around you!`,c:'s'});return ms}
+    ms.push({t:`${ab.name}! (${cost} MP)`,c:'s'});return ms}
+  if(ab.type==='buff'){
+    if(ab.trigger==='sustained'){
+      cs.activeBuff={name:ab.name,trigger:ab.trigger,effect:{...eff},turnsLeft:eff.duration};
+      ms.push({t:`${ab.name} activated! (${cost} MP)`,c:'s'});
+      if(eff.duration<50)ms.push({t:`${ab.name}: ${eff.duration} turns remaining.`,c:'y'})}
+    else{
+      cs.activeBuff={name:ab.name,trigger:ab.trigger,effect:{...eff},conditions:ab.conditions||null};
+      let lbl=ab.name;
+      if(ab.conditions){const condMet=ab.conditions.includes('hidden')?r.traitState.hidden:cs.turnCount<=1;
+        lbl+=condMet?' ('+eff.dmgMult+'×)':' (1×)'}
+      ms.push({t:`${lbl} ready! (${cost} MP)`,c:'s'})}
+    return ms}
+  if(ab.type==='attack'){
+    const hits=eff.multiHit||1;
+    if(eff.useWeapon&&r.wpn){
+      const w=r.wpn,isMelee=w.t==='melee';
+      for(let hi=0;hi<hits;hi++){
+        let hitPct=isMelee?CALC.meleeHit(r,e.def):CALC.rangedHit(r,e.def);
+        if(eff.hitBonus)hitPct=CALC.pct(hitPct+eff.hitBonus);
+        if(e.debuffs){const mk=e.debuffs.find(d=>d.type==='marked');if(mk)hitPct=CALC.pct(hitPct+15)}
+        const roll=CALC.roll100();
+        if(roll<=hitPct){let dmg=CALC.rollDice(w.dD)+(w.dB||0)+(isMelee?CALC.meleeDmgMod(r):CALC.rangedDmgMod(r));
+          if(e.debuffs){const br=e.debuffs.find(d=>d.type==='brittle');if(br)dmg=Math.floor(dmg*1.25)}
+          dmg=CALC.safeDmg(dmg);e.hp=Math.max(0,e.hp-dmg);
+          ms.push({t:`${ab.name}! ${w.name} hits for ${dmg}! (${e.hp} HP)`,c:'s'});
+          if(eff.statusChance&&CALC.roll100()<=eff.statusChance)this._applyStatus(e,eff.status,eff.statusDuration||2,ms,eff.statusDmg);
+          if(e.hp<=0){ms.push({t:`The ${e.name} falls!`,c:'s'});GS.recDef(e.id);break}}
+        else ms.push({t:`${ab.name} swing misses! (${hitPct}%)`,c:'d'})}
+      return ms}
+    for(let hi=0;hi<hits;hi++){
+      let hitPct=eff.statOverride==='smarts'?CALC.arcaneBoltHit(r,e.def):(r.wpn&&r.wpn.t==='ranged'?CALC.rangedHit(r,e.def):CALC.meleeHit(r,e.def));
+      if(eff.hitPenalty)hitPct=CALC.pct(hitPct+eff.hitPenalty);
+      if(eff.hitBonus)hitPct=CALC.pct(hitPct+eff.hitBonus);
+      if(e.debuffs){const mk=e.debuffs.find(d=>d.type==='marked');if(mk)hitPct=CALC.pct(hitPct+15)}
+      const roll=CALC.roll100();
+      if(roll<=hitPct){
+        let dmg=0;if(eff.dmgDice)for(const d of eff.dmgDice)dmg+=CALC.rollDice(d);
+        if(eff.dB)dmg+=eff.dB;
+        if(eff.bonusVsTag&&e.tags&&e.tags.includes(eff.bonusVsTag))dmg=Math.floor(dmg*eff.bonusMult);
+        // Brittle
+        if(e.debuffs){const br=e.debuffs.find(d=>d.type==='brittle');if(br)dmg=Math.floor(dmg*1.25)}
+        // Arcane Surge spell damage boost
+        if(cs.activeBuff&&cs.activeBuff.effect.spellDmgMult&&eff.statOverride==='smarts')dmg=Math.floor(dmg*cs.activeBuff.effect.spellDmgMult);
+        dmg=CALC.safeDmg(dmg);e.hp=Math.max(0,e.hp-dmg);
+        ms.push({t:`${ab.name} strikes ${e.name} for ${dmg}! (${hitPct}%)`,c:'s'});
+        if(eff.statusChance){
+          let sch=eff.statusChance;
+          if(cs.activeBuff&&cs.activeBuff.effect.doubleStatusChance)sch=Math.min(100,sch*2);
+          if(CALC.roll100()<=sch)this._applyStatus(e,eff.status,eff.statusDuration||2,ms,eff.statusDmg)}
+        // Smite: guaranteed weaken vs undead
+        if(eff.weakenUndead&&e.tags&&e.tags.includes('undead'))this._applyStatus(e,'weaken',3,ms);
+        // Bleed hit-scaling on ability hits too
+        if(e.debuffs){const bl=e.debuffs.find(d=>d.type==='bleed');
+          if(bl){const inc=this._hasSynergy(e,'searing_wound')?2:1;bl.dmg=(bl.dmg||1)+inc}}
+        if(e.hp<=0){ms.push({t:`The ${e.name} falls!`,c:'s'});GS.recDef(e.id);break}}
+      else ms.push({t:`${ab.name} misses ${e.name}! (${hitPct}%)`,c:'d'})}
+    return ms}
+  if(ab.type==='heal'){
+    // Curse prevents healing
+    if(r.debuffs.some(d=>d.type==='curse')){ms.push({t:`Curse prevents healing! ${ab.name} fails.`,c:'d'});return ms}
+    let h=eff.healAmt||0;if(eff.fullHeal)h=r.mHP-r.hp;
+    h=Math.min(h,r.mHP-r.hp);r.hp+=h;
+    if(eff.cleanseAll){r.debuffs=[];ms.push({t:'All afflictions cleansed!',c:'s'})}
+    else if(eff.cleanse){eff.cleanse.forEach(type=>{const idx=r.debuffs.findIndex(d=>d.type===type);if(idx>=0){r.debuffs.splice(idx,1);ms.push({t:`${type} cleansed!`,c:'s'})}})}
+    ms.push({t:`${ab.name}! Restored ${h} HP. (${r.hp}/${r.mHP} HP)`,c:'s'});return ms}
+  ms.push({t:`${ab.name}! (${cost} MP)`,c:'s'});return ms},
+
+// --- Class verb resolution ---
+_resolveVerb(r,cs){
+  const ms=[];const verb=getVerb(r);if(!verb){ms.push({t:'No class verb available.',c:'y'});return ms}
+  // Pre-validation already done in pAct; execute verb
+  if(verb.cost)r.mp-=verb.cost;
+  if(verb.limit==='once_per_combat')cs.usedVerbThisCombat=true;
+  const e=cs.enemy;const vn=verb.name;
+  switch(vn){
+    case'Rally':{
+      if(r.debuffs.length>0){const removed=r.debuffs.shift();ms.push({t:`Rally! ${removed.type} cleared!`,c:'s'})}
+      else ms.push({t:'Rally! No status to clear.',c:'y'});
+      // +1 DEF for 2 turns via temp buff
+      cs.activeBuffs.push({name:'Rally DEF',trigger:'sustained',effect:{defBonus:1},turnsLeft:2});
+      ms.push({t:'Rally! +1 DEF for 2 turns.',c:'s'});break}
+    case'Surveyor':{
+      cs.surveyorActive=true;
+      cs.enemies.filter(en=>en.hp>0).forEach(en=>{
+        ms.push({t:`${en.name}: HP ${en.hp}/${en.mHP}, ATK ${en.atk}, DEF ${en.def}, Zone: ${en.zone}`,c:'y'})});
+      ms.push({t:'Surveyor! Full enemy intel revealed.',c:'s'});break}
+    case'Vanish':{
+      r.traitState.hidden=true;GS.run.traitState._wasHidden=true;
+      ms.push({t:'Vanish! You are untargetable this turn.',c:'s'});break}
+    case'Consecrate':{
+      cs.consecrate={zone:cs.playerZone,turnsLeft:3,dmg:2};
+      ms.push({t:`Consecrate! ${cs.playerZone} zone blessed for 3 turns (2 holy dmg/turn).`,c:'s'});break}
+    case'Dispel':{
+      if(r.debuffs.length>0){const removed=r.debuffs.shift();ms.push({t:`Dispel! ${removed.type} removed. (${verb.cost} MP)`,c:'s'})}
+      else if(e.debuffs&&e.debuffs.length>0){
+        // Strip enemy buff (represented as positive debuffs — for now just report)
+        ms.push({t:`Dispel! Enemy buff stripped. (${verb.cost} MP)`,c:'s'})}
+      else ms.push({t:`Dispel! Nothing to remove. (${verb.cost} MP)`,c:'y'});break}
+    case'Frenzy':{
+      cs.activeBuffs.push({name:'Frenzy',trigger:'sustained',effect:{frenzy:true},turnsLeft:2});
+      ms.push({t:'Frenzy! Pain becomes power for 2 turns!',c:'s'});break}
+    case'Harvest':{
+      if(cs.summons.length>0){const s=cs.summons.shift();
+        const healAmt=Math.min(s.hp*2,r.mHP-r.hp);r.hp+=healAmt;
+        ms.push({t:`Harvest! Sacrificed ${s.name}. Restored ${healAmt} HP.`,c:'s'})}
+      break}
+    case'Quickdraw':{
+      if(e.intent&&(e.intent.type==='attack'||e.intent.type==='cast')){
+        ms.push({t:'Quickdraw! You fire before the enemy acts!',c:'s'});
+        ms.push(...this._doPlayerAttack(r,cs,e))}
+      else ms.push({t:'Quickdraw! Enemy not telegraphing Attack/Cast — saved for later.',c:'y'});
+      break}
+    case'Effigy':{
+      cs.effigy={targetIdx:cs.targetIdx,turnsLeft:3};
+      ms.push({t:`Effigy! Sympathetic link established for 3 turns.`,c:'s'});break}
+    default:ms.push({t:`${vn} activated!`,c:'s'})}
+  return ms},
+
+// --- Status effect application ---
+_applyStatus(target,type,duration,ms,dmg){
+  if(!target.debuffs)target.debuffs=[];
+  const seDef=STATUS_EFFECTS[type];const label=seDef?seDef.name:type;
+  const existing=target.debuffs.find(d=>d.type===type);
+  if(existing){existing.remaining=Math.max(existing.remaining,duration);
+    ms.push({t:`${label} on ${target.name||'target'} refreshed! (${duration} turns)`,c:'s'})}
+  else{target.debuffs.push({type,dmg:dmg||0,remaining:duration});
+    ms.push({t:`${target.name||'Target'} afflicted with ${label}! (${duration} turns${dmg>0?', '+dmg+' dmg/turn':''})`,c:'s'})}},
+
+// --- Synergy check ---
+_hasSynergy(target,synergyKey){
+  const syn=SYNERGIES[synergyKey];if(!syn||!target.debuffs)return false;
+  return syn.requires.every(r=>target.debuffs.some(d=>d.type===r))},
+
+// --- Tick player debuffs (v1.0 reworked mechanics) ---
+_tickPlayerDebuffs(r,cs){
+  const ms=[];if(!r.debuffs)return ms;
+  for(let i=r.debuffs.length-1;i>=0;i--){
+    const d=r.debuffs[i];const seDef=STATUS_EFFECTS[d.type];
+    const label=seDef?seDef.name:d.type.charAt(0).toUpperCase()+d.type.slice(1);
+    // v1.0 reworked DoT mechanics
+    if(d.type==='burn'){
+      // Burn erodes DEF
+      ms.push({t:`${label}: defense eroding!`,c:'d'})
+    }else if(d.type==='bleed'){
+      if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);r.hp=Math.max(0,r.hp-dd);
+        // Hemorrhage synergy: doubled tick
+        const hemMult=this._hasSynergy({debuffs:r.debuffs},'hemorrhage')?2:1;
+        const actual=dd*hemMult;if(hemMult>1){r.hp=Math.max(0,r.hp-(actual-dd))}
+        ms.push({t:`${label} deals ${actual} damage!${hemMult>1?' (Hemorrhage!)':''}`,c:'d'})}
+    }else if(d.type==='poison'){
+      if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);r.hp=Math.max(0,r.hp-dd);ms.push({t:`${label} deals ${dd} damage! (escalating)`,c:'d'})}
+      // Self-escalate
+      const festMult=this._hasSynergy({debuffs:r.debuffs},'festering')?2:1;
+      d.dmg=(d.dmg||1)+festMult;
+    }else if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);r.hp=Math.max(0,r.hp-dd);ms.push({t:`${label} deals ${dd} damage! (${r.hp}/${r.mHP} HP)`,c:'d'})}
+    else if(d.type!=='stun'&&d.type!=='slow'&&d.type!=='rooted'&&d.type!=='silenced'){ms.push({t:`${label} afflicts you.`,c:'y'})}
+    d.remaining=Math.max(0,d.remaining-1);
+    if(d.remaining<=0){r.debuffs.splice(i,1);ms.push({t:`The ${d.type} fades.`,c:'y'})}
+    else ms.push({t:`${label}: ${d.remaining} turn${d.remaining!==1?'s':''} remaining.`,c:'y'})}
+  return ms},
+
+// --- All enemy turns ---
+_allEnemyTurns(cs,r){
+  const ms=[];
+  // Consecrate damage
+  if(cs.consecrate&&cs.consecrate.turnsLeft>0){
+    cs.enemies.filter(e=>e.hp>0&&e.zone===cs.consecrate.zone).forEach(e=>{
+      e.hp=Math.max(0,e.hp-cs.consecrate.dmg);
+      ms.push({t:`Consecrate burns ${e.name} for ${cs.consecrate.dmg} holy damage! (${e.hp} HP)`,c:'s'});
+      if(e.tags&&e.tags.includes('undead'))this._applyStatus(e,'weaken',2,ms)});
+    cs.consecrate.turnsLeft--;if(cs.consecrate.turnsLeft<=0){ms.push({t:'Consecrate fades.',c:'y'});cs.consecrate=null}}
+  // Summon actions
+  cs.summons.forEach(s=>{if(s.hp>0){const tgt=cs.enemies.find(e=>e.hp>0);
+    if(tgt){const dmg=CALC.safeDmg(CALC.rollDice(s.dmgDice[0])+(s._bonusDmg||0));tgt.hp=Math.max(0,tgt.hp-dmg);
+      ms.push({t:`${s.name} attacks ${tgt.name} for ${dmg}! (${tgt.hp} HP)`,c:'s'});
+      if(tgt.hp<=0){ms.push({t:`The ${tgt.name} falls!`,c:'s'});GS.recDef(tgt.id)}}}});
+  // Check victory after summon attacks
+  if(cs.enemies.filter(e=>e.hp>0).length===0){cs.over=true;cs.won=true;ms.push({t:'Victory!',c:'s'});return ms}
+  // Effigy tick
+  if(cs.effigy&&cs.effigy.turnsLeft>0){cs.effigy.turnsLeft--;if(cs.effigy.turnsLeft<=0){ms.push({t:'Effigy link fades.',c:'y'});cs.effigy=null}}
+  // Each living enemy acts
+  cs.enemies.filter(e=>e.hp>0).forEach(e=>{ms.push(...this.eTurn(e,cs,r))});
+  return ms},
+
+// --- Tick sustained buffs ---
+_tickBuffs(cs,ms){
   if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'){
     cs.activeBuff.turnsLeft--;
-    if(cs.activeBuff.turnsLeft<=0){ms.push({t:'The red haze fades from your vision.',c:'y'});cs.activeBuff=null}
-    else ms.push({t:`${cs.activeBuff.name}: ${cs.activeBuff.turnsLeft} turn${cs.activeBuff.turnsLeft!==1?'s':''} remaining.`,c:'y'})}},
-_enemyAttack(cs,r){
-  const e=cs.enemy,ms=[];
+    if(cs.activeBuff.turnsLeft<=0){ms.push({t:`${cs.activeBuff.name} fades.`,c:'y'});cs.activeBuff=null}
+    else ms.push({t:`${cs.activeBuff.name}: ${cs.activeBuff.turnsLeft} turn${cs.activeBuff.turnsLeft!==1?'s':''} remaining.`,c:'y'})}
+  // Tick extra buffs
+  for(let i=cs.activeBuffs.length-1;i>=0;i--){
+    cs.activeBuffs[i].turnsLeft--;
+    if(cs.activeBuffs[i].turnsLeft<=0){ms.push({t:`${cs.activeBuffs[i].name} fades.`,c:'y'});cs.activeBuffs.splice(i,1)}}},
+
+// --- Enemy attack ---
+_enemyAttack(e,cs,r){
+  const ms=[];
   if(e.hp<=0||r.hp<=0)return ms;
+  // If player is hidden (Vanish verb), enemy misses
+  if(r.traitState.hidden){ms.push({t:`${e.name}'s attack passes through empty air! (Vanish)`,c:'s'});return ms}
   const dodgePct=CALC.dodge(r);
-  if(dodgePct>0&&CALC.roll100()<=dodgePct){ms.push({t:`You dodge the ${e.name}'s attack! (${dodgePct}% dodge)`,c:'s'});return ms}
+  if(dodgePct>0&&CALC.roll100()<=dodgePct){ms.push({t:`You dodge ${e.name}'s attack! (${dodgePct}% dodge)`,c:'s'});return ms}
+  // Evasion buff
+  if(cs.activeBuff&&cs.activeBuff.effect.evasion){ms.push({t:'Evasion! Attack dodged!',c:'s'});cs.activeBuff=null;return ms}
   const pDef=CALC.playerDef(r);
   const hitPct=CALC.enemyHit(e.atk,pDef);const roll=CALC.roll100();
   if(roll<=hitPct){
     let d=CALC.safeDmg(CALC.rollDice(e.dD)+(e.dB||0));
-    if(cs.blocking){d=Math.max(1,Math.floor(d/2));ms.push({t:`Block halves the blow! ${d} damage.`,c:'d'})}
-    else ms.push({t:`The ${e.name} lashes out for ${d} damage!`,c:'d'});
+    // Block: Tier 1 = halve, Tier 2/3 = flat reduction
+    if(cs.blocking){const tier=getBlockTier(r);
+      if(tier>=2&&cs.pBlk>0){d=Math.max(1,d-cs.pBlk);ms.push({t:`Shield blocks ${cs.pBlk} damage! ${d} gets through.`,c:'d'})}
+      else{d=Math.max(1,Math.floor(d/2));ms.push({t:`Block halves the blow! ${d} damage.`,c:'d'})}}
+    else ms.push({t:`${e.name} lashes out for ${d} damage!`,c:'d'});
+    // Aggro incoming damage bonus
     if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'&&cs.activeBuff.effect.incomingDmgBonus){
-      d+=cs.activeBuff.effect.incomingDmgBonus;ms.push({t:`Aggro: +${cs.activeBuff.effect.incomingDmgBonus} incoming damage!`,c:'y'})}
+      d+=cs.activeBuff.effect.incomingDmgBonus;ms.push({t:`Aggro: +${cs.activeBuff.effect.incomingDmgBonus} incoming!`,c:'y'})}
+    // Stalwart Stand
+    if(cs.activeBuff&&cs.activeBuff.effect.stalwart){d=Math.max(0,d);/* can't drop below 1 handled below */}
+    // Subspecies
     if(r.subspecies==='stoneblood'&&d>1){d--;ms.push({t:'Stone Skin absorbs 1 damage!',c:'y'})}
-    if(r.subspecies==='fireblood'){d++;ms.push({t:'Volcanic Fury: you take 1 extra damage!',c:'y'})}
-    if(r.traitState.hidden){r.traitState.hidden=false;delete GS.run.traitState._wasHidden;ms.push({t:'You are revealed by the attack!',c:'y'})}
+    if(r.subspecies==='fireblood'){d++;ms.push({t:'Volcanic Fury: +1 incoming!',c:'y'})}
+    if(r.traitState.hidden){r.traitState.hidden=false;delete GS.run.traitState._wasHidden;ms.push({t:'Revealed by the attack!',c:'y'})}
+    // Divine Shield immunity
     if(cs.activeBuff&&cs.activeBuff.effect.dmgImmunity){d=0;ms.push({t:'Divine Shield absorbs all damage!',c:'s'})}
-    if(cs.activeBuff&&cs.activeBuff.effect.manaShield&&r.mp>0){const absorbed=Math.min(d,r.mp);r.mp-=absorbed;d=Math.max(0,d-absorbed);ms.push({t:`Mana Shield absorbs ${absorbed} damage! (${r.mp} MP left)`,c:'s'})}
+    // Mana Shield
+    if(cs.activeBuff&&cs.activeBuff.effect.manaShield&&r.mp>0){const absorbed=Math.min(d,r.mp);r.mp-=absorbed;d=Math.max(0,d-absorbed);ms.push({t:`Mana Shield absorbs ${absorbed}! (${r.mp} MP)`,c:'s'})}
+    // Ward (Arcane Ward / Dark Shield)
+    if(cs.activeBuff&&cs.activeBuff.effect.ward&&cs.activeBuff.effect.ward>0){
+      const absorbed=Math.min(d,cs.activeBuff.effect.ward);cs.activeBuff.effect.ward-=absorbed;d=Math.max(0,d-absorbed);
+      ms.push({t:`Ward absorbs ${absorbed} damage! (${cs.activeBuff.effect.ward} remaining)`,c:'s'});
+      if(cs.activeBuff.effect.ward<=0)cs.activeBuff=null}
+    // Frenzy: damage taken = bonus stacks
+    cs.activeBuffs.forEach(b=>{if(b.effect.frenzy&&d>0){cs.frenzyStacks+=2;ms.push({t:`Frenzy! +2 bonus damage stored (${cs.frenzyStacks} total)`,c:'y'})}});
     d=CALC.safeDmg(d);r.hp=Math.max(0,r.hp-d);
+    // Stalwart Stand: can't drop below 1 HP
+    if(r.hp<=0&&cs.activeBuff&&cs.activeBuff.effect.stalwart){r.hp=1;ms.push({t:'Stalwart Stand! You refuse to fall! (1 HP)',c:'s'})}
+    // Undying Rage
     if(r.hp<=0&&cs.activeBuff&&cs.activeBuff.effect.undying){r.hp=1;cs.activeBuff=null;ms.push({t:'Undying Rage! You refuse to fall! (1 HP)',c:'s'})}
-    if(e.onHit){if(!r.debuffs)r.debuffs=[];
-      const oh=e.onHit;if(CALC.roll100()<=oh.chance&&r.subspecies!=='stoneblood'){
-        const elabel=oh.effect.charAt(0).toUpperCase()+oh.effect.slice(1);
-        const existing=r.debuffs.find(db=>db.type===oh.effect);
-        if(!existing){r.debuffs.push({type:oh.effect,dmg:oh.dmg,remaining:Math.max(0,oh.duration)});
-          ms.push({t:`You are afflicted with ${oh.effect}! (${oh.duration} turns${oh.dmg>0?', '+oh.dmg+' dmg/turn':''})`,c:'d'})}
-        else{existing.remaining=Math.max(0,oh.duration);ms.push({t:`${elabel} refreshed!`,c:'d'})}}}}
-  else ms.push({t:`The ${e.name} lunges but misses!`,c:'d'});
+    // Blood Rage stacking
+    if(cs.activeBuff&&cs.activeBuff.effect.bloodRage&&d>0){cs.frenzyStacks+=d;ms.push({t:`Blood Rage! +${d} stored damage (${cs.frenzyStacks} total)`,c:'y'})}
+    // Enemy on-hit status effects
+    if(e.onHit&&r.hp>0){if(!r.debuffs)r.debuffs=[];
+      const oh=e.onHit;if(CALC.roll100()<=oh.chance&&!(r.subspecies==='stoneblood'&&oh.effect==='poison')){
+        this._applyStatus(r,oh.effect,oh.duration,ms,oh.dmg)}}}
+  else ms.push({t:`${e.name} lunges but misses!`,c:'d'});
   return ms},
-eTurn(){const cs=this.gs(),r=GS.run,e=cs.enemy,ms=[];
+
+// --- Single enemy turn ---
+eTurn(e,cs,r){
+  if(!e){e=cs.enemy;cs=this.gs();r=GS.run} // back-compat for old callers
+  const ms=[];
   if(e.hp<=0||r.hp<=0)return ms;
+  // Tick enemy debuffs (v1.0 reworked)
   if(e.debuffs&&e.debuffs.length>0){
     const eStunned=e.debuffs.some(d=>d.type==='stun');
     for(let i=e.debuffs.length-1;i>=0;i--){const d=e.debuffs[i];
-      const label=d.type.charAt(0).toUpperCase()+d.type.slice(1);
-      if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);e.hp=Math.max(0,e.hp-dd);ms.push({t:`${label} deals ${dd} to ${e.name}! (${e.hp} HP)`,c:'s'})}
+      const seDef=STATUS_EFFECTS[d.type];const label=seDef?seDef.name:d.type;
+      if(d.type==='burn'){
+        if(e._defEroded===undefined)e._defEroded=0;e._defEroded++;e.def=Math.max(0,(e._baseDef||e.def)-e._defEroded);
+        ms.push({t:`${label} erodes ${e.name}'s defense! (DEF now ${e.def})`,c:'s'})}
+      else if(d.type==='bleed'&&d.dmg>0){
+        let dd=CALC.safeDmg(d.dmg);
+        if(this._hasSynergy(e,'hemorrhage'))dd*=2;
+        e.hp=Math.max(0,e.hp-dd);ms.push({t:`${label} deals ${dd} to ${e.name}! (${e.hp} HP)`,c:'s'})}
+      else if(d.type==='poison'&&d.dmg>0){
+        const dd=CALC.safeDmg(d.dmg);e.hp=Math.max(0,e.hp-dd);ms.push({t:`${label} deals ${dd} to ${e.name}! (${e.hp} HP, escalating)`,c:'s'});
+        const festMult=this._hasSynergy(e,'festering')?2:1;d.dmg=(d.dmg||1)+festMult}
+      else if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);e.hp=Math.max(0,e.hp-dd);ms.push({t:`${label} deals ${dd} to ${e.name}! (${e.hp} HP)`,c:'s'})}
       d.remaining--;if(d.remaining<=0){e.debuffs.splice(i,1);ms.push({t:`${label} fades from ${e.name}.`,c:'y'})}}
-    if(e.hp<=0){cs.over=true;cs.won=true;ms.push({t:`The ${e.name} falls! Victory!`,c:'s'});GS.recDef(e.id);cs.activeBuff=null;return ms}
+    if(e.hp<=0){cs.over=cs.enemies.filter(en=>en.hp>0).length===0;if(cs.over)cs.won=true;
+      ms.push({t:`The ${e.name} falls!`,c:'s'});GS.recDef(e.id);cs.activeBuff=null;return ms}
     if(eStunned){ms.push({t:`${e.name} is stunned! Action lost!`,c:'s'});return ms}}
-  ms.push(...this._enemyAttack(cs,r));
-  return ms}
+  // Enemy AI: move toward preferred zone if not there
+  if(e.zone!==e.preferredZone&&!e.debuffs.some(d=>d.type==='rooted'||d.type==='slow')){
+    const zones=['close','mid','far'];const ci=zones.indexOf(e.zone),pi=zones.indexOf(e.preferredZone||'mid');
+    if(ci!==pi){const step=ci<pi?1:-1;e.zone=zones[ci+step];
+      ms.push({t:`${e.name} moves to ${e.zone} range.`,c:'y'})}}
+  // Enemy attack
+  ms.push(...this._enemyAttack(e,cs,r));
+  return ms},
+
+// --- Enemy intent generation ---
+_genIntent(e,r){
+  if(e.hp<=0)return null;
+  const hpPct=e.hp/e.mHP;
+  if(e.zone!==e.preferredZone)return{type:'move',desc:`Moving to ${e.preferredZone}`};
+  if(hpPct<0.3&&e.def>0)return{type:'defend',desc:'Bracing'};
+  if(e.onHit&&e.onHit.effect)return{type:'attack',desc:`Attack (${e.onHit.effect} chance)`};
+  return{type:'attack',desc:'Attack'}}
 };
 
 // === TOAST SYSTEM ===
@@ -1323,8 +1764,10 @@ init(){
     bb:$('bbar'),exploreBar:$('explore-bar'),combatBar:$('combat-bar'),
     bacts:$('b-acts'),
     cbAtk:$('cb-atk'),cbAbility:$('cb-ability'),cbAbilityName:$('cb-ability-name'),cbAbilityCost:$('cb-ability-cost'),
-    cbBlock:$('cb-block'),cbFlee:$('cb-flee'),cbItem:$('cb-item'),
+    cbBlock:$('cb-block'),cbFlee:$('cb-flee'),cbItem:$('cb-item'),cbMove:$('cb-move'),
+    cbVerb:$('cb-verb'),cbVerbName:$('cb-verb-name'),
     cbAtkPct:$('cb-atk-pct'),cbFleePct:$('cb-flee-pct'),
+    cbZoneTag:$('cb-zone-tag'),cbIntent:$('cb-intent'),cbTargetBar:$('cb-target-bar'),cbStatusBar:$('cb-status-bar'),
     ni:$('ninp'),cbk:$('cc-bk'),cnx:$('cc-nx'),ccStep:$('cc-step'),
     tc:$('title-card'),tcn:$('tc-name'),tcs:$('tc-sub'),
     ds:$('death-screen'),dsq:$('death-quote'),dsl:$('ds-load'),dsn:$('ds-new'),dst:$('ds-title'),
@@ -1352,6 +1795,8 @@ bind(){
   this.el.cbBlock.onclick=()=>SE.doCombatAction('block');
   this.el.cbFlee.onclick=()=>SE.doCombatAction('flee');
   this.el.cbItem.onclick=()=>this._toggleItemSub();
+  this.el.cbMove.onclick=()=>this._toggleMoveSub();
+  this.el.cbVerb.onclick=()=>SE.doCombatAction('verb');
   this.el.asb.onclick=()=>this.closeActionSheet();
   this.el.dsl.onclick=()=>SE.deathLoad();
   this.el.dsn.onclick=()=>SE.deathNewRun();
@@ -1397,24 +1842,70 @@ setCombatMode(on){
 updateCombatUI(){
   const cs=CMB.gs(),r=GS.run;if(!cs||cs.over)return;
   this._closeAllSubs();
+  const e=cs.enemy;
+  // Zone display
+  this.el.cbZoneTag.textContent=(cs.playerZone||'mid').toUpperCase();
+  // Intent display
+  const alive=cs.enemies.filter(en=>en.hp>0);
+  if(alive.length&&alive[0].intent){
+    const ei=alive[0].intent;const icon=INTENT_ICONS[ei.type]||'';
+    this.el.cbIntent.textContent=icon+' '+alive[0].name+': '+ei.type}
+  else this.el.cbIntent.textContent='';
+  // Target bar (multi-enemy)
+  this.el.cbTargetBar.innerHTML='';
+  if(alive.length>1){alive.forEach((en,i)=>{
+    const realIdx=cs.enemies.indexOf(en);
+    const b=document.createElement('button');b.className='cb-tgt-btn'+(realIdx===cs.targetIdx?' act':'');
+    b.textContent=en.name+' ('+en.hp+'/'+en.mHP+')';
+    b.onclick=()=>{CMB.setTarget(realIdx);this.updateCombatUI()};
+    this.el.cbTargetBar.appendChild(b)})}
+  // Status bar (player debuffs)
+  this.el.cbStatusBar.innerHTML='';
+  if(r.debuffs&&r.debuffs.length){r.debuffs.forEach(d=>{
+    const se=STATUS_EFFECTS[d.type];const icon=se?se.icon:'';
+    const sp=document.createElement('span');sp.className='cb-debuff';sp.textContent=icon+(se?se.name:d.type)+' '+d.remaining+'t';
+    this.el.cbStatusBar.appendChild(sp)})}
+  // Grave charges display for Necromancer
+  if(cs.graveCharges!==undefined&&CL[r.classes[0]]&&CL[r.classes[0]].graveCharges){
+    const sp=document.createElement('span');sp.className='cb-debuff';sp.style.cssText='background:rgba(201,168,76,.12);color:var(--gold)';
+    sp.textContent='💀 '+cs.graveCharges+'/'+CL[r.classes[0]].graveCharges.max;
+    this.el.cbStatusBar.appendChild(sp)}
+  // Attack button: zone-aware hit%
   const w=r.wpn;if(w){const isMelee=w.t==='melee';
-    let hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
+    let hitPct=isMelee?CALC.meleeHit(r,e.def):CALC.rangedHit(r,e.def);
+    if(!isMelee){if(cs.playerZone==='close')hitPct=CALC.pct(hitPct-15);if(cs.playerZone==='far')hitPct=CALC.pct(hitPct-10)}
     if(cs.activeBuff&&cs.activeBuff.trigger==='ranged_hit'&&!isMelee&&cs.activeBuff.effect.hitBonus)hitPct=CALC.pct(hitPct+cs.activeBuff.effect.hitBonus);
-    if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'&&cs.activeBuff.effect.hitBonus&&isMelee)hitPct=CALC.pct(hitPct+cs.activeBuff.effect.hitBonus);
+    if(cs.activeBuff&&cs.activeBuff.trigger==='sustained'&&cs.activeBuff.effect.hitBonus)hitPct=CALC.pct(hitPct+cs.activeBuff.effect.hitBonus);
+    if(e.debuffs){const mk=e.debuffs.find(d=>d.type==='marked');if(mk)hitPct=CALC.pct(hitPct+15)}
+    if(r.debuffs&&r.debuffs.some(d=>d.type==='stagger'))hitPct=CALC.pct(hitPct-10);
     this.el.atkLbl.textContent=hitPct+'%';this.el.cbAtkPct.textContent=hitPct+'%';
-    this.el.cbAtk.disabled=false}
+    this.el.cbAtk.disabled=isMelee&&cs.playerZone!=='close'}
+  // Flee: disabled at close range
   const fleePct=CALC.flee(r);this.el.cbFleePct.textContent=fleePct+'%';
-  this.el.cbFlee.disabled=false;
+  this.el.cbFlee.disabled=cs.playerZone==='close';
+  // Move: disabled if rooted
+  this.el.cbMove.disabled=!!(r.debuffs&&r.debuffs.some(d=>d.type==='rooted'));
+  // Abilities
+  const isSilenced=r.debuffs&&r.debuffs.some(d=>d.type==='silenced');
   const abilities=getAbilities(r);const ab=abilities[0]||null;
   if(ab){
     this.el.cbAbility.style.display='';
-    let btnLabel=abilities.length>1?'Abilities':'Ability';
-    this.el.cbAbilityName.textContent=btnLabel;
-    const cost=CALC.abilityCost(r,ab);
-    this.el.cbAbilityCost.textContent=cost+'MP';
-    let canUse=abilities.some(a=>{const c=CALC.abilityCost(r,a);return r.mp>=c});
+    this.el.cbAbilityName.textContent=abilities.length>1?'Abilities':'Ability';
+    const cost=CALC.abilityCost(r,ab);this.el.cbAbilityCost.textContent=cost+'MP';
+    let canUse=!isSilenced&&abilities.some(a=>{const c=CALC.abilityCost(r,a);return r.mp>=c});
     this.el.cbAbility.disabled=!canUse;
   }else{this.el.cbAbility.style.display='none'}
+  // Verb button
+  const verb=getVerb(r);
+  if(verb){this.el.cbVerb.style.display='';this.el.cbVerbName.textContent=verb.name;
+    let canVerb=true;
+    if(verb.limit==='once_per_combat'&&cs.usedVerbThisCombat)canVerb=false;
+    if(verb.condition==='hp_below_50'&&r.hp>=r.mHP*0.5)canVerb=false;
+    if(verb.condition==='has_minion'&&cs.summons.length===0)canVerb=false;
+    if(verb.cost&&r.mp<verb.cost)canVerb=false;
+    if(isSilenced)canVerb=false;
+    this.el.cbVerb.disabled=!canVerb;
+  }else{this.el.cbVerb.style.display='none'}
   this.updateBattleScene(true);
 },
 updateBattleScene(show){
@@ -1505,19 +1996,49 @@ renderSceneActions(sceneId){
 openActionSheet(){
   const cs=CMB.gs(),r=GS.run;this.el.asl.innerHTML='';
   if(cs&&!cs.over){
-    const w=r.wpn;let atkDesc='No weapon';
-    if(w){const isMelee=w.t==='melee';const hitPct=isMelee?CALC.meleeHit(r,cs.enemy.def):CALC.rangedHit(r,cs.enemy.def);
-      atkDesc=w.name+' \u2014 '+hitPct+'% to hit'}
-    const acts=[{l:'Attack \u2014 '+atkDesc,cmd:'attack'},
-      {l:'Block',sub:'Halve incoming damage this turn',cmd:'block'},
-      {l:'Flee \u2014 '+CALC.flee(r)+'%',sub:'',cmd:'flee'}];
-    const hpot=r.bp.find(i=>i.t==='consumable'&&i.heal);if(hpot)acts.push({l:'Use '+hpot.name,cmd:'use_hpot'});
-    const mpot=r.bp.find(i=>i.t==='consumable'&&i.mana);if(mpot)acts.push({l:'Use '+mpot.name,cmd:'use_mpot'});
-    const anti=r.bp.find(i=>i.t==='consumable'&&i.cure);if(anti)acts.push({l:'Use '+anti.name,sub:'Cures '+anti.cure,cmd:'use_antidote'});
+    const e=cs.enemy;const w=r.wpn;const isMelee=w&&w.t==='melee';
+    let atkDesc='No weapon';
+    if(w){let hitPct=isMelee?CALC.meleeHit(r,e.def):CALC.rangedHit(r,e.def);
+      if(!isMelee){if(cs.playerZone==='close')hitPct=CALC.pct(hitPct-15);if(cs.playerZone==='far')hitPct=CALC.pct(hitPct-10)}
+      if(e.debuffs){const mk=e.debuffs.find(d=>d.type==='marked');if(mk)hitPct=CALC.pct(hitPct+15)}
+      atkDesc=w.name+' \u2014 '+hitPct+'% to hit';
+      if(isMelee&&cs.playerZone!=='close')atkDesc+=' (need Close)'}
+    const acts=[{l:'Attack \u2014 '+atkDesc,cmd:'attack',dis:isMelee&&cs.playerZone!=='close'}];
+    // Abilities
+    const isSilenced=r.debuffs&&r.debuffs.some(d=>d.type==='silenced');
     const abilities=getAbilities(r);
-    abilities.forEach((ab,ai)=>{const cost=CALC.abilityCost(r,ab);acts.splice(1+ai,0,{l:ab.name+' \u2014 '+cost+' MP',sub:ab.desc,cmd:ai===0?'ability':'ability_'+ai})})
+    abilities.forEach((ab,ai)=>{const cost=CALC.abilityCost(r,ab);
+      acts.push({l:ab.name+' \u2014 '+cost+' MP',sub:ab.desc,cmd:ai===0?'ability':'ability_'+ai,dis:isSilenced||r.mp<cost})});
+    // Verb
+    const verb=getVerb(r);
+    if(verb){let canVerb=!isSilenced;
+      if(verb.limit==='once_per_combat'&&cs.usedVerbThisCombat)canVerb=false;
+      if(verb.condition==='hp_below_50'&&r.hp>=r.mHP*0.5)canVerb=false;
+      if(verb.condition==='has_minion'&&cs.summons.length===0)canVerb=false;
+      if(verb.cost&&r.mp<verb.cost)canVerb=false;
+      acts.push({l:verb.name+(verb.cost?' \u2014 '+verb.cost+' MP':''),sub:verb.desc,cmd:'verb',dis:!canVerb})}
+    acts.push({l:'Block',sub:'Tier '+getBlockTier(r)+' block',cmd:'block'});
+    // Zone movement
+    const zones=['close','mid','far'];const isRooted=r.debuffs&&r.debuffs.some(d=>d.type==='rooted');
+    zones.forEach(z=>{if(z===cs.playerZone)return;
+      acts.push({l:'Move to '+z.charAt(0).toUpperCase()+z.slice(1),sub:'Zone: '+cs.playerZone+' → '+z,cmd:'move_'+z,dis:isRooted})});
+    // Flee
+    acts.push({l:'Flee \u2014 '+CALC.flee(r)+'%',sub:cs.playerZone==='close'?'Must be at Mid or Far':'',cmd:'flee',dis:cs.playerZone==='close'});
+    // Consumables
+    const hpot=r.bp.find(i=>i.t==='consumable'&&i.heal);if(hpot)acts.push({l:'Use '+hpot.name,sub:'Free action',cmd:'use_hpot'});
+    const mpot=r.bp.find(i=>i.t==='consumable'&&i.mana);if(mpot)acts.push({l:'Use '+mpot.name,sub:'Free action',cmd:'use_mpot'});
+    const anti=r.bp.find(i=>i.t==='consumable'&&i.cure);if(anti)acts.push({l:'Use '+anti.name,sub:'Cures '+anti.cure+' (free action)',cmd:'use_antidote'});
     if(r.subspecies==='shadowstep'&&!r.traitState.vanishUsed&&!r.traitState.hidden)
       acts.push({l:'Vanish \u2014 2 MP',sub:'Hide, next attack deals double',cmd:'vanish'});
+    // Target selection header if multi-enemy
+    const alive=cs.enemies.filter(en=>en.hp>0);
+    if(alive.length>1){const hdr=document.createElement('div');hdr.style.cssText='font-size:.8rem;color:var(--text2);padding:4px 8px;margin-bottom:4px';
+      hdr.textContent='Target: '+e.name+' ('+e.hp+'/'+e.mHP+' HP)';
+      this.el.asl.appendChild(hdr);
+      alive.forEach(en=>{const ri=cs.enemies.indexOf(en);if(ri===cs.targetIdx)return;
+        const tb=document.createElement('button');tb.className='as-btn';tb.style.cssText='font-size:.85rem;color:var(--gold)';
+        tb.textContent='Switch target → '+en.name+' ('+en.hp+'/'+en.mHP+')';
+        tb.onclick=()=>{CMB.setTarget(ri);this.closeActionSheet();this.openActionSheet()};this.el.asl.appendChild(tb)})}
     acts.forEach(a=>{const b=document.createElement('button');b.className='as-btn';
       b.innerHTML=a.l+(a.sub?'<span class="as-btn-sub">'+a.sub+'</span>':'');
       if(a.dis)b.disabled=true;
@@ -1546,7 +2067,7 @@ openActionSheet(){
   this.el.asb.classList.add('vis');this.el.ash.classList.add('vis');
 },
 closeActionSheet(){this.el.ash.classList.remove('vis');this.el.asb.classList.remove('vis')},
-_closeAllSubs(){$('cmd-sub-ability').classList.add('hidden');$('cmd-sub-item').classList.add('hidden')},
+_closeAllSubs(){$('cmd-sub-ability').classList.add('hidden');$('cmd-sub-item').classList.add('hidden');$('cmd-sub-move').classList.add('hidden')},
 _toggleAbilitySub(){
   const sub=$('cmd-sub-ability'),r=GS.run,cs=CMB.gs();
   if(!sub.classList.contains('hidden')){this._closeAllSubs();return}
@@ -1583,11 +2104,26 @@ _toggleItemSub(){
     sub.appendChild(b)});
   const bk=document.createElement('button');bk.className='cmd-back';bk.textContent='← Back';
   bk.onclick=()=>this._closeAllSubs();sub.appendChild(bk)},
+_toggleMoveSub(){
+  const sub=$('cmd-sub-move'),cs=CMB.gs(),r=GS.run;
+  if(!sub.classList.contains('hidden')){this._closeAllSubs();return}
+  this._closeAllSubs();sub.innerHTML='';sub.classList.remove('hidden');
+  const zones=['close','mid','far'];const isRooted=r.debuffs&&r.debuffs.some(d=>d.type==='rooted');
+  const isSlow=r.debuffs&&r.debuffs.some(d=>d.type==='slow');
+  zones.forEach(z=>{if(z===cs.playerZone)return;
+    const b=document.createElement('button');b.className='cmd-sub-btn';
+    b.textContent='Move to '+z.charAt(0).toUpperCase()+z.slice(1);
+    if(isRooted){b.disabled=true}
+    else if(isSlow){const ci=zones.indexOf(cs.playerZone),di=zones.indexOf(z);
+      if(Math.abs(di-ci)>1)b.disabled=true}
+    b.onclick=()=>{this._closeAllSubs();SE.doCombatAction('move_'+z)};sub.appendChild(b)});
+  const bk=document.createElement('button');bk.className='cmd-back';bk.textContent='← Back';
+  bk.onclick=()=>this._closeAllSubs();sub.appendChild(bk)},
 
 setCombatBusy(busy){
   this._busy=busy;
   [this.el.cbAtk,this.el.cbAbility,this.el.cbBlock,this.el.cbFlee,this.el.cbItem,
-   this.el.batk,this.el.bdef,this.el.bitem].forEach(b=>{if(b)b.disabled=busy});
+   this.el.cbMove,this.el.cbVerb,this.el.batk,this.el.bdef,this.el.bitem].forEach(b=>{if(b)b.disabled=busy});
 },
 combatFX(type,value){
   if(REDUCED_MOTION)return;
@@ -1675,7 +2211,7 @@ openChar(tab){
     if(k==='speech')derived=CALC.speech(r)+'%';
     else if(k==='sight')derived=CALC.search(r)+'%';
     else if(k==='smarts')derived=CALC.smarts(r)+'%';
-    else if(k==='movement'){const eff=CALC.effMov(r);derived=CALC.combatMove(r)+'m/turn';
+    else if(k==='movement'){const eff=CALC.effMov(r);derived='Eff: '+eff+(eff>=7?' (free zone move)':'');
       if(eff!==r.stats[k])sh+='<div class="stat-row"><span class="stat-name">'+STAT_LABELS[k]+'</span><span class="stat-val">'+r.stats[k]+' ('+eff+')</span><span class="stat-derived">'+derived+'</span></div>';return}
     sh+='<div class="stat-row"><span class="stat-name">'+STAT_LABELS[k]+'</span><span class="stat-val">'+r.stats[k]+'</span><span class="stat-derived">'+derived+'</span></div>'});
   const traitName=subData?subData.trait:(r.species==='human'?sp.trait:'');
@@ -1750,7 +2286,7 @@ openJrn(){
     t.onclick=()=>{tabs.querySelectorAll('.jtab').forEach(x=>{x.classList.remove('act');x.setAttribute('aria-selected','false')});t.classList.add('act');t.setAttribute('aria-selected','true');Object.values(pgs).forEach(p=>p.classList.remove('act'));pgs[n].classList.add('act')};
     tabs.appendChild(t);const pg=document.createElement('div');pg.className='jp'+(i===0?' act':'');pg.setAttribute('role','tabpanel');pgs[n]=pg});
   b.appendChild(tabs);
-  pgs.Combat.innerHTML='<h3>Combat System</h3><p>Combat uses percentage-based checks. Your hit chance is shown before each attack.</p><h3>Distance</h3><p>Battlefield spans 5m–30m. Melee weapons strike at 5m. Ranged: 10–30m (penalty under 10m).</p><h3>Free Movement</h3><p>Each turn you can move AND take an action. Movement distance = Movement stat × 2 meters, reduced by equipment weight.</p><h3>Actions</h3><p><strong style="color:var(--gold)">Attack</strong> — Hit chance: 55% + (attack stat − 5) × 5% − enemy defense × 3%.</p><p><strong style="color:var(--gold)">Block</strong> — Raise shield to reduce damage.</p><p><strong style="color:var(--gold)">Use Item</strong> — Consume potions mid-combat.</p><p><strong style="color:var(--gold)">Flee</strong> — 30% + distance × 1.5% + (Movement − 5) × 5%.</p><h3>Damage</h3><p>Weapon dice + (attack stat − 5) + trait bonuses. All rolls clamped 5%–95%.</p>';
+  pgs.Combat.innerHTML='<h3>Combat System</h3><p>Combat uses percentage-based checks. Your hit chance is shown before each attack.</p><h3>Zones</h3><p>The battlefield has three zones: <strong style="color:var(--gold)">Close</strong>, <strong style="color:var(--gold)">Mid</strong>, and <strong style="color:var(--gold)">Far</strong>. Melee weapons require Close range. Ranged weapons work from any zone but suffer penalties at Close (-15%) and Far (-10%).</p><h3>Actions</h3><p><strong style="color:var(--gold)">Attack</strong> — Hit: 55% + (stat − 5) × 5% − enemy DEF × 3%.</p><p><strong style="color:var(--gold)">Block</strong> — Tier 1: halve damage. Tier 2 (shield): flat reduction. Tier 3 (Fighter/Paladin + shield): full action freedom.</p><p><strong style="color:var(--gold)">Move</strong> — Change zone (costs your action). Rooted prevents movement. Slow limits to 1 zone.</p><p><strong style="color:var(--gold)">Use Item</strong> — Consume potions as a free action (1/turn).</p><p><strong style="color:var(--gold)">Flee</strong> — Must be at Mid or Far. 30% + (Movement − 5) × 5%.</p><p><strong style="color:var(--gold)">Class Verb</strong> — Unique class action (see class info).</p><h3>Status Effects</h3><p>Burn (DEF erosion), Bleed (scales with hits), Poison (escalates), Stagger (-10% hit), Blind (-30% hit), Stun (skip turn), Slow (limited movement), Rooted (no movement), Silenced (no abilities), Weaken (-1 dmg), Brittle (+25% incoming), Exposed (guaranteed crit), Marked (+15% hit vs), Curse (no healing).</p><h3>Damage</h3><p>Weapon dice + (attack stat − 5) + trait bonuses. All rolls clamped 5%–95%.</p>';
   let clH='<h3>Classes</h3>';Object.values(CL).forEach(c=>{
     let gearStr=c.wpn?c.wpn.name:'—';if(c.arm)gearStr+=', '+c.arm.name;if(c.oh)gearStr+=', '+c.oh.name;
     const ccAb0=c.abilities?c.abilities[0]:c.ability;let abStr=ccAb0?'<p style="font-size:.9rem;color:var(--gold-bright)">'+ccAb0.name+' ('+ccAb0.cost+' MP): '+ccAb0.desc+'</p>':'';
@@ -1761,7 +2297,7 @@ openJrn(){
     else if(s.trait)spH+='<p style="margin-left:12px"><em style="color:var(--text2)">'+s.trait+'</em>: '+s.traitDesc+'</p>';
     spH+='</div>'});pgs.Species.innerHTML=spH;
   const bst=m.bestiary||{};if(!Object.keys(bst).length)pgs.Bestiary.innerHTML='<h3>Bestiary</h3><p style="color:var(--text3);font-style:italic">No creatures encountered yet.</p>';
-  else{let bH='<h3>Bestiary</h3>';Object.entries(bst).forEach(([id,be])=>{const se=r?(r.bSeen[id]||0):0,de=r?(r.bDef[id]||0):0;bH+='<div class="be"><div class="be-n">'+be.name+'</div><div class="be-l">'+be.lore+'</div><div class="be-s">HP:'+be.hp+' ATK:'+be.atk+' DEF:'+be.def+' DMG:'+be.dmg+' Move:'+be.spd+'m Range:'+be.rng+'m</div><div class="be-s" style="margin-top:4px">Encountered: '+se+' | Defeated: '+de+'</div></div>'});pgs.Bestiary.innerHTML=bH}
+  else{let bH='<h3>Bestiary</h3>';Object.entries(bst).forEach(([id,be])=>{const se=r?(r.bSeen[id]||0):0,de=r?(r.bDef[id]||0):0;bH+='<div class="be"><div class="be-n">'+be.name+'</div><div class="be-l">'+be.lore+'</div><div class="be-s">HP:'+be.hp+' ATK:'+be.atk+' DEF:'+be.def+' DMG:'+be.dmg+(be.preferredZone?' Zone:'+be.preferredZone:'')+'</div><div class="be-s" style="margin-top:4px">Encountered: '+se+' | Defeated: '+de+'</div></div>'});pgs.Bestiary.innerHTML=bH}
   pgs.World.innerHTML='<h3>The World</h3><p>The realm lies under an ashen sky. Once-great kingdoms crumbled into scattered settlements, connected by muddy trails winding through forests thick with ancient magic and creeping dangers. Travelers arm themselves not from paranoia but necessity — the wilds teem with oozes, beasts, and worse. Yet good folk remain on the roads: gatekeepers, healers, and wanderers who trade stories by firelight. The trail is dangerous, but it is the only way forward.</p>';
   Object.values(pgs).forEach(p=>b.appendChild(p));this.open('m-jrn')},
 
@@ -2021,14 +2557,16 @@ async doCombatAction(cmd){
   const pDmgTaken=pHPBefore-pHPAfter;
   const playerMs=[],enemyMs=[];let sep=false;
   allMs.forEach(m=>{
-    if(!sep&&!m.t.startsWith('The '))playerMs.push(m);
-    else{sep=true;enemyMs.push(m)}});
-  if(!enemyMs.length){playerMs.length=0;playerMs.push(...allMs)}
+    if(m.c==='_sep'){sep=true;return}
+    if(!sep)playerMs.push(m);
+    else enemyMs.push(m)})
   const r=GS.run,w=r?r.wpn:null;
   let pAnimType='player_melee';
-  if(cmd==='block')pAnimType='block';
+  if(cmd==='block'||cmd.startsWith('move_'))pAnimType='block';
   else if(cmd==='flee')pAnimType=null;
-  else if(cmd.startsWith('ability')){const ab=getAbilities(r)[0];pAnimType=ab&&ab.effect&&ab.effect.statOverride==='smarts'?'player_magic':'player_melee'}
+  else if(cmd==='verb')pAnimType='player_magic';
+  else if(cmd.startsWith('ability')){const abi=cmd==='ability'?0:parseInt(cmd.split('_')[1])||0;const ab=getAbilities(r)[abi];pAnimType=ab&&ab.effect&&ab.effect.statOverride==='smarts'?'player_magic':'player_melee'}
+  else if(cmd.startsWith('use_'))pAnimType=null;
   else if(w&&w.t==='ranged')pAnimType='player_ranged';
   if(pAnimType&&!REDUCED_MOTION)await new Promise(ok=>BattleRenderer.playAttack(pAnimType,eDmgDealt,ok));
   for(const m of playerMs){UI.addN(m.t,m.c)}
