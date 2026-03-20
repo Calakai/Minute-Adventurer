@@ -7,11 +7,11 @@ const vm = require('vm');
 
 // Load data.js (same as validate.js)
 const dataSrc = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_COLORS=RARITY_COLORS;this.RARITY_NAMES=RARITY_NAMES;';
+const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_COLORS=RARITY_COLORS;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;';
 const dataSandbox = { UI: { addN() {} } };
 vm.createContext(dataSandbox);
 vm.runInContext(dataWrapped, dataSandbox);
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS, RECIPES, ITEM_RARITY, RARITY_COLORS, RARITY_NAMES } = dataSandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS, RECIPES, ITEM_RARITY, RARITY_COLORS, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS } = dataSandbox;
 
 // Replicate rollLoot from index.html
 function rollLoot(enemy) {
@@ -223,6 +223,98 @@ for (const [iid, item] of Object.entries(ITEMS)) {
     err('Item "' + iid + '" has invalid rarity: ' + item.rarity);
 }
 console.log('Rarity validation passed.');
+
+// === BATCH 4: META-PROGRESSION TESTS ===
+
+// Test bestiaryLevel logic
+{
+  const bestiaryLevel = (defeatCount) => {
+    if (defeatCount === undefined) return 'none';
+    if (defeatCount >= BESTIARY_THRESHOLDS.mastery) return 'mastery';
+    if (defeatCount >= BESTIARY_THRESHOLDS.full) return 'full';
+    return 'basic';
+  };
+  if (bestiaryLevel(undefined) !== 'none') err('bestiaryLevel(undefined) should be none');
+  if (bestiaryLevel(0) !== 'basic') err('bestiaryLevel(0) should be basic');
+  if (bestiaryLevel(1) !== 'full') err('bestiaryLevel(1) should be full');
+  if (bestiaryLevel(2) !== 'full') err('bestiaryLevel(2) should be full');
+  if (bestiaryLevel(3) !== 'mastery') err('bestiaryLevel(3) should be mastery');
+  if (bestiaryLevel(10) !== 'mastery') err('bestiaryLevel(10) should be mastery');
+  console.log('Bestiary level tests passed.');
+}
+
+// Test ENEMY_STATUS_DATA references valid enemies and statuses
+for (const [eid, esd] of Object.entries(ENEMY_STATUS_DATA)) {
+  if (!ENEMIES[eid]) err('ENEMY_STATUS_DATA references unknown enemy: ' + eid);
+  for (const s of (esd.weak || [])) {
+    if (!STATUS_EFFECTS[s]) err('ENEMY_STATUS_DATA "' + eid + '" weak references unknown status: ' + s);
+  }
+  for (const s of (esd.resist || [])) {
+    if (!STATUS_EFFECTS[s]) err('ENEMY_STATUS_DATA "' + eid + '" resist references unknown status: ' + s);
+  }
+}
+console.log('ENEMY_STATUS_DATA validation passed (' + Object.keys(ENEMY_STATUS_DATA).length + ' entries).');
+
+// Test RUN_MODIFIERS keys
+for (const [key, mod] of Object.entries(RUN_MODIFIERS)) {
+  if (!mod.name || typeof mod.name !== 'string') err('RUN_MODIFIERS "' + key + '" has invalid name');
+  if (!mod.desc || typeof mod.desc !== 'string') err('RUN_MODIFIERS "' + key + '" has invalid desc');
+}
+console.log('RUN_MODIFIERS validation passed (' + Object.keys(RUN_MODIFIERS).length + ' modifiers).');
+
+// Test CLASS_MILESTONES
+const CL_KEYS = ['fighter','paladin','ranger','rogue','wizard','berserker','gunslinger','necromancer','warlock'];
+for (const [cl, milestones] of Object.entries(CLASS_MILESTONES)) {
+  if (!CL_KEYS.includes(cl)) err('CLASS_MILESTONES references unknown class: ' + cl);
+  for (const ms of milestones) {
+    if (!ms.id || !ms.desc || !ms.trackKey || typeof ms.target !== 'number' || typeof ms.reward !== 'number')
+      err('CLASS_MILESTONES "' + cl + '" has malformed milestone: ' + ms.id);
+  }
+}
+console.log('CLASS_MILESTONES validation passed (' + Object.keys(CLASS_MILESTONES).length + ' classes).');
+
+// Test CLASS_TREE node IDs are unique
+{
+  const allIds = new Set();
+  let dupes = 0;
+  for (const [cl, tree] of Object.entries(CLASS_TREE)) {
+    for (const node of tree.trunk) {
+      if (allIds.has(node.id)) { err('CLASS_TREE duplicate node ID: ' + node.id); dupes++; }
+      allIds.add(node.id);
+    }
+    for (const branch of Object.values(tree.branches)) {
+      for (const node of branch.nodes) {
+        if (allIds.has(node.id)) { err('CLASS_TREE duplicate node ID: ' + node.id); dupes++; }
+        allIds.add(node.id);
+      }
+    }
+  }
+  if (dupes === 0) console.log('CLASS_TREE node ID uniqueness passed (' + allIds.size + ' nodes).');
+}
+
+// Test SPIRITFIRE_REWARDS has correct fields
+if (typeof SPIRITFIRE_REWARDS.newEntry !== 'number') err('SPIRITFIRE_REWARDS.newEntry missing');
+if (typeof SPIRITFIRE_REWARDS.threshold25 !== 'number') err('SPIRITFIRE_REWARDS.threshold25 missing');
+if (typeof SPIRITFIRE_REWARDS.threshold50 !== 'number') err('SPIRITFIRE_REWARDS.threshold50 missing');
+if (typeof SPIRITFIRE_REWARDS.threshold75 !== 'number') err('SPIRITFIRE_REWARDS.threshold75 missing');
+if (typeof SPIRITFIRE_REWARDS.threshold100 !== 'number') err('SPIRITFIRE_REWARDS.threshold100 missing');
+console.log('SPIRITFIRE_REWARDS validation passed.');
+
+// Test PEDIA_SECTIONS
+if (!Array.isArray(PEDIA_SECTIONS) || PEDIA_SECTIONS.length !== 7) err('PEDIA_SECTIONS should have 7 sections');
+PEDIA_SECTIONS.forEach(sec => {
+  if (!sec.key || !sec.name || !sec.icon) err('PEDIA_SECTIONS entry missing key/name/icon: ' + JSON.stringify(sec));
+});
+console.log('PEDIA_SECTIONS validation passed.');
+
+// Test SHRINE_UPGRADES
+for (const [cat, upgrades] of Object.entries(SHRINE_UPGRADES)) {
+  for (const up of upgrades) {
+    if (!up.id || !up.name || typeof up.cost !== 'number' || !up.desc)
+      err('SHRINE_UPGRADES "' + cat + '" has malformed upgrade: ' + up.id);
+  }
+}
+console.log('SHRINE_UPGRADES validation passed.');
 
 if (errors === 0) {
   console.log('Smoke test passed: ' + visited.size + ' scenes walked, combat/loot and exits OK.');

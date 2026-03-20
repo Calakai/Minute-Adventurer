@@ -974,3 +974,254 @@ crucible_crown:{name:'Crucible Crown',t:'armor',wt:0,dB:2,desc:'+2 defense (Weig
 
 // Map Fragment consumable (added to ITEMS above at runtime)
 // ITEMS.map_fragment handled in index.html init
+
+// === BATCH 4: META-PROGRESSION & ROGUELIKE LOOP ===
+
+// --- Phase 4A: Bestiary upgrade data ---
+
+const ENEMY_STATUS_DATA={
+gray_ooze:{weak:['burn'],resist:['bleed']},
+giant_spider:{weak:['burn'],resist:['poison']},
+dire_wolf:{weak:['rooted'],resist:[]},
+venomfang_snake:{weak:['burn'],resist:['poison']},
+shadow_hound:{weak:['burn'],resist:['bleed']},
+fungal_horror:{weak:['burn'],resist:['poison']},
+ironscale_lizard:{weak:['burn'],resist:['stun']},
+ghoul:{weak:['burn'],resist:['poison','curse']},
+bone_sentinel:{weak:['burn'],resist:['poison','bleed']},
+rock_troll:{weak:['burn'],resist:['poison']},
+wyvern_hatchling:{weak:['rooted'],resist:['poison']},
+cave_crawler:{weak:['burn'],resist:['slow']},
+flame_elemental:{weak:['slow'],resist:['burn']},
+darkwood_treant:{weak:['burn'],resist:['rooted','slow']},
+banshee:{weak:['silenced'],resist:['poison','bleed','burn']},
+chimera_spawn:{weak:['stun'],resist:[]},
+corrupted_knight:{weak:['burn'],resist:['poison','bleed']},
+crystal_golem:{weak:['stun'],resist:['blind','poison']},
+plague_bearer:{weak:['burn'],resist:['poison','curse']},
+wyvern:{weak:['rooted'],resist:['poison']},
+mine_shade:{weak:['marked'],resist:['stun']},
+death_knight:{weak:['burn'],resist:['poison','curse','bleed']},
+void_stalker:{weak:['marked','rooted'],resist:['blind']},
+ash_wyrm:{weak:['slow'],resist:['burn']},
+lich_apprentice:{weak:['silenced'],resist:['curse','poison']},
+storm_elemental:{weak:['rooted'],resist:['stun']},
+troll_warlord:{weak:['burn'],resist:['weaken']},
+iron_golem:{weak:['burn','slow'],resist:['poison','bleed','curse']},
+elder_dragon:{weak:['slow','rooted'],resist:['burn','weaken']},
+lich_king:{weak:['silenced','burn'],resist:['poison','curse']},
+ancient_construct:{weak:['burn','slow'],resist:['poison','bleed','curse','stun']},
+demon_lord:{weak:['burn','marked'],resist:['weaken','curse']},
+moss_rat:{weak:['burn'],resist:[]},
+marsh_toad:{weak:['burn'],resist:['poison']},
+spore_mite:{weak:['burn'],resist:[]},
+ember_beetle:{weak:['slow'],resist:['burn']},
+ash_worm:{weak:['burn'],resist:[]},
+tunnel_bat:{weak:['rooted'],resist:[]}
+};
+
+const BESTIARY_THRESHOLDS={basic:0,full:1,mastery:3};
+
+// --- Phase 4B: Adventurepedia section definitions ---
+
+const PEDIA_SECTIONS=[
+{key:'bestiary',name:'Bestiary',icon:'\uD83D\uDCD6'},
+{key:'atlas',name:'World Atlas',icon:'\uD83D\uDDFA\uFE0F'},
+{key:'codex',name:'Class Codex',icon:'\u2694\uFE0F'},
+{key:'spellbook',name:'Spellbook',icon:'\u2728'},
+{key:'systems',name:'Systems Guide',icon:'\u2699\uFE0F'},
+{key:'recipes',name:'Recipe Book',icon:'\uD83E\uDDEA'},
+{key:'achievements',name:'Achievements',icon:'\uD83C\uDFC6'}
+];
+
+const SYSTEMS_GUIDE_SECTIONS={
+zone_combat:{title:'Zone Combat',unlockOn:'first_combat',content:'<p>Combat uses three zones: <strong>Close</strong>, <strong>Mid</strong>, and <strong>Far</strong>. Melee weapons require Close range. Ranged weapons work from any zone but suffer -15% at Close and -10% at Far. Moving costs your action unless you have free movement traits.</p>'},
+status_effects:{title:'Status Effects',unlockOn:'first_status',content:'<p><strong>Burn</strong> erodes DEF. <strong>Bleed</strong> scales with hits. <strong>Poison</strong> escalates each turn. <strong>Stagger</strong> -10% hit. <strong>Blind</strong> -30% hit. <strong>Stun</strong> skips turn. <strong>Slow</strong> limits movement. <strong>Rooted</strong> prevents movement. <strong>Silenced</strong> blocks abilities. <strong>Weaken</strong> -1 dmg. <strong>Brittle</strong> +25% incoming. <strong>Exposed</strong> guarantees crit. <strong>Marked</strong> +15% hit vs target. <strong>Curse</strong> prevents healing.</p>'},
+block_tiers:{title:'Block Tiers',unlockOn:'first_block',content:'<p><strong>Tier 1</strong> (no shield): Halve incoming damage. <strong>Tier 2</strong> (shield): Flat reduction equal to shield block value. <strong>Tier 3</strong> (Fighter/Paladin + shield): Flat reduction AND full action freedom that turn.</p>'},
+intent_system:{title:'Intent System',unlockOn:'first_combat',content:'<p>Enemies telegraph their next action each turn. Intent types: Attack, Defend, Move, Cast, Special. Defeat enemies to learn their full intent details in the Bestiary.</p>'},
+weight_movement:{title:'Weight & Movement',unlockOn:'always',content:'<p>Equipment has weight (0-6). Total weight reduces effective Movement stat. High movement grants dodge chance and flee success. Weight labels: Weightless, Very Light, Light, Medium, Heavy, Very Heavy, Crushing.</p>'},
+synergies:{title:'Synergies',unlockOn:'first_synergy',content:'<p><strong>Searing Wound</strong> (Burn+Bleed): Bleed scales +2/hit. <strong>Festering</strong> (Poison+Curse): Poison escalates x2. <strong>Hemorrhage</strong> (Bleed+Slow): Bleed tick doubled. <strong>Shatter</strong> (Brittle+Exposed): Crit does triple damage.</p>'},
+consumables:{title:'Consumable Rules',unlockOn:'first_consumable',content:'<p>Using a consumable in combat is a <strong>free action</strong> (1 per turn). Healing potions restore HP, mana potions restore MP, antidotes cure poison. Some consumables apply status effects to enemies or grant combat buffs.</p>'},
+bounties:{title:'Bounties & Quests',unlockOn:'first_bounty',content:'<p>The Bounty Board at the tavern offers repeatable combat bounties for gold and XP. Quests are one-time objectives with milestone rewards. Bounty combat is non-lethal — defeat returns you to the tavern.</p>'},
+crafting:{title:'Crafting',unlockOn:'first_recipe',content:'<p>Collect crafting materials to discover recipes. Crafting combines 2-3 ingredients into a new item. Discovered recipes persist across runs in the Recipe Book.</p>'}
+};
+
+// --- Phase 4D: Currency & milestone data ---
+
+const CLASS_MILESTONES={
+fighter:[
+{id:'f_block25',desc:'Block 25 attacks',trackKey:'blocks',target:25,reward:1},
+{id:'f_block100',desc:'Block 100 attacks',trackKey:'blocks',target:100,reward:3},
+{id:'f_verb10',desc:'Use Rally 10 times',trackKey:'verbUses',target:10,reward:1},
+{id:'f_kills50',desc:'Defeat 50 enemies',trackKey:'kills',target:50,reward:2}
+],
+paladin:[
+{id:'p_smite10',desc:'Use Smite 10 times',trackKey:'smiteUses',target:10,reward:1},
+{id:'p_heal500',desc:'Heal 500 total HP',trackKey:'hpHealed',target:500,reward:2},
+{id:'p_verb10',desc:'Use Consecrate 10 times',trackKey:'verbUses',target:10,reward:1},
+{id:'p_kills50',desc:'Defeat 50 enemies',trackKey:'kills',target:50,reward:2}
+],
+ranger:[
+{id:'r_aimed10',desc:'Use Aimed Shot 10 times',trackKey:'aimedUses',target:10,reward:1},
+{id:'r_hits200',desc:'Land 200 ranged hits',trackKey:'rangedHits',target:200,reward:2},
+{id:'r_verb10',desc:'Use Surveyor 10 times',trackKey:'verbUses',target:10,reward:1},
+{id:'r_kills50',desc:'Defeat 50 enemies',trackKey:'kills',target:50,reward:2}
+],
+rogue:[
+{id:'ro_backstab10',desc:'Use Backstab 10 times',trackKey:'backstabUses',target:10,reward:1},
+{id:'ro_vanish10',desc:'Use Vanish 10 times',trackKey:'vanishUses',target:10,reward:1},
+{id:'ro_verb10',desc:'Use Vanish (verb) 10 times',trackKey:'verbUses',target:10,reward:1},
+{id:'ro_kills50',desc:'Defeat 50 enemies',trackKey:'kills',target:50,reward:2}
+],
+wizard:[
+{id:'w_bolt25',desc:'Cast Arcane Bolt 25 times',trackKey:'boltUses',target:25,reward:1},
+{id:'w_fireball10',desc:'Cast Fireball 10 times',trackKey:'fireballUses',target:10,reward:2},
+{id:'w_verb10',desc:'Use Dispel 10 times',trackKey:'verbUses',target:10,reward:1},
+{id:'w_kills50',desc:'Defeat 50 enemies',trackKey:'kills',target:50,reward:2}
+],
+berserker:[
+{id:'b_frenzy10',desc:'Enter Frenzy 10 times',trackKey:'frenzyUses',target:10,reward:1},
+{id:'b_rampage10',desc:'Use Rampage 10 times',trackKey:'rampageUses',target:10,reward:2},
+{id:'b_verb10',desc:'Use Frenzy (verb) 10 times',trackKey:'verbUses',target:10,reward:1},
+{id:'b_kills50',desc:'Defeat 50 enemies',trackKey:'kills',target:50,reward:2}
+],
+gunslinger:[
+{id:'g_steady10',desc:'Use Steady Shot 10 times',trackKey:'steadyUses',target:10,reward:1},
+{id:'g_deadeye10',desc:'Use Dead Eye 10 times',trackKey:'deadeyeUses',target:10,reward:2},
+{id:'g_verb10',desc:'Use Quickdraw 10 times',trackKey:'verbUses',target:10,reward:1},
+{id:'g_kills50',desc:'Defeat 50 enemies',trackKey:'kills',target:50,reward:2}
+],
+necromancer:[
+{id:'n_raise10',desc:'Raise Dead 10 times',trackKey:'raiseUses',target:10,reward:1},
+{id:'n_harvest10',desc:'Harvest minions 10 times',trackKey:'harvestUses',target:10,reward:2},
+{id:'n_verb10',desc:'Use Harvest (verb) 10 times',trackKey:'verbUses',target:10,reward:1},
+{id:'n_kills50',desc:'Defeat 50 enemies',trackKey:'kills',target:50,reward:2}
+],
+warlock:[
+{id:'wk_hex10',desc:'Cast Hex Bolt 10 times',trackKey:'hexUses',target:10,reward:1},
+{id:'wk_doom5',desc:'Cast Doom 5 times',trackKey:'doomUses',target:5,reward:3},
+{id:'wk_verb10',desc:'Use Effigy 10 times',trackKey:'verbUses',target:10,reward:1},
+{id:'wk_kills50',desc:'Defeat 50 enemies',trackKey:'kills',target:50,reward:2}
+]
+};
+
+const SPIRITFIRE_REWARDS={newEntry:1,threshold25:5,threshold50:10,threshold75:20,threshold100:50};
+
+// --- Phase 4E: Run modifier definitions ---
+
+const RUN_MODIFIERS={
+no_quarter:{name:'No Quarter',desc:'Cannot flee from combat. Every fight is to the death.'},
+fog_of_war:{name:'Fog of War',desc:'Bestiary intel disabled. No HP bars, no intent details.'},
+famine:{name:'Famine',desc:'No health drops from enemies. Heal only from shops, NPCs, and crafting.'},
+cursed_blood:{name:'Cursed Blood',desc:'Start every combat with a random negative status effect.'},
+one_life:{name:'One Life',desc:'No Undying Rage, no revival. True permadeath within run.'},
+hunted:{name:'Hunted',desc:'Every 5 combat turns, a reinforcement enemy appears.'}
+};
+
+// --- Phase 4F: Permanent unlock structures ---
+
+const CLASS_TREE={
+fighter:{
+trunk:[
+{id:'f_t1',name:'Arms Training',cost:2,desc:'+1 melee damage',prereq:null},
+{id:'f_t2',name:'Shield Mastery',cost:3,desc:'+1 block value',prereq:'f_t1'},
+{id:'f_t3',name:'Hardened Veteran',cost:5,desc:'+5 max HP',prereq:'f_t2'}
+],branches:{
+champion:{name:'Champion',nodes:[{id:'f_ch1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'f_t3'}]},
+warden:{name:'Warden',nodes:[{id:'f_wa1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'f_t3'}]},
+weaponmaster:{name:'Weaponmaster',nodes:[{id:'f_wm1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'f_t3'}]}
+}},
+paladin:{
+trunk:[
+{id:'p_t1',name:'Holy Training',cost:2,desc:'+1 melee damage',prereq:null},
+{id:'p_t2',name:'Faith Shield',cost:3,desc:'+1 block value',prereq:'p_t1'},
+{id:'p_t3',name:'Divine Constitution',cost:5,desc:'+5 max HP',prereq:'p_t2'}
+],branches:{
+templar:{name:'Templar',nodes:[{id:'p_te1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'p_t3'}]},
+inquisitor:{name:'Inquisitor',nodes:[{id:'p_in1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'p_t3'}]},
+crusader:{name:'Crusader',nodes:[{id:'p_cr1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'p_t3'}]}
+}},
+ranger:{
+trunk:[
+{id:'r_t1',name:'Sharpshooter',cost:2,desc:'+1 ranged damage',prereq:null},
+{id:'r_t2',name:'Quiver Mastery',cost:3,desc:'+3 bonus ammo',prereq:'r_t1'},
+{id:'r_t3',name:'Hawk Eye',cost:5,desc:'+5% ranged hit',prereq:'r_t2'}
+],branches:{
+beastmaster:{name:'Beastmaster',nodes:[{id:'r_bm1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'r_t3'}]},
+marksman:{name:'Marksman',nodes:[{id:'r_mk1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'r_t3'}]},
+warden:{name:'Warden',nodes:[{id:'r_wd1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'r_t3'}]}
+}},
+rogue:{
+trunk:[
+{id:'ro_t1',name:'Blade Work',cost:2,desc:'+1 melee damage',prereq:null},
+{id:'ro_t2',name:'Quick Reflexes',cost:3,desc:'+5% dodge',prereq:'ro_t1'},
+{id:'ro_t3',name:'Shadow Mastery',cost:5,desc:'Vanish costs 1 MP less',prereq:'ro_t2'}
+],branches:{
+assassin:{name:'Assassin',nodes:[{id:'ro_as1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'ro_t3'}]},
+thief:{name:'Thief',nodes:[{id:'ro_th1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'ro_t3'}]},
+duelist:{name:'Duelist',nodes:[{id:'ro_du1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'ro_t3'}]}
+}},
+wizard:{
+trunk:[
+{id:'w_t1',name:'Arcane Focus',cost:2,desc:'+1 spell damage',prereq:null},
+{id:'w_t2',name:'Mana Well',cost:3,desc:'+4 max MP',prereq:'w_t1'},
+{id:'w_t3',name:'Spell Mastery',cost:5,desc:'-1 ability cost',prereq:'w_t2'}
+],branches:{
+evoker:{name:'Evoker',nodes:[{id:'w_ev1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'w_t3'}]},
+enchanter:{name:'Enchanter',nodes:[{id:'w_en1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'w_t3'}]},
+chronomancer:{name:'Chronomancer',nodes:[{id:'w_ch1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'w_t3'}]}
+}},
+berserker:{
+trunk:[
+{id:'b_t1',name:'Brute Force',cost:2,desc:'+1 melee damage',prereq:null},
+{id:'b_t2',name:'Iron Will',cost:3,desc:'+5 max HP',prereq:'b_t1'},
+{id:'b_t3',name:'Battle Scars',cost:5,desc:'+1 DEF',prereq:'b_t2'}
+],branches:{
+ravager:{name:'Ravager',nodes:[{id:'b_rv1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'b_t3'}]},
+juggernaut:{name:'Juggernaut',nodes:[{id:'b_jg1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'b_t3'}]},
+warchief:{name:'Warchief',nodes:[{id:'b_wc1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'b_t3'}]}
+}},
+gunslinger:{
+trunk:[
+{id:'g_t1',name:'Quick Draw',cost:2,desc:'+1 ranged damage',prereq:null},
+{id:'g_t2',name:'Steady Hands',cost:3,desc:'+5% ranged hit',prereq:'g_t1'},
+{id:'g_t3',name:'Extra Rounds',cost:5,desc:'+2 bonus ammo',prereq:'g_t2'}
+],branches:{
+desperado:{name:'Desperado',nodes:[{id:'g_de1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'g_t3'}]},
+sharpshooter:{name:'Sharpshooter',nodes:[{id:'g_sh1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'g_t3'}]},
+engineer:{name:'Engineer',nodes:[{id:'g_eg1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'g_t3'}]}
+}},
+necromancer:{
+trunk:[
+{id:'n_t1',name:'Dark Arts',cost:2,desc:'+1 spell damage',prereq:null},
+{id:'n_t2',name:'Soul Harvest',cost:3,desc:'+1 starting Grave Charge',prereq:'n_t1'},
+{id:'n_t3',name:'Undying Will',cost:5,desc:'+4 max MP',prereq:'n_t2'}
+],branches:{
+lich:{name:'Lich',nodes:[{id:'n_li1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'n_t3'}]},
+deathbringer:{name:'Deathbringer',nodes:[{id:'n_db1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'n_t3'}]},
+bonelord:{name:'Bonelord',nodes:[{id:'n_bl1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'n_t3'}]}
+}},
+warlock:{
+trunk:[
+{id:'wk_t1',name:'Hex Mastery',cost:2,desc:'+1 spell damage',prereq:null},
+{id:'wk_t2',name:'Curse Amplifier',cost:3,desc:'+1 status duration',prereq:'wk_t1'},
+{id:'wk_t3',name:'Dark Pact',cost:5,desc:'+4 max MP',prereq:'wk_t2'}
+],branches:{
+hexblade:{name:'Hexblade',nodes:[{id:'wk_hb1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'wk_t3'}]},
+demonologist:{name:'Demonologist',nodes:[{id:'wk_dm1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'wk_t3'}]},
+shadowcaster:{name:'Shadowcaster',nodes:[{id:'wk_sc1',name:'???',cost:8,desc:'Subclass unlock (coming soon)',prereq:'wk_t3'}]}
+}}
+};
+
+const SHRINE_UPGRADES={
+tavern:[
+{id:'shr_ration',name:'Trail Rations',cost:5,desc:'Start each adventure with 1 extra Ration.'},
+{id:'shr_shop',name:'Supply Crate',cost:15,desc:'Tavern shop stocks 2 additional items.'}
+],
+species:[],
+starting:[
+{id:'shr_gold',name:'Nest Egg',cost:10,desc:'Start each run with 25 bonus gold.'},
+{id:'shr_lvl',name:'Head Start',cost:20,desc:'Start each run at level 2.'}
+],
+world:[]
+};

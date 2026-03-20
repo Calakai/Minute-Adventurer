@@ -6,12 +6,12 @@ const fs = require('fs');
 const vm = require('vm');
 
 const src = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const wrapped = src + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.BOUNTIES=BOUNTIES;this.QUESTS=QUESTS;this.DEATH_QUOTES=DEATH_QUOTES;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_NAMES=RARITY_NAMES;';
+const wrapped = src + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.BOUNTIES=BOUNTIES;this.QUESTS=QUESTS;this.DEATH_QUOTES=DEATH_QUOTES;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;';
 const sandbox = { UI: { addN() {} }, GS: { saveA() {} } };
 vm.createContext(sandbox);
 vm.runInContext(wrapped, sandbox);
 
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA, BOUNTIES, QUESTS, DEATH_QUOTES, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, RECIPES, ITEM_RARITY, RARITY_NAMES } = sandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, BOUNTIES, QUESTS, DEATH_QUOTES, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, RECIPES, ITEM_RARITY, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS } = sandbox;
 let errors = 0;
 let warnings = 0;
 
@@ -172,6 +172,55 @@ if (RECIPES) {
       err(`Recipe "${rid}" references unknown output "${recipe.output}"`);
     if (recipe.output && ITEMS[recipe.output] && ITEMS[recipe.output].rarity > 2)
       warn(`Recipe "${rid}" output "${recipe.output}" exceeds Rare rarity (${ITEMS[recipe.output].rarity})`);
+  }
+}
+
+// Batch 4: ENEMY_STATUS_DATA validation
+if (ENEMY_STATUS_DATA) {
+  for (const [eid, esd] of Object.entries(ENEMY_STATUS_DATA)) {
+    if (!ENEMIES[eid]) err(`ENEMY_STATUS_DATA references unknown enemy "${eid}"`);
+    for (const s of (esd.weak || [])) {
+      if (!STATUS_EFFECTS[s]) err(`ENEMY_STATUS_DATA "${eid}" weak references unknown status "${s}"`);
+    }
+    for (const s of (esd.resist || [])) {
+      if (!STATUS_EFFECTS[s]) err(`ENEMY_STATUS_DATA "${eid}" resist references unknown status "${s}"`);
+    }
+  }
+}
+
+// Batch 4: CLASS_MILESTONES validation
+if (CLASS_MILESTONES) {
+  const CL_KEYS = ['fighter','paladin','ranger','rogue','wizard','berserker','gunslinger','necromancer','warlock'];
+  for (const [cl, milestones] of Object.entries(CLASS_MILESTONES)) {
+    if (!CL_KEYS.includes(cl)) warn(`CLASS_MILESTONES references unknown class "${cl}"`);
+    const ids = new Set();
+    for (const ms of milestones) {
+      if (ids.has(ms.id)) err(`CLASS_MILESTONES "${cl}" has duplicate milestone id "${ms.id}"`);
+      ids.add(ms.id);
+    }
+  }
+}
+
+// Batch 4: CLASS_TREE validation
+if (CLASS_TREE) {
+  const allNodeIds = new Set();
+  for (const [cl, tree] of Object.entries(CLASS_TREE)) {
+    const classNodeIds = new Set();
+    for (const node of tree.trunk) {
+      if (allNodeIds.has(node.id)) err(`CLASS_TREE node id "${node.id}" duplicated across classes`);
+      allNodeIds.add(node.id);
+      classNodeIds.add(node.id);
+      if (node.prereq && !classNodeIds.has(node.prereq))
+        err(`CLASS_TREE "${cl}" node "${node.id}" prereq "${node.prereq}" not found`);
+    }
+    for (const [bk, branch] of Object.entries(tree.branches)) {
+      for (const node of branch.nodes) {
+        if (allNodeIds.has(node.id)) err(`CLASS_TREE node id "${node.id}" duplicated across classes`);
+        allNodeIds.add(node.id);
+        if (node.prereq && !classNodeIds.has(node.prereq))
+          err(`CLASS_TREE "${cl}" branch "${bk}" node "${node.id}" prereq "${node.prereq}" not found`);
+      }
+    }
   }
 }
 

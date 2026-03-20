@@ -430,12 +430,14 @@ html.settings-large-text{font-size:1.1rem}
 </div></div>
 <div class="mo" id="m-act" role="dialog" aria-label="Actions" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Actions</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-act-b"></div></div></div>
 <div class="mo" id="m-char" role="dialog" aria-label="Character" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Character</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-char-b"></div></div></div>
-<div class="mo" id="m-jrn" role="dialog" aria-label="Journal" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Player's Guide</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-jrn-b"></div></div></div>
+<div class="mo" id="m-jrn" role="dialog" aria-label="Adventurepedia" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Adventurepedia</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-jrn-b"></div></div></div>
+<div class="mo" id="m-ctree" role="dialog" aria-label="Class Tree" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Class Mastery</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-ctree-b"></div></div></div>
+<div class="mo" id="m-shrine" role="dialog" aria-label="Spiritfire Shrine" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Spiritfire Shrine</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-shrine-b"></div></div></div>
 <div class="mo" id="m-menu" role="dialog" aria-label="Menu" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Menu</h2><button class="mx" aria-label="Close">&times;</button></div><div class="mb" id="m-menu-b"></div></div></div>
 <div class="mo" id="m-dlg" role="dialog" aria-label="Dialogue" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt" id="dlg-t">NPC</h2><span></span></div><div class="mb" id="m-dlg-b"></div></div></div>
 <div class="mo" id="m-lvl" role="dialog" aria-label="Level Up" aria-modal="true"><div class="mc"><div class="mh"><h2 class="mt">Level Up!</h2><span></span></div><div class="mb" id="m-lvl-b"></div></div></div>
 <div id="title-card" aria-live="assertive"><h2 id="tc-name"></h2><p id="tc-sub"></p></div>
-<div id="death-screen" aria-live="assertive"><h2>YOU HAVE FALLEN</h2><p class="dq" id="death-quote"></p><button class="ds-btn" id="ds-load">Load Last Save</button><button class="ds-btn" id="ds-new">New Adventure</button><button class="ds-btn" id="ds-title">Return to Title</button></div>
+<div id="death-screen" aria-live="assertive"><h2>YOU HAVE FALLEN</h2><p class="dq" id="death-quote"></p><div id="ds-summary" style="color:var(--text2);font-size:.85rem;text-align:center;margin-bottom:12px;max-width:320px"></div><button class="ds-btn" id="ds-load">Load Last Save</button><button class="ds-btn" id="ds-new">New Adventure</button><button class="ds-btn" id="ds-pedia" style="display:none">View Adventurepedia</button><button class="ds-btn" id="ds-title">Return to Title</button></div>
 <div id="as-backdrop"></div>
 <div id="action-sheet" role="dialog" aria-label="Actions"><div class="as-h">Actions</div><div id="as-list"></div></div>
 <script src="data.js"></script>
@@ -805,19 +807,33 @@ render(cv,r,cs){
   if(e.debuffs&&e.debuffs.length)this._drawDebuffs(ctx,e.debuffs,w-100,groundY+6);
 },
 _drawEnemyHUD(ctx,e,w){
-  const tier=e.tier||1;
+  const tier=e.tier||1;const blvl=e._bestiaryLvl||'none';
   ctx.font='bold 10px sans-serif';ctx.fillStyle=this.TIER_CLR[tier]||'#6b6b7b';
   const tl=TIER_LABELS[tier]||'';
-  ctx.fillText(tl,w-140,12);
-  ctx.fillStyle='#e8e8f0';ctx.font='bold 11px sans-serif';
-  ctx.fillText(e.name,w-140+ctx.measureText(tl).width+6,12);
-  const bx=w-140,by=16,bw=120,bh=6;
-  ctx.fillStyle='#1a1a2e';ctx.fillRect(bx,by,bw,bh);
-  const pct=Math.max(0,e.hp/e.mHP);
-  ctx.fillStyle=pct>0.5?'#4a7c59':pct>0.25?'#c9a84c':'#8b2635';
-  ctx.fillRect(bx,by,bw*pct,bh);
-  ctx.fillStyle='#a0a0b0';ctx.font='9px sans-serif';
-  ctx.fillText(e.hp+'/'+e.mHP+' HP',bx,by+bh+10);
+  if(blvl==='none'){
+    ctx.fillText('???',w-140,12);
+    const bx=w-140,by=16,bw=120,bh=6;
+    ctx.fillStyle='#1a1a2e';ctx.fillRect(bx,by,bw,bh);
+    ctx.fillStyle='#a0a0b0';ctx.font='9px sans-serif';ctx.fillText('??? HP',bx,by+bh+10);
+  }else if(blvl==='basic'){
+    ctx.fillText(tl,w-140,12);ctx.fillStyle='#e8e8f0';ctx.font='bold 11px sans-serif';
+    ctx.fillText(e.name,w-140+ctx.measureText(tl).width+6,12);
+    const bx=w-140,by=16,bw=120,bh=6;
+    ctx.fillStyle='#1a1a2e';ctx.fillRect(bx,by,bw,bh);
+    const pct=Math.max(0,e.hp/e.mHP);
+    ctx.fillStyle=pct>0.5?'#4a7c59':pct>0.25?'#c9a84c':'#8b2635';
+    ctx.fillRect(bx,by,bw*pct,bh);
+    ctx.fillStyle='#a0a0b0';ctx.font='9px sans-serif';ctx.fillText('~'+Math.round(pct*100)+'%',bx,by+bh+10);
+  }else{
+    ctx.fillText(tl,w-140,12);ctx.fillStyle='#e8e8f0';ctx.font='bold 11px sans-serif';
+    ctx.fillText(e.name,w-140+ctx.measureText(tl).width+6,12);
+    const bx=w-140,by=16,bw=120,bh=6;
+    ctx.fillStyle='#1a1a2e';ctx.fillRect(bx,by,bw,bh);
+    const pct=Math.max(0,e.hp/e.mHP);
+    ctx.fillStyle=pct>0.5?'#4a7c59':pct>0.25?'#c9a84c':'#8b2635';
+    ctx.fillRect(bx,by,bw*pct,bh);
+    ctx.fillStyle='#a0a0b0';ctx.font='9px sans-serif';ctx.fillText(e.hp+'/'+e.mHP+' HP',bx,by+bh+10);
+  }
 },
 _drawDebuffs(ctx,debuffs,x,y){
   if(!debuffs||!debuffs.length)return;
@@ -1147,6 +1163,37 @@ newRun(nm,sp,subsp,cl,humanBonus){
     verbUsed:false,usedAbilities:{},graveCharges:0,
     map:null,mapPos:null,mapRevealed:{},restBudget:{short:2,long:1},
     dungeonState:null,encounterHistory:[],deferredEffects:[],discoveredRecipes:{}};
+  this.run.modifiers=[];this.run.legendMode=false;
+  // Batch 4: Record class in codex
+  const jm=this.getJM();if(!jm.codex)jm.codex={};
+  if(!jm.codex[cl])jm.codex[cl]={played:true,abilitiesSeen:{}};
+  else jm.codex[cl].played=true;
+  if(!jm.runHistory)jm.runHistory={totalRuns:0,bestLevel:0,totalKills:0};
+  jm.runHistory.totalRuns++;
+  this.setJM({codex:jm.codex,runHistory:jm.runHistory});
+  // Batch 4: Apply Spiritfire Shrine effects
+  const shr=jm.shrineUnlocks||{};
+  if(shr.shr_ration){const ration=ITEMS.ration;if(ration)this.run.bp.push({...ration})}
+  if(shr.shr_gold){if(!this.run.gold)this.run.gold=0;this.run.gold+=25}
+  if(shr.shr_lvl){this.run.level=2;this.run.xp=100;this.run.stats.health++}
+  // Batch 4: Apply Class Tree trunk effects
+  const cu=jm.classUnlocks||{};const ct=CLASS_TREE[cl];
+  if(ct){ct.trunk.forEach(node=>{if(cu[node.id]){
+    if(node.desc.includes('+1 melee'))this.run.stats.melee++;
+    if(node.desc.includes('+1 ranged'))this.run.stats.ranged++;
+    if(node.desc.includes('+1 spell'))this.run.stats.smarts++;
+    if(node.desc.includes('+1 block')&&this.run.oh&&this.run.oh.blk)this.run.oh.blk++;
+    if(node.desc.includes('+5 max HP'))this.run.stats.health++;
+    if(node.desc.includes('+4 max MP'))this.run.stats.mana++;
+    if(node.desc.includes('+5% ranged'))this.run._treeRangedBonus=(this.run._treeRangedBonus||0)+5;
+    if(node.desc.includes('+5% dodge'))this.run._treeDodgeBonus=(this.run._treeDodgeBonus||0)+5;
+    if(node.desc.includes('+1 DEF')&&this.run.arm)this.run.arm.dB++;
+    if(node.desc.includes('+1 status duration'))this.run._treeStatusDur=(this.run._treeStatusDur||0)+1;
+    if(node.desc.includes('-1 ability cost'))this.run._treeAbilityCost=(this.run._treeAbilityCost||0)+1;
+    if(node.desc.includes('+1 starting Grave')&&this.run.cs){}// handled at combat start
+    if(node.desc.includes('+3 bonus ammo')&&this.run.wpn&&this.run.wpn.ammo!==undefined)this.run.wpn.ammo+=3;
+    if(node.desc.includes('+2 bonus ammo')&&this.run.wpn&&this.run.wpn.ammo!==undefined)this.run.wpn.ammo+=2;
+  }})}
   this.run.mHP=CALC.maxHP(this.run);this.run.mMP=CALC.maxMP(this.run);
   this.run.hp=this.run.mHP;this.run.mp=this.run.mMP;
   this.saveA();return this.run;
@@ -1160,7 +1207,8 @@ _validateSave(p){if(!(p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof
   if(!p.map)p.map=null;if(!p.mapPos)p.mapPos=null;if(!p.mapRevealed)p.mapRevealed={};
   if(!p.restBudget)p.restBudget={short:2,long:1};if(!p.dungeonState)p.dungeonState=null;
   if(!p.encounterHistory)p.encounterHistory=[];if(!p.deferredEffects)p.deferredEffects=[];
-  if(p._mapReturnRegion===undefined)p._mapReturnRegion=null;if(!p.discoveredRecipes)p.discoveredRecipes={};return true},
+  if(p._mapReturnRegion===undefined)p._mapReturnRegion=null;if(!p.discoveredRecipes)p.discoveredRecipes={};
+  if(!p.modifiers)p.modifiers=[];if(p.legendMode===undefined)p.legendMode=false;return true},
 saveA(){if(this.run)try{localStorage.setItem('activeRun',JSON.stringify(this.run));this._saveFail=false}catch(e){if(!this._saveFail){this._saveFail=true;console.warn('Auto-save failed:',e);
   if(e.name==='QuotaExceededError')showToast('Save failed \u2014 storage may be full.','error');else showToast('Auto-save failed.','error')}}},
 loadA(){try{const d=localStorage.getItem('activeRun');if(d){const p=JSON.parse(d);if(!this._validateSave(p))return'incompatible';this.run=p;return true}}catch(e){showToast('Save data corrupted. Starting fresh.','error')}return false},
@@ -1176,14 +1224,117 @@ setJM(u){const m=this.getJM();Object.assign(m,u);try{localStorage.setItem('journ
 getSettings(){try{return JSON.parse(localStorage.getItem('gameSettings')||'{}')}catch(e){return{}}},
 setSettings(s){try{localStorage.setItem('gameSettings',JSON.stringify(s));const root=document.documentElement;root.classList.toggle('settings-high-contrast',!!s.highContrast);root.classList.toggle('settings-large-text',!!s.largeText)}catch(e){}},
 recEnc(id){if(!this.run)return;this.run.bSeen[id]=(this.run.bSeen[id]||0)+1;
+  const m=this.getJM();if(!m.bestiary)m.bestiary={};const e=ENEMIES[id];
+  if(!m.bestiary[id]){m.bestiary[id]={name:e.name,lore:e.lore,tier:e.tier,seenCount:0,defeatCount:0};this.awardNewEntrySF()}
+  m.bestiary[id].seenCount=(m.bestiary[id].seenCount||0)+1;
+  this.setJM({bestiary:m.bestiary});this.saveA()},
+recDef(id){if(!this.run)return;this.run.bDef[id]=(this.run.bDef[id]||0)+1;
   const m=this.getJM();if(!m.bestiary)m.bestiary={};
-  if(!m.bestiary[id]){const e=ENEMIES[id];m.bestiary[id]={name:e.name,lore:e.lore,hp:e.mHP,atk:e.atk,def:e.def,dmg:`1d${e.dD}+${e.dB}`}}
-  try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}this.saveA()},
-recDef(id){if(!this.run)return;this.run.bDef[id]=(this.run.bDef[id]||0)+1;this.saveA()},
+  if(!m.bestiary[id])m.bestiary[id]={name:ENEMIES[id].name,lore:ENEMIES[id].lore,tier:ENEMIES[id].tier,seenCount:1,defeatCount:0};
+  m.bestiary[id].defeatCount=(m.bestiary[id].defeatCount||0)+1;
+  const e=ENEMIES[id];m.bestiary[id].hp=e.mHP;m.bestiary[id].atk=e.atk;m.bestiary[id].def=e.def;
+  m.bestiary[id].dmg='1d'+e.dD+'+'+e.dB;m.bestiary[id].preferredZone=e.preferredZone;
+  this.setJM({bestiary:m.bestiary});this.trackClassStat('kills',1);this.saveA()},
 addXP(amt){if(!this.run)return{};this.run.xp+=amt;let lv=false,lvls=[];
   while(this.run.level<25&&this.run.xp>=this.run.level*100){this.run.level++;lv=true;lvls.push(this.run.level);
     this.run.stats.health++;this.recalcDerived();this.run.hp=this.run.mHP;this.run.mp=this.run.mMP}
-  this.saveA();return{gained:amt,leveled:lv,level:this.run.level,lvls}}
+  this.saveA();return{gained:amt,leveled:lv,level:this.run.level,lvls}},
+// --- Batch 4: Bestiary level helper ---
+bestiaryLevel(id){
+  const m=this.getJM();const be=m.bestiary&&m.bestiary[id];
+  if(!be)return'none';
+  if((be.defeatCount||0)>=BESTIARY_THRESHOLDS.mastery)return'mastery';
+  if((be.defeatCount||0)>=BESTIARY_THRESHOLDS.full)return'full';
+  return'basic';
+},
+// --- Batch 4: Class stat tracking ---
+trackClassStat(key,amount){
+  const m=this.getJM();const r=this.run;if(!r)return;
+  const cl=r.classes[0];
+  if(!m.classStats)m.classStats={};
+  if(!m.classStats[cl])m.classStats[cl]={};
+  m.classStats[cl][key]=(m.classStats[cl][key]||0)+(amount||1);
+  this.setJM({classStats:m.classStats});
+},
+// --- Batch 4: Milestone checking ---
+checkMilestones(){
+  const r=this.run;if(!r)return 0;
+  const cl=r.classes[0];const milestones=CLASS_MILESTONES[cl];if(!milestones)return 0;
+  const m=this.getJM();
+  if(!m.classStats)m.classStats={};if(!m.classStats[cl])m.classStats[cl]={};
+  if(!m.milestonesClaimed)m.milestonesClaimed={};
+  if(!m.classPoints)m.classPoints={};
+  let earned=0;
+  milestones.forEach(ms=>{
+    if(m.milestonesClaimed[ms.id])return;
+    const val=m.classStats[cl][ms.trackKey]||0;
+    if(val>=ms.target){
+      m.milestonesClaimed[ms.id]=true;
+      m.classPoints[cl]=(m.classPoints[cl]||0)+ms.reward;
+      earned+=ms.reward;
+      showToast('Milestone: '+ms.desc+' (+'+ms.reward+' CP)','success');
+    }
+  });
+  if(earned>0)this.setJM({milestonesClaimed:m.milestonesClaimed,classPoints:m.classPoints});
+  return earned;
+},
+// --- Batch 4: Spiritfire checking ---
+checkSpiritfire(){
+  const m=this.getJM();
+  if(!m.spiritfireClaimed)m.spiritfireClaimed={};
+  if(m.spiritfire===undefined)m.spiritfire=0;
+  const comp=_pediaCompletion();let earned=0;
+  const thresholds=[25,50,75,100];
+  const rewardMap={25:SPIRITFIRE_REWARDS.threshold25,50:SPIRITFIRE_REWARDS.threshold50,75:SPIRITFIRE_REWARDS.threshold75,100:SPIRITFIRE_REWARDS.threshold100};
+  PEDIA_SECTIONS.forEach(sec=>{
+    const c=comp[sec.key];if(!c||c.total===0)return;
+    const pct=Math.floor(c.found/c.total*100);
+    thresholds.forEach(t=>{
+      const k=sec.key+'_'+t;
+      if(pct>=t&&!m.spiritfireClaimed[k]){
+        m.spiritfireClaimed[k]=true;
+        m.spiritfire+=rewardMap[t];earned+=rewardMap[t];
+        showToast(sec.name+' '+t+'%! +'+rewardMap[t]+' Spiritfire','success');
+      }
+    });
+  });
+  if(earned>0)this.setJM({spiritfireClaimed:m.spiritfireClaimed,spiritfire:m.spiritfire});
+  return earned;
+},
+// --- Batch 4: Award spiritfire for new entries ---
+awardNewEntrySF(){
+  const m=this.getJM();if(m.spiritfire===undefined)m.spiritfire=0;
+  m.spiritfire+=SPIRITFIRE_REWARDS.newEntry;
+  this.setJM({spiritfire:m.spiritfire});
+},
+// --- Batch 4: journalMeta migration ---
+_migrateJM(){
+  const m=this.getJM();
+  if(m.version>=4)return;
+  if(!m.bestiary)m.bestiary={};
+  // Migrate old bestiary entries to include seenCount/defeatCount/tier
+  Object.keys(m.bestiary).forEach(id=>{
+    const be=m.bestiary[id];
+    if(be.seenCount===undefined)be.seenCount=1;
+    if(be.defeatCount===undefined)be.defeatCount=be.hp?1:0;
+    if(be.tier===undefined&&ENEMIES[id])be.tier=ENEMIES[id].tier;
+  });
+  if(!m.atlas)m.atlas={};
+  if(!m.codex)m.codex={};
+  if(!m.spellbook)m.spellbook={};
+  if(!m.systemsGuide)m.systemsGuide={};
+  if(!m.classPoints)m.classPoints={};
+  if(!m.classStats)m.classStats={};
+  if(m.spiritfire===undefined)m.spiritfire=0;
+  if(!m.milestonesClaimed)m.milestonesClaimed={};
+  if(!m.spiritfireClaimed)m.spiritfireClaimed={};
+  if(!m.shrineUnlocks)m.shrineUnlocks={};
+  if(!m.adventuresCompleted)m.adventuresCompleted={};
+  if(!m.runHistory)m.runHistory={totalRuns:0,bestLevel:0,totalKills:0};
+  if(!m.classUnlocks)m.classUnlocks={};
+  m.version=4;
+  try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}
+}
 };
 
 // === v1.0 COMBAT ENGINE ===
@@ -1208,6 +1359,18 @@ start(ek,ek2){
   r.traitState.advantageUsed=false;r.traitState.vanishUsed=false;r.traitState.hidden=false;
   r.verbUsed=false;
   enemies.forEach(e=>GS.recEnc(e.id));
+  // Batch 4: cache bestiary level for HUD gating
+  const mods=r.modifiers||[];
+  enemies.forEach(e=>{e._bestiaryLvl=mods.includes('fog_of_war')?'none':GS.bestiaryLevel(e.id)});
+  // Batch 4: Cursed Blood modifier — apply random negative status at combat start
+  if(mods.includes('cursed_blood')){
+    const negStatuses=['poison','bleed','burn','weaken','slow','stagger'];
+    const pick=negStatuses[Math.floor(Math.random()*negStatuses.length)];
+    if(!r.debuffs)r.debuffs=[];
+    r.debuffs.push({type:pick,dmg:pick==='poison'||pick==='bleed'?1:0,remaining:2});
+  }
+  // Batch 4: Unlock system guide on first combat
+  _unlockSystem('zone_combat');_unlockSystem('intent_system');
   // Generate initial intents
   enemies.forEach(e=>{e.intent=this._genIntent(e,r)});
   GS.saveA();return r.cs},
@@ -1234,6 +1397,7 @@ pAct(act){
     if(ab.chargeCost&&cs.graveCharges<ab.chargeCost){ms.push({t:`Not enough Grave Charges! Need ${ab.chargeCost}, have ${cs.graveCharges}.`,c:'y'});return ms}
     const cost=CALC.abilityCost(r,ab);if(r.mp<cost){ms.push({t:`Not enough MP! Need ${cost} MP for ${ab.name}.`,c:'y'});return ms}
     if(ab.requirement==='spellbook_equipped'&&(!r.oh||r.oh.t!=='spellbook')){ms.push({t:`Need a Spellbook equipped for ${ab.name}.`,c:'y'});return ms}}
+  if(act==='flee'&&r.modifiers&&r.modifiers.includes('no_quarter')){ms.push({t:'No Quarter! You cannot flee!',c:'d'});return ms}
   if(act==='flee'&&cs.playerZone==='close'){ms.push({t:'Too close to flee! Move to Mid or Far first.',c:'d'});return ms}
   if(act==='verb'){
     if(isSilenced){ms.push({t:'You are Silenced! Cannot use class verb!',c:'d'});return ms}
@@ -1249,11 +1413,23 @@ pAct(act){
   // === Turn commits here ===
   cs.turnCount++;cs.usedItemThisTurn=false;
   ms.push({t:`— Turn ${cs.turnCount} —`,c:'y'});
+  // Batch 4: Hunted modifier — reinforcement every 5 turns
+  if(r.modifiers&&r.modifiers.includes('hunted')&&cs.turnCount%5===0&&cs.enemies.filter(en=>en.hp>0).length<3){
+    const ad=REGION_DATA[r.adventure||'muddy_trail'];
+    if(ad&&ad.roamingPool&&ad.roamingPool.length){
+      const rek=ad.roamingPool[Math.floor(Math.random()*ad.roamingPool.length)];
+      const rt=ENEMIES[rek];if(rt){
+        const re={...rt,hp:rt.mHP,zone:rt.preferredZone||'mid',debuffs:[],intent:null,_baseDef:rt.def,_defEroded:0,_bleedHits:0};
+        re._bestiaryLvl=(r.modifiers.includes('fog_of_war')?'none':GS.bestiaryLevel(re.id));
+        cs.enemies.push(re);re.intent=CMB._genIntent(re,r);GS.recEnc(re.id);
+        ms.push({t:`Reinforcements arrive! ${re.name} joins the fight!`,c:'d'})}}}
   alive.forEach(en=>{if(en.intent){
     const icon=INTENT_ICONS[en.intent.type]||'';
-    const known=r.bDef[en.id]&&r.bDef[en.id]>=1;
-    const detail=known?` (${en.intent.desc||en.intent.type})`:'';
-    ms.push({t:`${icon} ${en.name} intends to ${en.intent.type}${detail}`,c:'y'})}});
+    const blvl=en._bestiaryLvl||'none';
+    if(blvl==='none')ms.push({t:'??? Unknown creature intends to ???',c:'y'});
+    else if(blvl==='basic')ms.push({t:`${icon} ${en.name} intends to ${en.intent.type}`,c:'y'});
+    else{const detail=en.intent.desc?` (${en.intent.desc})`:'';
+      ms.push({t:`${icon} ${en.name} intends to ${en.intent.type}${detail}`,c:'y'})}}});
   cs.blocking=false;
   ms.push(...this._tickPlayerDebuffs(r,cs));
   if(r.hp<=0){cs.over=true;cs.won=false;ms.push({t:'Everything fades to black\u2026',c:'d'});GS.saveA();return ms}
@@ -1269,12 +1445,29 @@ pAct(act){
     r.mp-=cost;
     if(ab.chargeCost)cs.graveCharges-=ab.chargeCost;
     if(ab.limit==='once_per_combat')cs.usedAbilitiesThisCombat[ab.name]=true;
+    // Batch 4: Track ability in spellbook + class stats
+    {const jm=GS.getJM();if(!jm.spellbook)jm.spellbook={};
+    if(!jm.spellbook[ab.name]){jm.spellbook[ab.name]=true;GS.setJM({spellbook:jm.spellbook});GS.awardNewEntrySF()}
+    const abn=ab.name.toLowerCase().replace(/[^a-z]/g,'');
+    if(abn.includes('smite'))GS.trackClassStat('smiteUses',1);
+    if(abn.includes('aimedshot'))GS.trackClassStat('aimedUses',1);
+    if(abn.includes('backstab'))GS.trackClassStat('backstabUses',1);
+    if(abn.includes('arcanebolt'))GS.trackClassStat('boltUses',1);
+    if(abn.includes('fireball'))GS.trackClassStat('fireballUses',1);
+    if(abn.includes('rampage'))GS.trackClassStat('rampageUses',1);
+    if(abn.includes('steadyshot'))GS.trackClassStat('steadyUses',1);
+    if(abn.includes('deadeye'))GS.trackClassStat('deadeyeUses',1);
+    if(abn.includes('raisedead'))GS.trackClassStat('raiseUses',1);
+    if(abn.includes('hexbolt'))GS.trackClassStat('hexUses',1);
+    if(abn.includes('doom'))GS.trackClassStat('doomUses',1);
+    if(abn.includes('vanish'))GS.trackClassStat('vanishUses',1);}
     ms.push(...this._resolveAbility(ab,r,cs,e,cost));
     break}
   case'block':{
     cs.blocking=true;
     const tier=getBlockTier(r);
     const oh=r.oh;
+    GS.trackClassStat('blocks',1);_unlockSystem('block_tiers');
     if(tier>=2&&oh&&oh.t==='shield'){
       cs.pBlk=oh.blk||0;
       ms.push({t:`You raise your ${oh.name}. -${cs.pBlk} incoming damage!`,c:'c'});
@@ -1534,7 +1727,7 @@ _resolveAbility(ab,r,cs,e,cost){
     // Curse prevents healing
     if(r.debuffs.some(d=>d.type==='curse')){ms.push({t:`Curse prevents healing! ${ab.name} fails.`,c:'d'});return ms}
     let h=eff.healAmt||0;if(eff.fullHeal)h=r.mHP-r.hp;
-    h=Math.min(h,r.mHP-r.hp);r.hp+=h;
+    h=Math.min(h,r.mHP-r.hp);r.hp+=h;GS.trackClassStat('hpHealed',h);
     if(eff.cleanseAll){r.debuffs=[];ms.push({t:'All afflictions cleansed!',c:'s'})}
     else if(eff.cleanse){eff.cleanse.forEach(type=>{const idx=r.debuffs.findIndex(d=>d.type===type);if(idx>=0){r.debuffs.splice(idx,1);ms.push({t:`${type} cleansed!`,c:'s'})}})}
     ms.push({t:`${ab.name}! Restored ${h} HP. (${r.hp}/${r.mHP} HP)`,c:'s'});return ms}
@@ -1546,6 +1739,7 @@ _resolveVerb(r,cs){
   // Pre-validation already done in pAct; execute verb
   if(verb.cost)r.mp-=verb.cost;
   if(verb.limit==='once_per_combat')cs.usedVerbThisCombat=true;
+  GS.trackClassStat('verbUses',1);
   const e=cs.enemy;const vn=verb.name;
   switch(vn){
     case'Rally':{
@@ -1561,6 +1755,7 @@ _resolveVerb(r,cs){
       ms.push({t:'Surveyor! Full enemy intel revealed.',c:'s'});break}
     case'Vanish':{
       r.traitState.hidden=true;GS.run.traitState._wasHidden=true;
+      GS.trackClassStat('vanishUses',1);
       ms.push({t:'Vanish! You are untargetable this turn.',c:'s'});break}
     case'Consecrate':{
       cs.consecrate={zone:cs.playerZone,turnsLeft:3,dmg:2};
@@ -1573,10 +1768,12 @@ _resolveVerb(r,cs){
       else ms.push({t:`Dispel! Nothing to remove. (${verb.cost} MP)`,c:'y'});break}
     case'Frenzy':{
       cs.activeBuffs.push({name:'Frenzy',trigger:'sustained',effect:{frenzy:true},turnsLeft:2});
+      GS.trackClassStat('frenzyUses',1);
       ms.push({t:'Frenzy! Pain becomes power for 2 turns!',c:'s'});break}
     case'Harvest':{
       if(cs.summons.length>0){const s=cs.summons.shift();
         const healAmt=Math.min(s.hp*2,r.mHP-r.hp);r.hp+=healAmt;
+        GS.trackClassStat('harvestUses',1);GS.trackClassStat('hpHealed',healAmt);
         ms.push({t:`Harvest! Sacrificed ${s.name}. Restored ${healAmt} HP.`,c:'s'})}
       break}
     case'Quickdraw':{
@@ -1595,6 +1792,7 @@ _resolveVerb(r,cs){
 _applyStatus(target,type,duration,ms,dmg){
   if(!target.debuffs)target.debuffs=[];
   const seDef=STATUS_EFFECTS[type];const label=seDef?seDef.name:type;
+  _unlockSystem('status_effects');
   const existing=target.debuffs.find(d=>d.type===type);
   if(existing){existing.remaining=Math.max(existing.remaining,duration);
     ms.push({t:`${label} on ${target.name||'target'} refreshed! (${duration} turns)`,c:'s'})}
@@ -1604,7 +1802,9 @@ _applyStatus(target,type,duration,ms,dmg){
 // --- Synergy check ---
 _hasSynergy(target,synergyKey){
   const syn=SYNERGIES[synergyKey];if(!syn||!target.debuffs)return false;
-  return syn.requires.every(r=>target.debuffs.some(d=>d.type===r))},
+  const active=syn.requires.every(r=>target.debuffs.some(d=>d.type===r));
+  if(active)_unlockSystem('synergies');
+  return active},
 
 // --- Tick player debuffs (v1.0 reworked mechanics) ---
 _tickPlayerDebuffs(r,cs){
@@ -1715,8 +1915,8 @@ _enemyAttack(e,cs,r){
     d=CALC.safeDmg(d);r.hp=Math.max(0,r.hp-d);
     // Stalwart Stand: can't drop below 1 HP
     if(r.hp<=0&&cs.activeBuff&&cs.activeBuff.effect.stalwart){r.hp=1;ms.push({t:'Stalwart Stand! You refuse to fall! (1 HP)',c:'s'})}
-    // Undying Rage
-    if(r.hp<=0&&cs.activeBuff&&cs.activeBuff.effect.undying){r.hp=1;cs.activeBuff=null;ms.push({t:'Undying Rage! You refuse to fall! (1 HP)',c:'s'})}
+    // Undying Rage (disabled by One Life modifier)
+    if(r.hp<=0&&cs.activeBuff&&cs.activeBuff.effect.undying&&!(r.modifiers&&r.modifiers.includes('one_life'))){r.hp=1;cs.activeBuff=null;ms.push({t:'Undying Rage! You refuse to fall! (1 HP)',c:'s'})}
     // Blood Rage stacking
     if(cs.activeBuff&&cs.activeBuff.effect.bloodRage&&d>0){cs.frenzyStacks+=d;ms.push({t:`Blood Rage! +${d} stored damage (${cs.frenzyStacks} total)`,c:'y'})}
     // Enemy on-hit status effects
@@ -1815,7 +2015,7 @@ init(){
     cbZoneTag:$('cb-zone-tag'),cbIntent:$('cb-intent'),cbTargetBar:$('cb-target-bar'),cbStatusBar:$('cb-status-bar'),
     ni:$('ninp'),cbk:$('cc-bk'),cnx:$('cc-nx'),ccStep:$('cc-step'),
     tc:$('title-card'),tcn:$('tc-name'),tcs:$('tc-sub'),
-    ds:$('death-screen'),dsq:$('death-quote'),dsl:$('ds-load'),dsn:$('ds-new'),dst:$('ds-title'),
+    ds:$('death-screen'),dsq:$('death-quote'),dsl:$('ds-load'),dsn:$('ds-new'),dst:$('ds-title'),dss:$('ds-summary'),dsp:$('ds-pedia'),
     ash:$('action-sheet'),asl:$('as-list'),asb:$('as-backdrop')};
   this.renderIcons();this.bind();this.vvp();
   const st=GS.getSettings();document.documentElement.classList.toggle('settings-high-contrast',!!st.highContrast);document.documentElement.classList.toggle('settings-large-text',!!st.largeText);
@@ -1846,6 +2046,7 @@ bind(){
   this.el.dsl.onclick=()=>SE.deathLoad();
   this.el.dsn.onclick=()=>SE.deathNewRun();
   this.el.dst.onclick=()=>SE.deathTitle();
+  this.el.dsp.onclick=()=>{UI.hideDeathScreen();ML.openJrn()};
   document.onkeydown=e=>{
     if((e.key==='q'||e.key==='Q')&&document.activeElement.tagName!=='INPUT'&&GS.run){if(GS.qSave()){this.addN('Game quick saved.','y');showToast('Quick saved!','success')}else{this.addN('Quick save failed.','d');showToast('Quick save failed!','error')}}
     if(e.key==='Escape'){ML.closeAll();this.closeActionSheet()}};
@@ -1895,7 +2096,9 @@ updateCombatUI(){
   const alive=cs.enemies.filter(en=>en.hp>0);
   if(alive.length&&alive[0].intent){
     const ei=alive[0].intent;const icon=INTENT_ICONS[ei.type]||'';
-    this.el.cbIntent.textContent=icon+' '+alive[0].name+': '+ei.type}
+    const blvl=alive[0]._bestiaryLvl||'none';
+    if(blvl==='none')this.el.cbIntent.textContent='??? ???';
+    else this.el.cbIntent.textContent=icon+' '+alive[0].name+': '+ei.type}
   else this.el.cbIntent.textContent='';
   // Target bar (multi-enemy)
   this.el.cbTargetBar.innerHTML='';
@@ -1928,7 +2131,7 @@ updateCombatUI(){
     this.el.cbAtk.disabled=isMelee&&cs.playerZone!=='close'}
   // Flee: disabled at close range
   const fleePct=CALC.flee(r);this.el.cbFleePct.textContent=fleePct+'%';
-  this.el.cbFlee.disabled=cs.playerZone==='close';
+  this.el.cbFlee.disabled=cs.playerZone==='close'||(r.modifiers&&r.modifiers.includes('no_quarter'));
   // Move: disabled if rooted
   this.el.cbMove.disabled=!!(r.debuffs&&r.debuffs.some(d=>d.type==='rooted'));
   // Abilities
@@ -2002,6 +2205,17 @@ showDeathScreen(){
   const qs=GS.getQS(),sv=GS.getMSaves(),hasSave=qs||sv.some(s=>s);
   this.el.dsl.style.display=hasSave?'':'none';
   this.el.dsq.textContent=DEATH_QUOTES[Math.floor(Math.random()*DEATH_QUOTES.length)];
+  // Batch 4: Death summary
+  const sum=SE._deathSummary;
+  if(sum){
+    let sH='Enemies defeated: '+sum.defeated+'<br>Bestiary entries: '+sum.newEntries;
+    if(sum.cpEarned)sH+='<br>Class Points earned: +'+sum.cpEarned;
+    if(sum.sfEarned)sH+='<br>Spiritfire earned: +'+sum.sfEarned;
+    if(sum.modBonus>1)sH+='<br>Modifier bonus: x'+sum.modBonus.toFixed(1);
+    sH+='<br>Adventurepedia: '+sum.pediaPct+'% complete';
+    this.el.dss.innerHTML=sH;this.el.dss.style.display='';
+    this.el.dsp.style.display='';
+  }else{this.el.dss.style.display='none';this.el.dsp.style.display='none'}
   this.el.ds.classList.add('vis');requestAnimationFrame(()=>this.el.ds.classList.add('show'));
 },
 hideDeathScreen(){this.el.ds.classList.remove('show','vis')},
@@ -2213,7 +2427,7 @@ function useConsumable(it,r){
   const idx=r.bp.indexOf(it);if(idx===-1)return null;
   r.bp.splice(idx,1);
   const parts=[];
-  if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;parts.push('+'+h+' HP')}
+  if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;parts.push('+'+h+' HP');GS.trackClassStat('hpHealed',h);_unlockSystem('consumables')}
   if(it.mana){const m=Math.min(it.mana,r.mMP-r.mp);r.mp+=m;parts.push('+'+m+' MP')}
   if(it.cure){if(!r.debuffs)r.debuffs=[];const bi=r.debuffs.findIndex(d=>d.type===it.cure);
     if(bi!==-1){r.debuffs.splice(bi,1);parts.push(it.cure+' cured')}
@@ -2249,16 +2463,57 @@ function checkRecipeDiscovery(r){
       const count=recipe.ingredients.filter(x=>x===ing).length;
       return bpKeys.filter(k=>k===ing).length>=count});
     if(hasAll){r.discoveredRecipes[rk]=true;newFound.push(recipe);
-      const jm=GS.getJM();if(!jm.recipes)jm.recipes={};jm.recipes[rk]=true;GS.setJM(jm)}}
+      const jm=GS.getJM();if(!jm.recipes)jm.recipes={};jm.recipes[rk]=true;GS.setJM(jm);
+      _unlockSystem('crafting');GS.awardNewEntrySF()}}
   if(newFound.length){GS.saveA();newFound.forEach(rec=>showToast('Recipe discovered: '+rec.name,'info'))}
   return newFound}
 
-function rollLoot(enemy){
+function rollLoot(enemy,modifiers){
   if(!enemy.loot||!enemy.loot.length)return null;
   const total=enemy.loot.reduce((s,l)=>s+l.weight,0);
   let roll=Math.random()*total;
-  for(const l of enemy.loot){roll-=l.weight;if(roll<=0)return l.item?{...ITEMS[l.item]}:null}
+  for(const l of enemy.loot){roll-=l.weight;if(roll<=0){
+    if(!l.item)return null;
+    const it={...ITEMS[l.item]};
+    // Famine: filter out healing items
+    if(modifiers&&modifiers.includes('famine')&&it.heal)return null;
+    return it;
+  }}
   return null;
+}
+
+// --- Batch 4: System guide unlock helper ---
+function _unlockSystem(key){
+  const m=GS.getJM();if(!m.systemsGuide)m.systemsGuide={};
+  if(m.systemsGuide[key])return;
+  m.systemsGuide[key]=true;GS.setJM({systemsGuide:m.systemsGuide});
+}
+
+// --- Batch 4: Pedia completion calculator ---
+function _pediaCompletion(){
+  const m=GS.getJM();
+  const totalEnemies=Object.keys(ENEMIES).length;
+  const foundBestiary=Object.keys(m.bestiary||{}).length;
+  const totalRegions=Object.values(REGION_DATA).reduce((s,ad)=>s+ad.regions.length,0);
+  const foundAtlas=Object.keys(m.atlas||{}).length;
+  const totalClasses=Object.keys(CL).length;
+  const foundCodex=Object.keys(m.codex||{}).filter(k=>m.codex[k]&&m.codex[k].played).length;
+  // Count all abilities across all classes
+  let totalAbilities=0;Object.values(CL).forEach(c=>{if(c.abilities)totalAbilities+=c.abilities.length;else if(c.ability)totalAbilities++});
+  const foundSpellbook=Object.keys(m.spellbook||{}).length;
+  const totalSystems=Object.keys(SYSTEMS_GUIDE_SECTIONS).length;
+  const foundSystems=Object.keys(m.systemsGuide||{}).length;
+  const totalRecipes=Object.keys(RECIPES).length;
+  const foundRecipes=Object.keys(m.recipes||{}).length;
+  return{
+    bestiary:{found:foundBestiary,total:totalEnemies},
+    atlas:{found:foundAtlas,total:totalRegions},
+    codex:{found:foundCodex,total:totalClasses},
+    spellbook:{found:foundSpellbook,total:totalAbilities},
+    systems:{found:foundSystems,total:totalSystems},
+    recipes:{found:foundRecipes,total:totalRecipes},
+    achievements:{found:0,total:0}
+  };
 }
 
 // === MODAL SYSTEM ===
@@ -2412,34 +2667,92 @@ openAct(){UI.openActionSheet()},
 
 openJrn(){
   const b=$('m-jrn-b');b.innerHTML='';const r=GS.run,m=GS.getJM();
-  const tabs=document.createElement('div');tabs.className='jtabs';tabs.setAttribute('role','tablist');
-  const pgs={},names=['Combat','Classes','Species','Bestiary','World','Recipes'];
-  names.forEach((n,i)=>{const t=document.createElement('button');t.className='jtab'+(i===0?' act':'');t.textContent=n;t.setAttribute('role','tab');t.setAttribute('aria-selected',i===0?'true':'false');
-    t.onclick=()=>{tabs.querySelectorAll('.jtab').forEach(x=>{x.classList.remove('act');x.setAttribute('aria-selected','false')});t.classList.add('act');t.setAttribute('aria-selected','true');Object.values(pgs).forEach(p=>p.classList.remove('act'));pgs[n].classList.add('act')};
-    tabs.appendChild(t);const pg=document.createElement('div');pg.className='jp'+(i===0?' act':'');pg.setAttribute('role','tabpanel');pgs[n]=pg});
+  const comp=_pediaCompletion();
+  // Currency header
+  const hdr=document.createElement('div');hdr.style.cssText='display:flex;gap:12px;margin-bottom:12px;font-size:.85rem;color:var(--text2);flex-wrap:wrap';
+  if(r){const cl=r.classes[0];const cpAmt=(m.classPoints&&m.classPoints[cl])||0;
+    hdr.innerHTML='<span>\u2694\uFE0F '+(CL[cl]?CL[cl].name:cl)+': '+cpAmt+' CP</span><span>\uD83D\uDD25 Spiritfire: '+(m.spiritfire||0)+'</span>'}
+  else hdr.innerHTML='<span>\uD83D\uDD25 Spiritfire: '+(m.spiritfire||0)+'</span>';
+  b.appendChild(hdr);
+  // Tabs
+  const tabs=document.createElement('div');tabs.className='tab-bar';tabs.setAttribute('role','tablist');
+  const pgs={};
+  PEDIA_SECTIONS.forEach((sec,i)=>{
+    const c=comp[sec.key];const countStr=c&&c.total>0?' ('+c.found+'/'+c.total+')':'';
+    const t=document.createElement('button');t.className='tab-btn'+(i===0?' act':'');t.textContent=sec.icon+' '+sec.name+countStr;
+    t.setAttribute('role','tab');t.setAttribute('aria-selected',i===0?'true':'false');
+    t.onclick=()=>{tabs.querySelectorAll('.tab-btn').forEach(x=>{x.classList.remove('act');x.setAttribute('aria-selected','false')});t.classList.add('act');t.setAttribute('aria-selected','true');Object.values(pgs).forEach(p=>p.classList.remove('act'));pgs[sec.key].classList.add('act')};
+    tabs.appendChild(t);const pg=document.createElement('div');pg.className='tab-panel'+(i===0?' act':'');pg.setAttribute('role','tabpanel');pgs[sec.key]=pg});
   b.appendChild(tabs);
-  pgs.Combat.innerHTML='<h3>Combat System</h3><p>Combat uses percentage-based checks. Your hit chance is shown before each attack.</p><h3>Zones</h3><p>The battlefield has three zones: <strong style="color:var(--gold)">Close</strong>, <strong style="color:var(--gold)">Mid</strong>, and <strong style="color:var(--gold)">Far</strong>. Melee weapons require Close range. Ranged weapons work from any zone but suffer penalties at Close (-15%) and Far (-10%).</p><h3>Actions</h3><p><strong style="color:var(--gold)">Attack</strong> — Hit: 55% + (stat − 5) × 5% − enemy DEF × 3%.</p><p><strong style="color:var(--gold)">Block</strong> — Tier 1: halve damage. Tier 2 (shield): flat reduction. Tier 3 (Fighter/Paladin + shield): full action freedom.</p><p><strong style="color:var(--gold)">Move</strong> — Change zone (costs your action). Rooted prevents movement. Slow limits to 1 zone.</p><p><strong style="color:var(--gold)">Use Item</strong> — Consume potions as a free action (1/turn).</p><p><strong style="color:var(--gold)">Flee</strong> — Must be at Mid or Far. 30% + (Movement − 5) × 5%.</p><p><strong style="color:var(--gold)">Class Verb</strong> — Unique class action (see class info).</p><h3>Status Effects</h3><p>Burn (DEF erosion), Bleed (scales with hits), Poison (escalates), Stagger (-10% hit), Blind (-30% hit), Stun (skip turn), Slow (limited movement), Rooted (no movement), Silenced (no abilities), Weaken (-1 dmg), Brittle (+25% incoming), Exposed (guaranteed crit), Marked (+15% hit vs), Curse (no healing).</p><h3>Damage</h3><p>Weapon dice + (attack stat − 5) + trait bonuses. All rolls clamped 5%–95%.</p>';
-  let clH='<h3>Classes</h3>';Object.values(CL).forEach(c=>{
-    let gearStr=c.wpn?c.wpn.name:'—';if(c.arm)gearStr+=', '+c.arm.name;if(c.oh)gearStr+=', '+c.oh.name;
-    const ccAb0=c.abilities?c.abilities[0]:c.ability;let abStr=ccAb0?'<p style="font-size:.9rem;color:var(--gold-bright)">'+ccAb0.name+' ('+ccAb0.cost+' MP): '+ccAb0.desc+'</p>':'';
-    clH+='<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">'+c.name+'</strong></p><p style="font-style:italic;color:var(--text2)">'+c.desc+'</p><p style="font-size:.9rem;color:var(--text3)">Gear: '+gearStr+'</p>'+abStr+'</div>'});pgs.Classes.innerHTML=clH;
-  let spH='<h3>Species</h3>';Object.entries(SP).forEach(([k,s])=>{spH+='<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">'+s.name+'</strong></p><p style="font-style:italic;color:var(--text2)">'+s.desc+'</p>';
-    spH+='<p style="font-size:.85rem;color:var(--text3)">';STAT_NAMES.forEach(st=>{spH+=STAT_LABELS[st]+':'+s.stats[st]+' '});spH+='</p>';
-    if(s.subspecies)Object.values(s.subspecies).forEach(sub=>{spH+='<p style="margin-left:12px;margin-top:4px"><strong style="color:var(--gold-bright)">'+sub.name+'</strong> — <em style="color:var(--text2)">'+sub.trait+'</em>: '+sub.traitDesc+'</p>'});
-    else if(s.trait)spH+='<p style="margin-left:12px"><em style="color:var(--text2)">'+s.trait+'</em>: '+s.traitDesc+'</p>';
-    spH+='</div>'});pgs.Species.innerHTML=spH;
-  const bst=m.bestiary||{};if(!Object.keys(bst).length)pgs.Bestiary.innerHTML='<h3>Bestiary</h3><p style="color:var(--text3);font-style:italic">No creatures encountered yet.</p>';
-  else{let bH='<h3>Bestiary</h3>';Object.entries(bst).forEach(([id,be])=>{const se=r?(r.bSeen[id]||0):0,de=r?(r.bDef[id]||0):0;bH+='<div class="be"><div class="be-n">'+be.name+'</div><div class="be-l">'+be.lore+'</div><div class="be-s">HP:'+be.hp+' ATK:'+be.atk+' DEF:'+be.def+' DMG:'+be.dmg+(be.preferredZone?' Zone:'+be.preferredZone:'')+'</div><div class="be-s" style="margin-top:4px">Encountered: '+se+' | Defeated: '+de+'</div></div>'});pgs.Bestiary.innerHTML=bH}
-  pgs.World.innerHTML='<h3>The World</h3><p>The realm lies under an ashen sky. Once-great kingdoms crumbled into scattered settlements, connected by muddy trails winding through forests thick with ancient magic and creeping dangers. Travelers arm themselves not from paranoia but necessity — the wilds teem with oozes, beasts, and worse. Yet good folk remain on the roads: gatekeepers, healers, and wanderers who trade stories by firelight. The trail is dangerous, but it is the only way forward.</p>';
-  // Recipes tab (persists across deaths via journalMeta)
+  // === Bestiary ===
+  const bst=m.bestiary||{};
+  if(!Object.keys(bst).length)pgs.bestiary.innerHTML='<p style="color:var(--text3);font-style:italic">No creatures encountered yet.</p>';
+  else{let bH='';
+    const sorted=Object.entries(bst).sort((a,b)=>(a[1].tier||1)-(b[1].tier||1)||a[1].name.localeCompare(b[1].name));
+    sorted.forEach(([id,be])=>{
+      const lvl=GS.bestiaryLevel(id);const tierC=ENEMY_TIERS[be.tier||1];
+      bH+='<div class="be"><div class="be-n"><span class="tier-badge tier-'+(be.tier||1)+'">'+(tierC?tierC.name:'')+'</span>'+be.name+'</div>';
+      bH+='<div class="be-l">'+be.lore+'</div>';
+      bH+='<div class="be-s" style="margin-top:4px">Encountered: '+(be.seenCount||0)+' | Defeated: '+(be.defeatCount||0)+'</div>';
+      if(lvl==='full'||lvl==='mastery'){
+        bH+='<div class="be-s">HP:'+be.hp+' ATK:'+be.atk+' DEF:'+be.def+' DMG:'+be.dmg+(be.preferredZone?' Zone:'+be.preferredZone:'')+'</div>'}
+      if(lvl==='mastery'){const esd=ENEMY_STATUS_DATA[id];
+        if(esd){let sH='';
+          if(esd.weak.length)sH+='<span style="color:var(--green)">Weak: '+esd.weak.map(s=>STATUS_EFFECTS[s]?STATUS_EFFECTS[s].icon+STATUS_EFFECTS[s].name:s).join(', ')+'</span> ';
+          if(esd.resist.length)sH+='<span style="color:var(--red)">Resist: '+esd.resist.map(s=>STATUS_EFFECTS[s]?STATUS_EFFECTS[s].icon+STATUS_EFFECTS[s].name:s).join(', ')+'</span>';
+          if(sH)bH+='<div class="be-s" style="margin-top:2px">'+sH+'</div>'}}
+      bH+='</div>'});
+    pgs.bestiary.innerHTML=bH}
+  // === World Atlas ===
+  const atlas=m.atlas||{};
+  if(!Object.keys(atlas).length)pgs.atlas.innerHTML='<p style="color:var(--text3);font-style:italic">No regions discovered yet. Explore the world to fill your atlas.</p>';
+  else{let aH='';Object.entries(REGION_DATA).forEach(([advId,ad])=>{
+    ad.regions.forEach(reg=>{
+      if(atlas[reg.id]){aH+='<div class="be"><div class="be-n">'+reg.name+'</div><div class="be-l">'+(reg.lore||reg.theme||'A discovered region.')+'</div><div class="be-s">Difficulty: '+(reg.difficulty||'Standard')+'</div></div>'}})});
+    pgs.atlas.innerHTML=aH||'<p style="color:var(--text3)">No regions discovered.</p>'}
+  // === Class Codex ===
+  {let clH='';Object.entries(CL).forEach(([clKey,c])=>{
+    const cd=m.codex&&m.codex[clKey];const played=cd&&cd.played;
+    let gearStr=c.wpn?c.wpn.name:'\u2014';if(c.arm)gearStr+=', '+c.arm.name;if(c.oh)gearStr+=', '+c.oh.name;
+    clH+='<div style="margin-bottom:16px"><p><strong style="color:var(--gold)">'+c.name+'</strong> <span style="font-size:.8rem;color:var(--text3)">['+c.complexity+']</span></p>';
+    clH+='<p style="font-style:italic;color:var(--text2)">'+c.desc+'</p>';
+    clH+='<p style="font-size:.9rem;color:var(--text3)">Gear: '+gearStr+'</p>';
+    if(played&&c.abilities){c.abilities.forEach(ab=>{
+      clH+='<p style="font-size:.85rem;color:var(--gold-bright)">'+ab.name+' ('+ab.cost+' MP, Lv'+ab.unlockLevel+'): '+ab.desc+'</p>'})}
+    else if(c.abilities){c.abilities.forEach(ab=>{
+      clH+='<p style="font-size:.85rem;color:var(--text3)">??? (Lv '+ab.unlockLevel+')</p>'})}
+    // Class mastery button
+    if(played){const cpAmt=(m.classPoints&&m.classPoints[clKey])||0;
+      clH+='<button class="mbtn" style="margin-top:6px;font-size:.85rem" onclick="ML.openClassTree(\''+clKey+'\')">Class Mastery ('+cpAmt+' CP)</button>'}
+    clH+='</div>'});
+  pgs.codex.innerHTML=clH}
+  // === Spellbook ===
+  const sb=m.spellbook||{};
+  if(!Object.keys(sb).length)pgs.spellbook.innerHTML='<p style="color:var(--text3);font-style:italic">No abilities discovered yet. Use abilities in combat to record them.</p>';
+  else{let sH='';Object.entries(CL).forEach(([clKey,c])=>{
+    const clAbilities=(c.abilities||[]).filter(a=>sb[a.name]);
+    if(clAbilities.length){sH+='<div style="margin-bottom:12px"><p><strong style="color:var(--gold)">'+c.name+'</strong></p>';
+      clAbilities.forEach(a=>{sH+='<p style="font-size:.85rem;color:var(--text2)">'+a.name+' ('+a.cost+' MP): '+a.desc+'</p>'});
+      sH+='</div>'}});
+    pgs.spellbook.innerHTML=sH||'<p style="color:var(--text3)">No abilities discovered.</p>'}
+  // === Systems Guide ===
+  const sg=m.systemsGuide||{};
+  {let sgH='';Object.entries(SYSTEMS_GUIDE_SECTIONS).forEach(([key,sec])=>{
+    if(sec.unlockOn==='always'||sg[key]){
+      sgH+='<div class="be"><div class="be-n">'+sec.title+'</div><div style="font-size:.9rem;color:var(--text2)">'+sec.content+'</div></div>'}
+    else{sgH+='<div class="be"><div class="be-n" style="color:var(--text3)">'+sec.title+' <span style="font-size:.75rem">[Locked]</span></div></div>'}});
+  pgs.systems.innerHTML=sgH}
+  // === Recipe Book ===
   const jmRecipes=m.recipes||{};
-  if(!Object.keys(jmRecipes).length)pgs.Recipes.innerHTML='<h3>Recipe Book</h3><p style="color:var(--text3);font-style:italic">No recipes discovered yet. Collect crafting materials to discover recipes.</p>';
-  else{let rH='<h3>Recipe Book</h3>';Object.keys(jmRecipes).forEach(rk=>{
+  if(!Object.keys(jmRecipes).length)pgs.recipes.innerHTML='<p style="color:var(--text3);font-style:italic">No recipes discovered yet. Collect crafting materials to discover recipes.</p>';
+  else{let rH='';Object.keys(jmRecipes).forEach(rk=>{
     const recipe=RECIPES[rk];if(!recipe)return;const outIt=ITEMS[recipe.output];if(!outIt)return;
     rH+='<div class="be"><div class="be-n">'+recipe.name+'</div>';
     rH+='<div class="be-l">'+recipe.ingredients.map(ing=>ITEMS[ing]?ITEMS[ing].name:ing).join(' + ')+'</div>';
-    rH+='<div class="be-s">Output: '+rarityName(outIt)+' — '+(outIt.desc||'')+'</div></div>'});
-    pgs.Recipes.innerHTML=rH}
+    rH+='<div class="be-s">Output: '+rarityName(outIt)+' \u2014 '+(outIt.desc||'')+'</div></div>'});
+    pgs.recipes.innerHTML=rH}
+  // === Achievements ===
+  pgs.achievements.innerHTML='<p style="color:var(--text3);font-style:italic">Achievements will be available in a future update.</p>';
   Object.values(pgs).forEach(p=>b.appendChild(p));this.open('m-jrn')},
 
 openMenu(){
@@ -2502,7 +2815,78 @@ openLvl(lvl,cb){
     btn.innerHTML='<strong>'+STAT_LABELS[k]+'</strong> <span style="color:var(--text2)">(currently '+r.stats[k]+')</span>';
     btn.onclick=()=>{r.stats[k]++;GS.recalcDerived();r.hp=r.mHP;r.mp=r.mMP;GS.saveA();ML.closeAll();UI.updateHUD();if(cb)cb()};
     b.appendChild(btn)});
-  this.open('m-lvl')}
+  this.open('m-lvl')},
+
+// --- Batch 4: Class Tree UI ---
+openClassTree(classKey){
+  const b=$('m-ctree-b');b.innerHTML='';const m=GS.getJM();
+  const tree=CLASS_TREE[classKey];if(!tree)return;
+  const clName=CL[classKey]?CL[classKey].name:classKey;
+  const cpAmt=(m.classPoints&&m.classPoints[classKey])||0;
+  if(!m.classUnlocks)m.classUnlocks={};
+  b.innerHTML='<div style="text-align:center;margin-bottom:12px"><p style="color:var(--gold);font-size:1.1rem;font-weight:600">'+clName+' Mastery</p><p style="color:var(--text2);font-size:.9rem">Class Points: '+cpAmt+'</p></div>';
+  // Trunk nodes
+  const trunkDiv=document.createElement('div');trunkDiv.style.cssText='display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px';
+  tree.trunk.forEach((node,i)=>{
+    const owned=!!m.classUnlocks[node.id];
+    const prereqMet=!node.prereq||!!m.classUnlocks[node.prereq];
+    const canBuy=!owned&&prereqMet&&cpAmt>=node.cost;
+    const nd=document.createElement('div');nd.style.cssText='width:100%;max-width:320px;background:var(--bg3);border:1px solid '+(owned?'var(--gold)':'var(--border)')+';border-radius:6px;padding:10px 14px';
+    nd.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="color:'+(owned?'var(--gold)':'var(--text)')+'">'+node.name+'</strong><span style="font-size:.8rem;color:var(--text3)">'+node.cost+' CP</span></div><p style="font-size:.85rem;color:var(--text2);margin-top:4px">'+node.desc+'</p>';
+    if(owned){const badge=document.createElement('span');badge.style.cssText='font-size:.8rem;color:var(--green)';badge.textContent='Owned';nd.appendChild(badge)}
+    else if(canBuy){const btn=document.createElement('button');btn.className='mbtn';btn.style.cssText='margin-top:6px;font-size:.85rem;min-height:36px';btn.textContent='Purchase ('+node.cost+' CP)';
+      btn.onclick=()=>{const mm=GS.getJM();if(!mm.classUnlocks)mm.classUnlocks={};if(!mm.classPoints)mm.classPoints={};
+        mm.classPoints[classKey]=(mm.classPoints[classKey]||0)-node.cost;mm.classUnlocks[node.id]=true;
+        GS.setJM({classPoints:mm.classPoints,classUnlocks:mm.classUnlocks});showToast('Unlocked: '+node.name,'success');this.openClassTree(classKey)};
+      nd.appendChild(btn)}
+    else if(!prereqMet){nd.style.opacity='.5'}
+    if(i<tree.trunk.length-1){const arrow=document.createElement('div');arrow.style.cssText='text-align:center;color:var(--text3);font-size:1rem';arrow.textContent='\u2193';trunkDiv.appendChild(nd);trunkDiv.appendChild(arrow)}
+    else trunkDiv.appendChild(nd)});
+  b.appendChild(trunkDiv);
+  // Branch stubs
+  const branchDiv=document.createElement('div');branchDiv.style.cssText='display:flex;gap:8px;flex-wrap:wrap;justify-content:center';
+  Object.values(tree.branches).forEach(branch=>{
+    const bd=document.createElement('div');bd.style.cssText='flex:1;min-width:120px;max-width:200px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;opacity:.5';
+    bd.innerHTML='<p style="color:var(--gold);font-size:.9rem;font-weight:600;text-align:center">'+branch.name+'</p>';
+    branch.nodes.forEach(n=>{bd.innerHTML+='<p style="font-size:.8rem;color:var(--text3);text-align:center">'+n.name+' ('+n.cost+' CP)<br>'+n.desc+'</p>'});
+    branchDiv.appendChild(bd)});
+  b.appendChild(branchDiv);
+  this.open('m-ctree')},
+
+// --- Batch 4: Spiritfire Shrine UI ---
+openShrine(){
+  const b=$('m-shrine-b');b.innerHTML='';const m=GS.getJM();
+  const sfAmt=m.spiritfire||0;
+  if(!m.shrineUnlocks)m.shrineUnlocks={};
+  b.innerHTML='<div style="text-align:center;margin-bottom:12px"><p style="color:var(--gold);font-size:1.1rem">\uD83D\uDD25 Spiritfire: '+sfAmt+'</p></div>';
+  const cats=['tavern','species','starting','world'];
+  const catNames={tavern:'Tavern',species:'Species',starting:'Starting Bonuses',world:'World'};
+  const tabBar=document.createElement('div');tabBar.className='tab-bar';
+  const panels={};
+  cats.forEach((cat,i)=>{
+    const t=document.createElement('button');t.className='tab-btn'+(i===0?' act':'');t.textContent=catNames[cat];
+    t.onclick=()=>{tabBar.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('act'));t.classList.add('act');
+      Object.values(panels).forEach(p=>p.classList.remove('act'));panels[cat].classList.add('act')};
+    tabBar.appendChild(t);
+    const pg=document.createElement('div');pg.className='tab-panel'+(i===0?' act':'');
+    const upgrades=SHRINE_UPGRADES[cat]||[];
+    if(!upgrades.length){pg.innerHTML='<p style="color:var(--text3);font-style:italic;margin-top:8px">No upgrades available yet.</p>'}
+    else{upgrades.forEach(up=>{
+      const owned=!!m.shrineUnlocks[up.id];
+      const canBuy=!owned&&sfAmt>=up.cost;
+      const row=document.createElement('div');row.className='be';row.style.marginBottom='8px';
+      row.innerHTML='<div class="be-n">'+up.name+' <span style="font-size:.8rem;color:var(--text3)">('+up.cost+' \uD83D\uDD25)</span></div><div class="be-l">'+up.desc+'</div>';
+      if(owned){row.innerHTML+='<span style="font-size:.8rem;color:var(--green)">Purchased</span>'}
+      else if(canBuy){const btn=document.createElement('button');btn.className='mbtn';btn.style.cssText='margin-top:4px;font-size:.85rem;min-height:36px';btn.textContent='Buy ('+up.cost+' Spiritfire)';
+        btn.onclick=()=>{const mm=GS.getJM();if(!mm.shrineUnlocks)mm.shrineUnlocks={};
+          mm.spiritfire=(mm.spiritfire||0)-up.cost;mm.shrineUnlocks[up.id]=true;
+          GS.setJM({shrineUnlocks:mm.shrineUnlocks,spiritfire:mm.spiritfire});showToast('Purchased: '+up.name,'success');this.openShrine()};
+        row.appendChild(btn)}
+      else{row.innerHTML+='<span style="font-size:.8rem;color:var(--text3)">Need '+up.cost+' Spiritfire</span>'}
+      pg.appendChild(row)})}
+    panels[cat]=pg});
+  b.appendChild(tabBar);Object.values(panels).forEach(p=>b.appendChild(p));
+  this.open('m-shrine')}
 };
 
 // === CHARACTER CREATION ===
@@ -2764,6 +3148,10 @@ resume(){
 getActions(){
   const r=GS.run,scene=SCENE_DATA[r.scene];if(!scene)return[];
   const a=[];
+  // Batch 4: Shrine access from tavern hub
+  if(r.scene==='tavern_hub'){const jm=GS.getJM();
+    if((jm.spiritfire&&jm.spiritfire>0)||Object.keys(jm.shrineUnlocks||{}).length)
+      a.push({l:'Visit the Spiritfire Shrine',cmd:'shrine',d:'Spend Spiritfire on permanent upgrades.'})}
   if(scene.npcs)scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)a.push({l:'Talk to '+n.name,cmd:'talk_'+nid,d:n.desc})});
   if(scene.actions)scene.actions.forEach(act=>{if(!act.condition||act.condition(r))a.push({l:act.label,cmd:act.id,d:act.desc||''})});
   if(scene.exits)Object.keys(scene.exits).forEach(k=>{const ex=scene.exits[k];
@@ -2774,6 +3162,7 @@ getActions(){
 
 handleAction(cmd){
   const r=GS.run,sceneId=r.scene;
+  if(cmd==='shrine'){ML.openShrine();return}
   if(cmd.startsWith('go_')){this.enter(cmd.slice(3));return}
   if(cmd.startsWith('talk_')){
     const nid=cmd.slice(5);
@@ -2866,7 +3255,7 @@ async onWin(){
     r._combatWaveIdx=waveIdx;
     const goldDrop=enemy.gold||0;if(goldDrop){if(!r.gold)r.gold=0;r.gold+=goldDrop}
     if(xp)GS.addXP(xp);
-    const loot=rollLoot(enemy);if(loot)r.bp.push(loot);
+    const loot=rollLoot(enemy,r.modifiers);if(loot)r.bp.push(loot);
     GS.saveA();UI.updateHUD();
     UI.addN('The '+enemy.name+' falls!','s');
     if(loot)UI.addN('Looted: '+loot.name,'y');
@@ -2889,6 +3278,8 @@ async onWin(){
   const xpRes=xp?GS.addXP(xp):{gained:0,leveled:false,lvls:[]};
   if(xp)card.innerHTML+='<div class="vic-stat">XP gained: +'+xpRes.gained+'</div>';
   const goldDrop=enemy.gold||0;if(goldDrop){if(!r.gold)r.gold=0;r.gold+=goldDrop;GS.saveA()}
+  // Batch 4: Check milestones/spiritfire after victory
+  GS.checkMilestones();GS.checkSpiritfire();
   card.innerHTML+='<div class="vic-stat">HP remaining: '+r.hp+'/'+r.mHP+'</div>';
   card.innerHTML+='<div class="vic-stat">MP remaining: '+r.mp+'/'+r.mMP+'</div>';
   if(goldDrop)card.innerHTML+='<div class="vic-stat" style="color:var(--gold)">Gold earned: +'+goldDrop+'g</div>';
@@ -2909,7 +3300,7 @@ async onWin(){
       lvlDiv.appendChild(grid);card.appendChild(lvlDiv)});
   }
 
-  const loot=rollLoot(enemy);
+  const loot=rollLoot(enemy,GS.run?GS.run.modifiers:null);
   if(loot){
     card.innerHTML+='<div class="vic-loot-h">Loot</div>';
     const lootRow=document.createElement('div');lootRow.className='vic-loot-row';
@@ -2958,6 +3349,22 @@ async onDeath(){
     UI.addN('You fall, but drag yourself to safety\u2026','d');
     await UI._wait(800);
     this.failBounty();return}
+  // Batch 4: Final meta-progression checks
+  const cpEarned=GS.checkMilestones();
+  const sfEarned=GS.checkSpiritfire();
+  const m=GS.getJM();
+  // Update run history
+  if(!m.runHistory)m.runHistory={totalRuns:0,bestLevel:0,totalKills:0};
+  if(r.level>m.runHistory.bestLevel)m.runHistory.bestLevel=r.level;
+  GS.setJM({runHistory:m.runHistory});
+  // Calculate run summary for death screen
+  const totalDefeated=Object.values(r.bDef||{}).reduce((s,v)=>s+v,0);
+  const newEntries=Object.keys(m.bestiary||{}).length;
+  const modBonus=r.modifiers&&r.modifiers.length?(1+0.2*r.modifiers.length):1;
+  const comp=_pediaCompletion();const totalComp=PEDIA_SECTIONS.reduce((s,sec)=>{const c=comp[sec.key];return s+(c&&c.total?c.found:0)},0);
+  const totalTotal=PEDIA_SECTIONS.reduce((s,sec)=>{const c=comp[sec.key];return s+(c?c.total:0)},0);
+  const pediaPct=totalTotal>0?Math.floor(totalComp/totalTotal*100):0;
+  this._deathSummary={defeated:totalDefeated,newEntries,cpEarned,sfEarned,modBonus,pediaPct};
   UI.addN('Everything fades to black\u2026','d');
   await UI._wait(1000);
   UI.showDeathScreen();
@@ -3185,7 +3592,7 @@ openBountyBoard(){
     row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="color:var(--text)">'+bn.name+'</strong><span class="tier-badge tier-'+bn.tier+'">'+TIER_LABELS[bn.tier]+'</span></div><div style="font-size:.85rem;color:var(--text2)">'+bn.desc+'</div><div style="font-size:.8rem;color:var(--text3);margin-top:4px">Target: '+enemy.name+' \u00b7 Reward: <span style="color:var(--gold)">'+bn.goldReward+'g</span> + '+bn.xpReward+' XP</div>';
     const btn=document.createElement('button');btn.className='iab';btn.style.cssText='margin-top:6px';btn.textContent='Accept Bounty';
     btn.onclick=()=>{r.activeBounty={id:bn.id,enemy:bn.enemy,goldReward:bn.goldReward,xpReward:bn.xpReward,name:bn.name};
-      r.bountyBoard=null;GS.saveA();ML.closeAll();this.startBounty()};
+      r.bountyBoard=null;_unlockSystem('bounties');GS.saveA();ML.closeAll();this.startBounty()};
     row.appendChild(btn);b.appendChild(row)});
   const refreshBtn=document.createElement('button');refreshBtn.className='iab';refreshBtn.style.cssText='margin-top:8px;width:100%';refreshBtn.textContent='Refresh Board';
   refreshBtn.onclick=()=>{r.bountyBoard=this._generateBountyBoard();GS.saveA();this.openBountyBoard()};
@@ -3276,6 +3683,10 @@ _trackQuestProgress(trigger){
 
 runComplete(){
   const r=GS.run,adv=r.adventure||'muddy_trail',xpRes=GS.addXP(25);
+  // Batch 4: Track adventure completion + milestone/spiritfire checks
+  const jm=GS.getJM();if(!jm.adventuresCompleted)jm.adventuresCompleted={};
+  jm.adventuresCompleted[adv]=true;GS.setJM({adventuresCompleted:jm.adventuresCompleted});
+  GS.checkMilestones();GS.checkSpiritfire();
   const advNames={muddy_trail:'The Muddy Trail',iron_hollows:'The Iron Hollows',ashen_waste:'The Ashen Waste'};
   UI.addN((advNames[adv]||'Adventure')+' Complete!','h');
   UI.addN('XP earned: '+xpRes.gained+' (exploration bonus)','s');
@@ -3307,6 +3718,12 @@ startAdventure(advId){
   if(r.debuffs)r.debuffs=[];
   if(advId==='ashen_waste')r.ss.exit_tavern_hub_waste=true;
 
+  // Batch 4: Modifier selection (if adventure previously completed)
+  const jm=GS.getJM();
+  if(jm.adventuresCompleted&&jm.adventuresCompleted[advId]&&!r._modifiersChosen){
+    this._showModifierSelect(advId);return}
+  r._modifiersChosen=false;
+
   // Generate adventure map
   if(REGION_DATA[advId]){
     const map=MAP.generate(advId);
@@ -3324,6 +3741,33 @@ startAdventure(advId){
   const startScene=starts[advId]||'trailhead';
   r.scene=startScene;GS.saveA();
   UI.clearN();this.enter(startScene);
+},
+
+// --- Batch 4: Modifier selection screen ---
+_showModifierSelect(advId){
+  UI.clearN();
+  UI.addN('Run Modifiers','h');
+  UI.addN('You have completed this adventure before. Select modifiers for bonus rewards.','f');
+  const selected=new Set();const r=GS.run;
+  const wrap=document.createElement('div');wrap.style.cssText='display:flex;flex-direction:column;gap:8px;margin:12px 0';
+  Object.entries(RUN_MODIFIERS).forEach(([key,mod])=>{
+    const btn=document.createElement('button');btn.className='mbtn';btn.style.fontSize='.9rem';
+    btn.innerHTML='<strong>'+mod.name+'</strong><br><span style="color:var(--text2);font-size:.8rem">'+mod.desc+'</span>';
+    btn.onclick=()=>{if(selected.has(key)){selected.delete(key);btn.classList.remove('sel')}else{selected.add(key);btn.classList.add('sel')}};
+    wrap.appendChild(btn)});
+  UI.addEl(wrap);
+  // Legend Mode placeholder
+  const lgDiv=document.createElement('div');lgDiv.style.cssText='margin:8px 0;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;opacity:.5';
+  lgDiv.innerHTML='<strong style="color:var(--text3)">Legend Mode</strong> <span style="font-size:.8rem;color:var(--text3)">[Requires The Exile (coming soon)]</span>';
+  UI.addEl(lgDiv);
+  const goBtn=document.createElement('button');goBtn.className='nav-btn';goBtn.style.marginTop='12px';
+  goBtn.textContent='Begin Adventure \u2192';
+  goBtn.onclick=()=>{r.modifiers=[...selected];r._modifiersChosen=true;this.startAdventure(advId)};
+  UI.addEl(goBtn);
+  const skipBtn=document.createElement('button');skipBtn.className='nav-btn';skipBtn.style.cssText='margin-top:8px;color:var(--text3)';
+  skipBtn.textContent='Skip Modifiers';
+  skipBtn.onclick=()=>{r.modifiers=[];r._modifiersChosen=true;this.startAdventure(advId)};
+  UI.addEl(skipBtn);
 }
 };
 
@@ -3761,6 +4205,10 @@ _showMapAfterNode(){
   UI.setCombatMode(false);
   UI.clearN();
   const region=r.map.regions[r.mapPos.region];
+  // Batch 4: Track region discovery in atlas
+  const rDef=this.getCurrentRegionDef();
+  if(rDef){const jm=GS.getJM();if(!jm.atlas)jm.atlas={};
+    if(!jm.atlas[rDef.id]){jm.atlas[rDef.id]=true;GS.setJM({atlas:jm.atlas});GS.awardNewEntrySF()}}
   UI.addN(region.name+' — Choose your path','y');
   this.renderMap(UI.el.nw);
   UI.updateHUD();
@@ -4310,6 +4758,7 @@ const Particles={
 
 // === INIT ===
 document.addEventListener('DOMContentLoaded',()=>{
+  GS._migrateJM();
   UI.init();
   UI.showLanding();
 });
