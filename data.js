@@ -174,7 +174,54 @@ ancient_construct:{name:'Ancient Construct',id:'ancient_construct',tier:5,lore:'
   loot:[{item:'iron_shard',weight:40},{item:'knights_plate',weight:10},{item:null,weight:50}]},
 demon_lord:{name:'Demon Lord',id:'demon_lord',tier:5,lore:'A being of pure malice given form. It wields fear as a weapon and pain as a tool. Where it walks, hope dies.',hp:42,mHP:42,atk:11,def:2,dD:10,dB:2,xp:320,gold:55,preferredZone:'mid',
   onHit:{effect:'weaken',chance:35,duration:3,dmg:0},
-  loot:[{item:'demon_horn',weight:50},{item:'enchanted_blade',weight:10},{item:null,weight:40}]}
+  loot:[{item:'demon_horn',weight:50},{item:'enchanted_blade',weight:10},{item:null,weight:40}]},
+the_betrayer:{name:'The Betrayer',id:'the_betrayer',tier:5,
+  lore:'Once your companion, once your friend. Now cloaked in dark hexes and broken oaths. The name they once bore is forgotten — only the betrayal remains.',
+  hp:48,mHP:48,atk:11,def:2,dD:8,dB:3,xp:350,gold:60,preferredZone:'mid',
+  onHit:{effect:'curse',chance:40,duration:3,dmg:0},
+  _isBetrayer:true,_phase2Threshold:0.4,
+  loot:[{item:'ghpot',weight:40},{item:'enchanted_blade',weight:15},{item:null,weight:45}]}
+};
+
+// === TUTORIAL COMPANION & OPENING SEQUENCE DATA ===
+const TUTORIAL_COMPANION={
+  name:'Lysara',title:'The Friend',
+  summonStats:{hp:20,mHP:20,dmgDice:[6],_bonusDmg:2},
+  portraitDesc:'A young woman with dark eyes and an easy smile. Faint hex marks trace her wrists.'
+};
+const TUTORIAL_ENCOUNTERS=['gray_ooze','moss_rat'];
+
+const OPENING_DIALOGUE={
+  friend_intro:[
+    '"You\'re awake. Good. I wasn\'t sure you\'d make it."',
+    '"My name is Lysara. I found you on the road, half-dead and covered in mud."',
+    '"Something is wrong with the trail ahead. I can feel it. We should move together."'
+  ],
+  friend_combat_1:'"Stay close. Watch the creature\'s stance — that icon tells you what it\'s planning."',
+  friend_combat_2:'"Another one. Follow my lead — try using your ability this time."',
+  friend_post_combat:[
+    '"Not bad. You have some fight in you."',
+    '"There\'s a clearing ahead. I know a place. Trust me."'
+  ],
+  friend_turn:[
+    '"I wanted to tell you sooner. I really did."',
+    '"I was offered something you wouldn\'t understand."',
+    '"Power that doesn\'t ask you to die in a muddy trail for scraps."'
+  ],
+  betrayal:[
+    '"I\'m sorry. Truly."',
+    'Dark veins crawl up Lysara\'s arms. Her eyes burn with eldritch light.',
+    'The hex strikes your chest. Cold. Final.',
+    'The world goes dark.'
+  ],
+  hearthkeeper_merge:[
+    '"...can you hear me?"',
+    '"The fire... it reaches for you."',
+    '"I am the Hearthkeeper. What remains when all else burns."',
+    '"She sought my flame. But the flame chose you."',
+    '"You will die again. Many times. But I will always bring you back."',
+    '"Rise, traveler. The trail awaits."'
+  ]
 };
 
 const ITEMS={
@@ -597,11 +644,11 @@ ash_post_tower:{name:'The Spire, Silenced',subtitle:'Where fire dies',
   exits:{forward:{scene:'ash_throne',label:'The Throne of Ashes',discovered:true}},
   events:{onFirstVisit:null,onEnter:null,combat:null}},
 ash_throne:{name:'The Throne of Ashes',subtitle:null,
-  description:'A cavern of volcanic glass, lit by rivers of molten rock. At its center, coiled upon a throne of fused bone, lies the Elder Dragon. Its eye opens. It has been waiting.',
+  description:'A cavern of volcanic glass, lit by rivers of molten rock. At its center stands a figure in tattered robes, dark veins pulsing beneath their skin. They turn to face you. You know this face.',
   npcs:[],exits:{},
-  events:{onFirstVisit:null,onEnter:null,combat:'elder_dragon'}},
+  events:{onFirstVisit:null,onEnter:null,combat:'the_betrayer'}},
 ash_exit:{name:'Dawn Breaks',subtitle:'Where fire surrenders to light',
-  description:'The Elder Dragon falls. The ground shakes. Through the smoke and ash, a crack of light appears \u2014 daylight, real daylight. The Ashen Waste will heal, slowly. You emerge, changed.',
+  description:'The Betrayer falls. The dark power shatters. Through the smoke and ash, a crack of light appears \u2014 daylight, real daylight. Lysara is gone. Only the memory remains. You emerge, changed.',
   npcs:[],exits:{tavern:{scene:'tavern_hub',label:'The Hearthstone Tavern',discovered:true}},
   events:{onFirstVisit:null,onEnter:null,combat:null},
   actions:[{id:'leave_waste',label:'Leave the Ashen Waste',desc:'Your journey is complete',condition(){return true}}]},
@@ -655,7 +702,7 @@ wyvern_hunt:{name:'Wyvern Hunt',enemy:'wyvern',tier:3,goldReward:35,xpReward:85,
 death_knight_bounty:{name:'Death Knight Bounty',enemy:'death_knight',tier:4,goldReward:42,xpReward:100,desc:'A death knight has been sighted. Destroy it.',capture:true},
 void_hunt:{name:'Void Hunt',enemy:'void_stalker',tier:4,goldReward:40,xpReward:95,desc:'A void stalker flickers between realities.',capture:true},
 wyrm_hunt:{name:'Wyrm Hunt',enemy:'ash_wyrm',tier:4,goldReward:42,xpReward:100,desc:'An ash wyrm terrorizes the scorched road.',capture:true},
-dragon_hunt:{name:'Dragon Hunt',enemy:'elder_dragon',tier:5,goldReward:80,xpReward:200,desc:'The Elder Dragon itself. Are you ready?',capture:true}
+dragon_hunt:{name:'The Betrayer',enemy:'the_betrayer',tier:5,goldReward:80,xpReward:200,desc:'Face The Betrayer in the Throne of Ashes. End this.',capture:true}
 };
 
 const QUESTS={
@@ -676,7 +723,7 @@ troll_slayer:{name:'Troll Slayer',desc:'Defeat 2 Rock Trolls via bounties.',trig
 banshee_silencer:{name:'Banshee Silencer',desc:'Defeat 2 Banshees via bounties.',trigger:'defeat_banshee',count:2,reward:{gold:60,xp:120},oneTime:true},
 knight_slayer:{name:'Knight Slayer',desc:'Defeat 2 Corrupted Knights via bounties.',trigger:'defeat_corrupted_knight',count:2,reward:{gold:65,xp:130},oneTime:true},
 wyrm_slayer:{name:'Wyrm Slayer',desc:'Defeat 2 Ash Wyrms via bounties.',trigger:'defeat_ash_wyrm',count:2,reward:{gold:80,xp:160},oneTime:true},
-dragon_slayer:{name:'Dragon Slayer',desc:'Defeat the Elder Dragon in a bounty.',trigger:'defeat_elder_dragon',count:1,reward:{gold:200,xp:400},oneTime:true},
+dragon_slayer:{name:'Oathbreaker\'s End',desc:'Defeat The Betrayer.',trigger:'defeat_the_betrayer',count:1,reward:{gold:200,xp:400},oneTime:true},
 wasteland_explorer:{name:'Wasteland Explorer',desc:'Complete 25 bounties total.',trigger:'bounty_complete',count:25,reward:{gold:200,xp:500},oneTime:true},
 legend:{name:'Legend',desc:'Complete 50 bounties total.',trigger:'bounty_complete',count:50,reward:{gold:500,xp:1000},oneTime:true}
 };
@@ -778,7 +825,7 @@ ashen_waste:{
       shopNPCs:['garrett'],loreTheme:'spire'}
   ],
   roamingPool:['storm_elemental','void_stalker','troll_warlord'],
-  boss:'elder_dragon',transitionEnemy:'corrupted_knight'
+  boss:'the_betrayer',transitionEnemy:'corrupted_knight'
 }
 };
 
@@ -1044,7 +1091,8 @@ marsh_toad:{weak:['burn'],resist:['poison']},
 spore_mite:{weak:['burn'],resist:[]},
 ember_beetle:{weak:['slow'],resist:['burn']},
 ash_worm:{weak:['burn'],resist:[]},
-tunnel_bat:{weak:['rooted'],resist:[]}
+tunnel_bat:{weak:['rooted'],resist:[]},
+the_betrayer:{weak:['silenced'],resist:['curse','weaken']}
 };
 
 const BESTIARY_THRESHOLDS={basic:0,full:1,mastery:3};
@@ -1684,4 +1732,35 @@ master_explorer:{tier:'B',name:'Master Explorer',desc:'Complete all 3 adventures
 pedia_scholar:{tier:'B',name:'Pedia Scholar',desc:'Reach 50% Adventurepedia completion.',trackKey:'pediaPct',target:50,reward:{spiritfire:10}},
 iron_will:{tier:'B',name:'Iron Will',desc:'Survive 10 runs.',trackKey:'totalRuns',target:10,reward:{spiritfire:8}},
 legend_seeker:{tier:'B',name:'Legend Seeker',desc:'Reach level 15.',trackKey:'bestLevel',target:15,reward:{spiritfire:10}}
+};
+
+// === BATCH 7A: CHRONICLE QUOTES ===
+const CHRONICLE_QUOTES=[
+'The Hearthkeeper traces a finger along the Chronicle\'s pages...',
+'"Every scar tells a story. Every number, a life lived."',
+'"The fire remembers what the flesh forgets."',
+'"You have walked far. The Chronicle knows."',
+'"These pages hold the weight of all your journeys."',
+'"Read well. The dead cannot speak, but the numbers do."'
+];
+
+// === BATCH 7A: TOOLTIP TEXT ===
+const TOOLTIP_TEXT={
+tt_intent:'Enemies show their plan each turn. Use this to decide your action.',
+tt_ability:'NEW: {name}. {desc}. Costs {cost} MP.',
+tt_status:'{name}: {desc}.',
+tt_stat_check:'Stat checks use your strengths. Higher stats mean better odds.',
+tt_shop:'Buy, sell, or browse. Prices vary by location.',
+tt_consumable:'Consumables are free to use in combat. No turn cost.',
+tt_zone:'Zones affect range. Melee needs Close. Ranged works from any zone.',
+tt_block:'Shield equipped! Block reduces incoming damage.',
+tt_verb:'{name} is your class\'s unique combat action.',
+tt_synergy:'SYNERGY! Two status effects combined for a powerful bonus.',
+tt_death:'Knowledge survives death. Your Adventurepedia, class tree, and currencies persist.',
+tt_pedia:'Your Adventurepedia tracks everything you discover.',
+tt_class_point:'Class Points upgrade your class tree. Earn them through milestones.',
+tt_grave:'Those skulls hunger for death. Slay enemies and the dark power flows to you.',
+tt_friend_intent:'Watch the creature\'s stance — that icon tells you what it\'s planning.',
+tt_friend_ability:'You have a special ability! Try it — it costs MP but packs a punch.',
+tt_friend_zone:'Distance matters. Get close for your blade, stay back for spells.'
 };

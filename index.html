@@ -278,6 +278,27 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 /* Settings: high contrast & larger text (applied to html) */
 html.settings-high-contrast{--text:#f0ece0;--text2:#b8b0a0;--text3:#9a9080;--border:#4a4238}
 html.settings-large-text{font-size:1.1rem}
+html.settings-text-xl{font-size:1.25rem}
+html.settings-no-shake .screen-shake{animation:none!important}
+html.settings-cb-deut .ne-s{color:#4488ff}
+html.settings-cb-prot .ne-s{color:#4488ff}
+html.settings-cb-trit .ne-d{color:#ff6644}
+.verb-used{opacity:.4;border-color:var(--text3)!important}
+.verb-locked{opacity:.6;border-color:var(--red)!important}
+#cb-verb{border-color:var(--gold)}
+.verb-sub{font-size:.65rem;color:var(--text3);margin-left:4px}
+.cb-tray{display:flex;gap:4px;padding:2px 8px;margin-bottom:4px}
+.cb-tray:empty{display:none}
+.tray-btn{font-size:.65rem;padding:2px 6px;min-height:24px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;font-family:var(--fn);transition:border-color .15s}
+.tray-btn:hover{border-color:var(--gold)}
+.skull{opacity:.2;font-size:.7rem}.skull.filled{opacity:1}
+.tt-tip{position:relative;background:rgba(30,25,20,.95);border:1px solid var(--gold);border-radius:6px;padding:8px 28px 8px 10px;font-size:.85rem;color:var(--text);margin:4px 8px;animation:fadeIn .3s ease}
+.tt-narrator{color:var(--gold);font-style:italic}
+.tt-x{position:absolute;right:4px;top:4px;background:none;border:none;color:var(--text3);font-size:1rem;cursor:pointer}
+.ne-crit{color:#c9a84c;font-weight:bold}
+.ne-synergy{color:#ff8800;font-weight:bold}
+.ne-block{color:#6b6b7b}
+.ne-status{color:#cc4444}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 /* Title Card */
 #title-card{display:none;position:fixed;inset:0;background:var(--bg);z-index:600;justify-content:center;align-items:center;flex-direction:column;opacity:0;transition:opacity .3s ease}
@@ -411,9 +432,10 @@ html.settings-large-text{font-size:1.1rem}
 <button class="acts-btn" id="b-acts" aria-label="Choose an action">Actions</button>
 </div>
 <div id="combat-bar">
-  <div class="cb-info-bar"><span>Zone: <span class="cb-zone-tag" id="cb-zone-tag">MID</span></span><span class="cb-intent" id="cb-intent"></span></div>
+  <div class="cb-info-bar"><span>Zone: <span class="cb-zone-tag" id="cb-zone-tag">MID</span></span><span id="cb-speed" style="color:var(--gold);font-size:.7rem"></span><span class="cb-intent" id="cb-intent"></span></div>
   <div class="cb-target-bar" id="cb-target-bar"></div>
   <div class="cb-status-bar" id="cb-status-bar"></div>
+  <div class="cb-tray" id="cb-tray"></div>
   <div class="cmd-menu" id="cmd-menu-main">
     <button class="cmd-btn" id="cb-atk"><span class="cmd-icon">⚔</span>Attack<span class="cmd-pct" id="cb-atk-pct"></span></button>
     <button class="cmd-btn" id="cb-ability" style="display:none"><span class="cmd-icon">✦</span><span id="cb-ability-name">Ability</span><span class="cmd-pct" id="cb-ability-cost"></span></button>
@@ -837,8 +859,16 @@ _drawEnemyHUD(ctx,e,w){
 },
 _drawDebuffs(ctx,debuffs,x,y){
   if(!debuffs||!debuffs.length)return;
-  const colors={poison:'#50a050',bleed:'#8b2635',burn:'#e08030',stun:'#c9a84c',curse:'#604080',blind:'#6b6b7b',slow:'#6088a8',weaken:'#702020'};
-  debuffs.forEach((d,i)=>{ctx.fillStyle=colors[d.type]||'#6b6b7b';ctx.fillRect(x+i*10,y,6,6)});
+  const familyColors={burn:'#c02040',bleed:'#c02040',poison:'#c02040',stagger:'#c9a84c',blind:'#c9a84c',
+    slow:'#4488cc',rooted:'#4488cc',stun:'#4488cc',silenced:'#4488cc',
+    weaken:'#8844cc',brittle:'#8844cc',exposed:'#cc8800',marked:'#cc8800',curse:'#448844'};
+  const abbrev={burn:'BR',bleed:'BL',poison:'PS',stagger:'ST',blind:'BD',slow:'SL',rooted:'RT',
+    stun:'SN',silenced:'SC',weaken:'WK',brittle:'BT',exposed:'EX',marked:'MK',curse:'CU'};
+  ctx.font='bold 8px sans-serif';
+  debuffs.forEach((d,i)=>{
+    const c=familyColors[d.type]||'#6b6b7b';const ab=abbrev[d.type]||d.type.substring(0,2).toUpperCase();
+    ctx.fillStyle=c;ctx.fillRect(x+i*22,y,20,10);
+    ctx.fillStyle='#000';ctx.fillText(ab+d.remaining,x+i*22+2,y+8)});
 },
 startIdle(cv,r,cs){
   this.stopIdle();
@@ -849,7 +879,7 @@ startIdle(cv,r,cs){
     this._bobOff+=this._bobDir*0.5;
     if(this._bobOff>2||this._bobOff<-2)this._bobDir*=-1;
     this.render(cv,r,cs);
-  },120);
+  },Math.floor(120/getSpeed()));
 },
 stopIdle(){if(this._bobTimer){clearInterval(this._bobTimer);this._bobTimer=null}},
 _pOff:0,_eOff:0,_flashP:0,_flashE:0,_dmgPops:[],
@@ -857,13 +887,14 @@ playAttack(type,dmg,cb){
   if(REDUCED_MOTION||!this._cv){if(cb)cb();return}
   const cv=this._cv,r=this._r,cs=this._cs;
   this._animating=true;
+  const spd=getSpeed();
   if(type==='player_melee'){
     let frame=0;const slides=[0,8,16,24,30,24,16,8,0];
     const anim=setInterval(()=>{
       this._pOff=slides[frame]||0;this._flashE=frame>=4&&frame<=5?1:0;
       this._renderAnim(cv,r,cs);frame++;
       if(frame>=slides.length){clearInterval(anim);this._pOff=0;this._flashE=0;this._animating=false;if(cb)cb()}
-    },40);
+    },Math.floor(40/spd));
   } else if(type==='player_ranged'){
     let px=80,frame=0;
     const anim=setInterval(()=>{
@@ -872,8 +903,8 @@ playAttack(type,dmg,cb){
       ctx.fillStyle='#e8e8f0';ctx.fillRect(px,cv.height*0.5,4,2);
       px+=18;frame++;
       if(px>cv.width-80){clearInterval(anim);this._flashE=1;
-        this._renderAnim(cv,r,cs);setTimeout(()=>{this._flashE=0;this._animating=false;if(cb)cb()},80)}
-    },30);
+        this._renderAnim(cv,r,cs);setTimeout(()=>{this._flashE=0;this._animating=false;if(cb)cb()},Math.floor(80/spd))}
+    },Math.floor(30/spd));
   } else if(type==='player_magic'){
     let frame=0;const particles=[];
     for(let i=0;i<8;i++)particles.push({x:80+Math.random()*20,y:cv.height*0.4+Math.random()*30,vx:8+Math.random()*4,vy:-2+Math.random()*4,life:8+Math.floor(Math.random()*6)});
@@ -881,18 +912,18 @@ playAttack(type,dmg,cb){
       this._renderAnim(cv,r,cs);const ctx=cv.getContext('2d');
       particles.forEach(p=>{if(p.life>0){ctx.fillStyle='#a060e0';ctx.fillRect(p.x,p.y,3,3);p.x+=p.vx;p.y+=p.vy;p.life--}});
       frame++;if(frame>16){clearInterval(anim);this._flashE=1;
-        this._renderAnim(cv,r,cs);setTimeout(()=>{this._flashE=0;this._animating=false;if(cb)cb()},80)}
-    },35);
+        this._renderAnim(cv,r,cs);setTimeout(()=>{this._flashE=0;this._animating=false;if(cb)cb()},Math.floor(80/spd))}
+    },Math.floor(35/spd));
   } else if(type==='enemy_attack'){
     let frame=0;const slides=[0,-8,-16,-24,-30,-24,-16,-8,0];
     const anim=setInterval(()=>{
       this._eOff=slides[frame]||0;this._flashP=frame>=4&&frame<=5?1:0;
       this._renderAnim(cv,r,cs);frame++;
       if(frame>=slides.length){clearInterval(anim);this._eOff=0;this._flashP=0;this._animating=false;if(cb)cb()}
-    },40);
+    },Math.floor(40/spd));
   } else if(type==='block'){
     this._flashP=2;this._renderAnim(cv,r,cs);
-    setTimeout(()=>{this._flashP=0;this._animating=false;if(cb)cb()},200);
+    setTimeout(()=>{this._flashP=0;this._animating=false;if(cb)cb()},Math.floor(200/spd));
   } else if(type==='enemy_death'){
     let frame=0;
     const anim=setInterval(()=>{
@@ -903,17 +934,24 @@ playAttack(type,dmg,cb){
       for(let i=0;i<5;i++)ctx.fillRect(ex+Math.random()*esz,ey-frame*3+Math.random()*20,2,2);
       ctx.globalAlpha=1;frame++;
       if(frame>10){clearInterval(anim);this._animating=false;if(cb)cb()}
-    },60);
+    },Math.floor(60/spd));
   } else {this._animating=false;if(cb)cb()}
 },
 showDmgPop(value,type){
   if(!this._cv)return;
-  const cv=this._cv,ctx=cv.getContext('2d');
-  const isEnemy=type==='enemy_hit'||type==='enemy_dmg';
+  const cv=this._cv;
+  const isEnemy=type==='enemy_hit'||type==='enemy_dmg'||type==='crit';
   const x=isEnemy?cv.width-100+Math.random()*40:30+Math.random()*40;
-  const pop={x,y:cv.height*0.45,text:type==='miss'?'MISS':type==='heal'?'+'+value:'-'+value,
-    color:type==='miss'?'#6b6b7b':type==='heal'?'#50a050':type==='enemy_hit'?'#c9a84c':'#c02040',
-    life:20,vy:-1.5};
+  const cb=GS.getSettings().colorblindMode||'off';
+  let text,color;
+  if(type==='miss'){text='MISS';color='#6b6b7b'}
+  else if(type==='heal'){text='+'+value;color='#50a050'}
+  else if(type==='crit'){text=(cb!=='off'?'★ ':'')+'-'+value;color='#c9a84c'}
+  else if(type==='status_tick'){text=(cb!=='off'?'▼ ':'')+'-'+value;color='#c02040'}
+  else if(type==='block'){text='BLOCKED';color='#6b6b7b'}
+  else if(type==='enemy_hit'){text=(cb!=='off'?'● ':'')+'-'+value;color='#c9a84c'}
+  else{text='-'+value;color='#c02040'}
+  const pop={x,y:cv.height*0.45,text,color,life:20,vy:-1.5};
   this._dmgPops.push(pop);
 },
 _renderAnim(cv,r,cs){
@@ -945,7 +983,20 @@ _renderAnim(cv,r,cs){
     const p=this._dmgPops[i];ctx.font='bold 12px sans-serif';ctx.fillStyle=p.color;
     ctx.fillText(p.text,p.x,p.y);p.y+=p.vy;p.life--;
     if(p.life<=0)this._dmgPops.splice(i,1)}
-}
+  // Synergy flash
+  if(this._synergyFlash&&this._synergyFlash.life>0){
+    const sf=this._synergyFlash;ctx.globalAlpha=sf.life/60;
+    ctx.font='bold 14px sans-serif';ctx.fillStyle='#ff8800';
+    const tw=ctx.measureText(sf.text).width;
+    ctx.fillText(sf.text,(w-tw)/2,h*0.35);ctx.globalAlpha=1;sf.life--}
+  // Intent change indicator
+  if(this._intentBang&&this._intentBang>0){
+    const e2=this._r&&this._r.cs?this._r.cs.enemy:null;
+    if(e2){ctx.font='bold 14px sans-serif';ctx.fillStyle='#c02040';ctx.fillText('!',w-30,12)}
+    this._intentBang--}
+},
+showSynergyFlash(name){this._synergyFlash={text:'✦ '+name+' ✦',life:60}},
+showIntentBang(){this._intentBang=3}
 };
 
 // === SPECIES DATA ===
@@ -1116,6 +1167,7 @@ function getBlockTier(r){
   return 2;
 }
 const REDUCED_MOTION=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function getSpeed(){return GS.getSettings().gameSpeed||1}
 
 // === CALC MODULE ===
 const CALC={
@@ -1178,8 +1230,10 @@ newRun(nm,sp,subsp,cl,humanBonus,subclass){
     activeBounty:null,bountyBoard:null,activeQuests:[],completedQuests:{},questProgress:{},
     verbUsed:false,usedAbilities:{},graveCharges:0,
     map:null,mapPos:null,mapRevealed:{},restBudget:{short:2,long:1},
-    dungeonState:null,encounterHistory:[],deferredEffects:[],discoveredRecipes:{},npcRepGains:{}};
+    dungeonState:null,encounterHistory:[],deferredEffects:[],discoveredRecipes:{},npcRepGains:{},
+    runStats:{damageDealt:0,damageTaken:0,turnsTotal:0,nodesExplored:0,goldEarned:0,goldSpent:0,consumablesUsed:0,abilitiesUsed:{},statusApplied:{},highestHit:0,startTime:Date.now()}};
   this.run.modifiers=[];this.run.legendMode=false;
+  {const jm=this.getJM();this.run.blessingActive=!!(jm.hearthkeeperBlessing&&jm.hearthkeeperBlessing.enabled)}
   // Batch 4: Record class in codex
   const jm=this.getJM();if(!jm.codex)jm.codex={};
   if(!jm.codex[cl])jm.codex[cl]={played:true,abilitiesSeen:{}};
@@ -1269,6 +1323,7 @@ _validateSave(p){if(!(p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof
   if(!p.encounterHistory)p.encounterHistory=[];if(!p.deferredEffects)p.deferredEffects=[];
   if(p._mapReturnRegion===undefined)p._mapReturnRegion=null;if(!p.discoveredRecipes)p.discoveredRecipes={};
   if(!p.modifiers)p.modifiers=[];if(p.legendMode===undefined)p.legendMode=false;if(!p.npcRepGains)p.npcRepGains={};
+  if(!p.runStats)p.runStats={damageDealt:0,damageTaken:0,turnsTotal:0,nodesExplored:0,goldEarned:0,goldSpent:0,consumablesUsed:0,abilitiesUsed:{},statusApplied:{},highestHit:0,startTime:Date.now()};
   if(p.subclass===undefined)p.subclass=null;if(!p._treeEffects)p._treeEffects={maxHP:0,maxMP:0,meleeHit:0,rangedHit:0,meleeDmg:0,rangedDmg:0,critBonus:0,effMov:0,sight:0,speech:0,firstAttackBonus:0,firstHitReduction:0,damageReduction:0,damageVsDebuffed:0,damageVsMarked:0,lifestealPct:0,blockBonus:0,fleeBonus:0,freeZoneMove:0,statusDurationSelfMod:0,abilityCostReduce:{},abilityEnhance:{},statusChanceBonuses:{},statusDurationBonuses:{},passives:{},toggles:{},grantedAbilities:{},subclassUnlocks:[]};
   return true},
 saveA(){if(this.run)try{localStorage.setItem('activeRun',JSON.stringify(this.run));this._saveFail=false}catch(e){if(!this._saveFail){this._saveFail=true;console.warn('Auto-save failed:',e);
@@ -1284,10 +1339,19 @@ getQS(){try{const d=localStorage.getItem('quickSave');if(!d)return null;const p=
 getJM(){try{return JSON.parse(localStorage.getItem('journalMeta')||'{}')}catch(e){return{}}},
 setJM(u){const m=this.getJM();Object.assign(m,u);try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}},
 getSettings(){try{return JSON.parse(localStorage.getItem('gameSettings')||'{}')}catch(e){return{}}},
-setSettings(s){try{localStorage.setItem('gameSettings',JSON.stringify(s));const root=document.documentElement;root.classList.toggle('settings-high-contrast',!!s.highContrast);root.classList.toggle('settings-large-text',!!s.largeText)}catch(e){}},
+setSettings(s){try{localStorage.setItem('gameSettings',JSON.stringify(s));const root=document.documentElement;
+  root.classList.toggle('settings-high-contrast',!!s.highContrast);
+  root.classList.toggle('settings-large-text',s.textSize==='large'||s.textSize==='xl');
+  root.classList.toggle('settings-text-xl',s.textSize==='xl');
+  root.classList.toggle('settings-no-shake',s.screenShake===false);
+  root.classList.toggle('settings-cb-deut',s.colorblindMode==='deuteranopia');
+  root.classList.toggle('settings-cb-prot',s.colorblindMode==='protanopia');
+  root.classList.toggle('settings-cb-trit',s.colorblindMode==='tritanopia');
+  }catch(e){}},
 recEnc(id){if(!this.run)return;this.run.bSeen[id]=(this.run.bSeen[id]||0)+1;
   const m=this.getJM();if(!m.bestiary)m.bestiary={};const e=ENEMIES[id];
-  if(!m.bestiary[id]){m.bestiary[id]={name:e.name,lore:e.lore,tier:e.tier,seenCount:0,defeatCount:0};this.awardNewEntrySF()}
+  if(!m.bestiary[id]){m.bestiary[id]={name:e.name,lore:e.lore,tier:e.tier,seenCount:0,defeatCount:0};this.awardNewEntrySF();
+    if(typeof TOOLTIP_TEXT!=='undefined')TT.show('tt_pedia',TOOLTIP_TEXT.tt_pedia)}
   m.bestiary[id].seenCount=(m.bestiary[id].seenCount||0)+1;
   this.setJM({bestiary:m.bestiary});this.saveA()},
 recDef(id){if(!this.run)return;this.run.bDef[id]=(this.run.bDef[id]||0)+1;
@@ -1296,6 +1360,8 @@ recDef(id){if(!this.run)return;this.run.bDef[id]=(this.run.bDef[id]||0)+1;
   m.bestiary[id].defeatCount=(m.bestiary[id].defeatCount||0)+1;
   const e=ENEMIES[id];m.bestiary[id].hp=e.mHP;m.bestiary[id].atk=e.atk;m.bestiary[id].def=e.def;
   m.bestiary[id].dmg='1d'+e.dD+'+'+e.dB;m.bestiary[id].preferredZone=e.preferredZone;
+  // Batch 7B: Track Betrayer defeat
+  if(id==='the_betrayer'){const jm2=this.getJM();if(!jm2.betrayerDefeated){jm2.betrayerDefeated=true;this.setJM({betrayerDefeated:true})}}
   this.setJM({bestiary:m.bestiary});this.trackClassStat('kills',1);this.saveA()},
 addXP(amt){if(!this.run)return{};this.run.xp+=amt;let lv=false,lvls=[];
   while(this.run.level<25&&this.run.xp>=this.run.level*100){this.run.level++;lv=true;lvls.push(this.run.level);
@@ -1335,6 +1401,7 @@ checkMilestones(){
       m.classPoints[cl]=(m.classPoints[cl]||0)+ms.reward;
       earned+=ms.reward;
       showToast('Milestone: '+ms.desc+' (+'+ms.reward+' CP)','success');
+      if(typeof TOOLTIP_TEXT!=='undefined')TT.show('tt_class_point',TOOLTIP_TEXT.tt_class_point);
     }
   });
   if(earned>0)this.setJM({milestonesClaimed:m.milestonesClaimed,classPoints:m.classPoints});
@@ -1372,7 +1439,7 @@ awardNewEntrySF(){
 // --- Batch 4: journalMeta migration ---
 _migrateJM(){
   const m=this.getJM();
-  if(m.version>=6)return;
+  if(m.version>=7)return;
   if(!m.bestiary)m.bestiary={};
   // Migrate old bestiary entries to include seenCount/defeatCount/tier
   Object.keys(m.bestiary).forEach(id=>{
@@ -1439,10 +1506,183 @@ _migrateJM(){
     m.classUnlocks={};
   }
   m.version=6;
+  // v6→v7: Batch 7A — Chronicle, Hearthkeeper's Blessing, tooltip tracking, settings migration
+  if(!m.tutorialSeen)m.tutorialSeen={};
+  if(!m.hearthkeeperBlessing)m.hearthkeeperBlessing={enabled:false,resistance:15,deathCount:0,cap:60};
+  if(!m.chronicle)m.chronicle={lifetimeStats:{totalDamageDealt:0,totalDamageTaken:0,totalGoldEarned:0,totalPlayTime:0,highestHit:0,longestRun:0,mostSynergies:0},personalRecords:{}};
+  if(!m.isFirstRun&&m.isFirstRun!==false)m.isFirstRun=true;
+  if(!m.betrayerDefeated)m.betrayerDefeated=false;
+  // Migrate old largeText boolean to textSize string
+  const st=this.getSettings();
+  if(st.largeText&&!st.textSize){st.textSize='large';delete st.largeText;this.setSettings(st)}
+  if(st.gameSpeed===undefined)st.gameSpeed=1;
+  if(st.screenShake===undefined)st.screenShake=true;
+  if(!st.colorblindMode)st.colorblindMode='off';
+  if(st.showTips===undefined)st.showTips=true;
+  this.setSettings(st);
+  m.version=7;
   try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}
 }
 };
 
+// === TOOLTIP MODULE ===
+const TT={
+_el:null,_timer:null,
+show(id,text){
+  const jm=GS.getJM();
+  if(!GS.getSettings().showTips&&GS.getSettings().showTips!==undefined)return;
+  if(jm.tutorialSeen&&jm.tutorialSeen[id])return;
+  this.dismiss();
+  const el=document.createElement('div');el.className='tt-tip';
+  const narrator=(GS.run&&GS.run.scene==='__opening__')?'Lysara':'The Hearthkeeper';
+  el.innerHTML='<span class="tt-narrator">'+narrator+':</span> '+text;
+  const close=document.createElement('button');close.className='tt-x';close.textContent='×';
+  close.onclick=()=>this.dismiss();el.appendChild(close);
+  const anchor=$('narr-w')||$('game');
+  if(anchor)anchor.parentNode.insertBefore(el,anchor);
+  this._el=el;this._id=id;
+  this._timer=setTimeout(()=>this.dismiss(),8000);
+},
+dismiss(){
+  if(this._el){this._el.remove();this._el=null}
+  if(this._timer){clearTimeout(this._timer);this._timer=null}
+  if(this._id)this.markSeen(this._id);
+},
+markSeen(id){
+  const jm=GS.getJM();
+  if(!jm.tutorialSeen)jm.tutorialSeen={};
+  jm.tutorialSeen[id]=true;
+  GS.setJM({tutorialSeen:jm.tutorialSeen});
+  this._id=null;
+}};
+// === OPENING NARRATIVE MODULE ===
+const OPENING={
+_step:0,_combatIdx:0,
+isActive(){
+  const jm=GS.getJM();
+  if(!jm.isFirstRun)return false;
+  const rh=jm.runHistory||{totalRuns:0};
+  // Skip for migrated saves that already have runs
+  if(rh.totalRuns>1)return false;
+  return true;
+},
+start(){
+  const r=GS.run;r.scene='__opening__';this._step=0;this._combatIdx=0;
+  r._openingStep='intro';GS.saveA();
+  UI.clearN();this._intro();
+},
+async _intro(){
+  const lines=OPENING_DIALOGUE.friend_intro;
+  for(let i=0;i<lines.length;i++){
+    UI.addN(lines[i],'f');await UI._wait(800)}
+  const btn=document.createElement('button');btn.className='nav-btn';btn.style.marginTop='12px';
+  btn.textContent='"Lead the way."';
+  btn.onclick=()=>{btn.remove();this._combat1()};
+  UI.addEl(btn);
+},
+_combat1(){
+  const r=GS.run;r._openingStep='combat1';GS.saveA();
+  UI.clearN();UI.addN(OPENING_DIALOGUE.friend_combat_1,'f');
+  // Show friend tooltip variants during opening
+  if(typeof TOOLTIP_TEXT!=='undefined'){
+    TT.show('tt_friend_intent',TOOLTIP_TEXT.tt_friend_intent);
+  }
+  const cs=CMB.start(TUTORIAL_ENCOUNTERS[0]);
+  if(!cs){this._postCombats();return}
+  this._injectCompanion(cs);
+  UI.setCombatMode(true);UI.updateHUD();UI.setCombatBusy(false);
+},
+_injectCompanion(cs){
+  const s={...TUTORIAL_COMPANION.summonStats,name:TUTORIAL_COMPANION.name,
+    _isFriend:true,zone:'mid',debuffs:[]};
+  cs.summons.push(s);
+},
+_onCombatWin(){
+  this._combatIdx++;
+  if(this._combatIdx<TUTORIAL_ENCOUNTERS.length){
+    this._combat2();
+  }else{
+    this._postCombats();
+  }
+},
+async _combat2(){
+  const r=GS.run;r._openingStep='combat2';GS.saveA();
+  UI.clearN();UI.addN(OPENING_DIALOGUE.friend_combat_2,'f');
+  if(typeof TOOLTIP_TEXT!=='undefined'){
+    TT.show('tt_friend_ability',TOOLTIP_TEXT.tt_friend_ability);
+  }
+  await UI._wait(400);
+  const cs=CMB.start(TUTORIAL_ENCOUNTERS[1]);
+  if(!cs){this._postCombats();return}
+  this._injectCompanion(cs);
+  UI.setCombatMode(true);UI.updateHUD();UI.setCombatBusy(false);
+},
+async _postCombats(){
+  const r=GS.run;r._openingStep='post_combat';GS.saveA();
+  UI.setCombatMode(false);UI.clearN();
+  const lines=OPENING_DIALOGUE.friend_post_combat;
+  for(let i=0;i<lines.length;i++){
+    UI.addN(lines[i],'f');await UI._wait(800)}
+  const btn=document.createElement('button');btn.className='nav-btn';btn.style.marginTop='12px';
+  btn.textContent='"I trust you."';
+  btn.onclick=()=>{btn.remove();this._theTurn()};
+  UI.addEl(btn);
+},
+async _theTurn(){
+  const r=GS.run;r._openingStep='the_turn';GS.saveA();
+  UI.clearN();
+  const lines=OPENING_DIALOGUE.friend_turn;
+  for(let i=0;i<lines.length;i++){
+    UI.addN(lines[i],'d');await UI._wait(1200)}
+  await UI._wait(600);
+  this._betrayal();
+},
+async _betrayal(){
+  const r=GS.run;r._openingStep='betrayal';GS.saveA();
+  const lines=OPENING_DIALOGUE.betrayal;
+  for(let i=0;i<lines.length;i++){
+    UI.addN(lines[i],'d');await UI._wait(1000)}
+  r.hp=0;UI.updateHUD();
+  await UI._wait(1500);
+  this._hearthkeeperMerge();
+},
+async _hearthkeeperMerge(){
+  const r=GS.run;r._openingStep='merge';GS.saveA();
+  UI.clearN();
+  const lines=OPENING_DIALOGUE.hearthkeeper_merge;
+  for(let i=0;i<lines.length;i++){
+    UI.addN(lines[i],'f');await UI._wait(1000)}
+  await UI._wait(600);
+  const btn=document.createElement('button');btn.className='nav-btn';btn.style.marginTop='12px';
+  btn.textContent='"I will rise."';
+  btn.onclick=()=>{btn.remove();this._startRealRun()};
+  UI.addEl(btn);
+},
+_startRealRun(){
+  const r=GS.run,jm=GS.getJM();
+  jm.isFirstRun=false;GS.setJM({isFirstRun:false});
+  // Restore player HP/MP
+  r.hp=r.mHP;r.mp=r.mMP;r.debuffs=[];
+  // Record The Betrayer in bestiary so players know the antagonist
+  if(!jm.bestiary)jm.bestiary={};
+  if(!jm.bestiary.the_betrayer){
+    jm.bestiary.the_betrayer={name:'The Betrayer',lore:ENEMIES.the_betrayer.lore,
+      tier:5,seenCount:1,defeatCount:0};
+    GS.setJM({bestiary:jm.bestiary})}
+  r.scene='trailhead';r._openingStep=null;r.cs=null;
+  GS.saveA();UI.setCombatMode(false);UI.clearN();UI.updateHUD();
+  SE.enter('trailhead');
+}
+};
+// === BLESSING HELPER ===
+function _applyBlessing(dmg,ms){
+  const jm=GS.getJM();const b=jm.hearthkeeperBlessing;
+  if(!b||!b.enabled||b.resistance<=0)return dmg;
+  const reduced=Math.max(1,Math.floor(dmg*(1-b.resistance/100)));
+  const saved=dmg-reduced;
+  if(saved>0)ms.push({t:'(Blessed: -'+saved+')',c:'y'});
+  return reduced;
+}
 // === v1.0 COMBAT ENGINE ===
 const CMB={
 // --- Combat initialization ---
@@ -1479,6 +1719,11 @@ start(ek,ek2){
   _unlockSystem('zone_combat');_unlockSystem('intent_system');
   // Generate initial intents
   enemies.forEach(e=>{e.intent=this._genIntent(e,r)});
+  // Batch 7A: Tooltips
+  if(typeof TOOLTIP_TEXT!=='undefined'){
+    TT.show('tt_intent',TOOLTIP_TEXT.tt_intent);
+    if(CL[r.classes[0]]&&CL[r.classes[0]].graveCharges)TT.show('tt_grave',TOOLTIP_TEXT.tt_grave);
+  }
   GS.saveA();return r.cs},
 gs(){return GS.run?GS.run.cs:null},
 // --- Target the enemy at index i ---
@@ -1518,6 +1763,7 @@ pAct(act){
     if(r.debuffs.some(d=>d.type==='rooted')){ms.push({t:'You are Rooted! Cannot move!',c:'d'});return ms}}
   // === Turn commits here ===
   cs.turnCount++;cs.usedItemThisTurn=false;
+  if(r.runStats)r.runStats.turnsTotal++;
   ms.push({t:`— Turn ${cs.turnCount} —`,c:'y'});
   // Batch 4: Hunted modifier — reinforcement every 5 turns
   if(r.modifiers&&r.modifiers.includes('hunted')&&cs.turnCount%5===0&&cs.enemies.filter(en=>en.hp>0).length<3){
@@ -1551,6 +1797,7 @@ pAct(act){
     r.mp-=cost;
     if(ab.chargeCost)cs.graveCharges-=ab.chargeCost;
     if(ab.limit==='once_per_combat')cs.usedAbilitiesThisCombat[ab.name]=true;
+    if(r.runStats){r.runStats.abilitiesUsed[ab.name]=(r.runStats.abilitiesUsed[ab.name]||0)+1}
     // Batch 4: Track ability in spellbook + class stats
     {const jm=GS.getJM();if(!jm.spellbook)jm.spellbook={};
     if(!jm.spellbook[ab.name]){jm.spellbook[ab.name]=true;GS.setJM({spellbook:jm.spellbook});GS.awardNewEntrySF()}
@@ -1574,6 +1821,7 @@ pAct(act){
     const tier=getBlockTier(r);
     const oh=r.oh;
     GS.trackClassStat('blocks',1);_unlockSystem('block_tiers');
+    if(typeof TOOLTIP_TEXT!=='undefined'&&oh&&oh.t==='shield')TT.show('tt_block',TOOLTIP_TEXT.tt_block);
     if(tier>=2&&oh&&oh.t==='shield'){
       cs.pBlk=(oh.blk||0)+(r._treeEffects?r._treeEffects.blockBonus:0);
       ms.push({t:`You raise your ${oh.name}. -${cs.pBlk} incoming damage!`,c:'c'});
@@ -1582,6 +1830,7 @@ pAct(act){
     break}
   case'move_close':case'move_mid':case'move_far':{
     const dest=act.replace('move_','');
+    if(typeof TOOLTIP_TEXT!=='undefined')TT.show('tt_zone',TOOLTIP_TEXT.tt_zone);
     if(r.debuffs.some(d=>d.type==='slow')){
       const zones=['close','mid','far'];const ci=zones.indexOf(cs.playerZone),di=zones.indexOf(dest);
       if(Math.abs(di-ci)>1){ms.push({t:'You are Slowed! Can only move one zone.',c:'d'});GS.saveA();return ms}}
@@ -1596,6 +1845,7 @@ pAct(act){
       r.bp.splice(r.bp.indexOf(it),1);cs.fled=true;cs.over=true;eActs=false;
       cs.usedItemThisTurn=true;break}
     const msg=useConsumable(it,r);ms.push({t:msg,c:'s'});cs.usedItemThisTurn=true;
+    if(typeof TOOLTIP_TEXT!=='undefined')TT.show('tt_consumable',TOOLTIP_TEXT.tt_consumable);
     // Consumable is a free action — don't end turn
     GS.saveA();return ms}
   case'use_potion':case'use_hpot':case'use_mpot':case'use_antidote':{
@@ -1731,6 +1981,8 @@ _doPlayerAttack(r,cs,e){
     // Shadow Dance (all attacks use backstab mult)
     if(buff&&buff.trigger==='sustained'&&buff.effect.backstabAll&&isMelee){dmg*=3;ms.push({t:'Shadow Dance! Triple damage!',c:'s'})}
     dmg=CALC.safeDmg(dmg);e.hp=Math.max(0,e.hp-dmg);
+    // Batch 7A: Track run stats
+    if(r.runStats){r.runStats.damageDealt+=dmg;if(dmg>r.runStats.highestHit)r.runStats.highestHit=dmg}
     ms.push({t:`You strike with ${w.name}. ${hitPct}% → HIT. ${dmg} damage → ${e.name} (${e.hp} HP).`,c:'s'});
     // Bleed hit-scaling: increase bleed damage on hit
     if(e.debuffs){const bl=e.debuffs.find(d=>d.type==='bleed');
@@ -1915,12 +2167,15 @@ _applyStatus(target,type,duration,ms,dmg){
   if(!target.debuffs)target.debuffs=[];
   const seDef=STATUS_EFFECTS[type];const label=seDef?seDef.name:type;
   _unlockSystem('status_effects');
+  if(typeof TOOLTIP_TEXT!=='undefined'&&seDef)TT.show('tt_status',TOOLTIP_TEXT.tt_status.replace('{name}',seDef.name).replace('{desc}',seDef.desc));
   // Batch 6: Tree status duration bonuses (only when applying to enemies, not to player)
   let dur=duration;
   const r=GS.run;if(r&&r._treeEffects&&target!==r){
     const tdb=r._treeEffects.statusDurationBonuses;
     if(tdb&&tdb[type])dur+=tdb[type];
   }
+  // Batch 7A: Track status applied (when targeting enemy)
+  const rr=GS.run;if(rr&&rr.runStats&&target!==rr){rr.runStats.statusApplied[type]=(rr.runStats.statusApplied[type]||0)+1}
   const existing=target.debuffs.find(d=>d.type===type);
   if(existing){existing.remaining=Math.max(existing.remaining,dur);
     ms.push({t:`${label} on ${target.name||'target'} refreshed! (${dur} turns)`,c:'s'})}
@@ -1931,7 +2186,8 @@ _applyStatus(target,type,duration,ms,dmg){
 _hasSynergy(target,synergyKey){
   const syn=SYNERGIES[synergyKey];if(!syn||!target.debuffs)return false;
   const active=syn.requires.every(r=>target.debuffs.some(d=>d.type===r));
-  if(active)_unlockSystem('synergies');
+  if(active){_unlockSystem('synergies');
+    const r=GS.run;if(r&&r.cs)r.cs._lastSynergy=syn.name}
   return active},
 
 // --- Tick player debuffs (v1.0 reworked mechanics) ---
@@ -1945,17 +2201,17 @@ _tickPlayerDebuffs(r,cs){
       // Burn erodes DEF
       ms.push({t:`${label}: defense eroding!`,c:'d'})
     }else if(d.type==='bleed'){
-      if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);r.hp=Math.max(0,r.hp-dd);
+      if(d.dmg>0){let dd=CALC.safeDmg(d.dmg);dd=_applyBlessing(dd,ms);r.hp=Math.max(0,r.hp-dd);
         // Hemorrhage synergy: doubled tick
         const hemMult=this._hasSynergy({debuffs:r.debuffs},'hemorrhage')?2:1;
         const actual=dd*hemMult;if(hemMult>1){r.hp=Math.max(0,r.hp-(actual-dd))}
         ms.push({t:`${label} deals ${actual} damage!${hemMult>1?' (Hemorrhage!)':''}`,c:'d'})}
     }else if(d.type==='poison'){
-      if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);r.hp=Math.max(0,r.hp-dd);ms.push({t:`${label} deals ${dd} damage! (escalating)`,c:'d'})}
+      if(d.dmg>0){let dd=CALC.safeDmg(d.dmg);dd=_applyBlessing(dd,ms);r.hp=Math.max(0,r.hp-dd);ms.push({t:`${label} deals ${dd} damage! (escalating)`,c:'d'})}
       // Self-escalate
       const festMult=this._hasSynergy({debuffs:r.debuffs},'festering')?2:1;
       d.dmg=(d.dmg||1)+festMult;
-    }else if(d.dmg>0){const dd=CALC.safeDmg(d.dmg);r.hp=Math.max(0,r.hp-dd);ms.push({t:`${label} deals ${dd} damage! (${r.hp}/${r.mHP} HP)`,c:'d'})}
+    }else if(d.dmg>0){let dd=CALC.safeDmg(d.dmg);dd=_applyBlessing(dd,ms);r.hp=Math.max(0,r.hp-dd);ms.push({t:`${label} deals ${dd} damage! (${r.hp}/${r.mHP} HP)`,c:'d'})}
     else if(d.type!=='stun'&&d.type!=='slow'&&d.type!=='rooted'&&d.type!=='silenced'){ms.push({t:`${label} afflicts you.`,c:'y'})}
     d.remaining=Math.max(0,d.remaining-1);
     if(d.remaining<=0){r.debuffs.splice(i,1);ms.push({t:`The ${d.type} fades.`,c:'y'})}
@@ -1975,7 +2231,9 @@ _allEnemyTurns(cs,r){
   // Summon actions
   cs.summons.forEach(s=>{if(s.hp>0){const tgt=cs.enemies.find(e=>e.hp>0);
     if(tgt){const dmg=CALC.safeDmg(CALC.rollDice(s.dmgDice[0])+(s._bonusDmg||0));tgt.hp=Math.max(0,tgt.hp-dmg);
-      ms.push({t:`${s.name} attacks ${tgt.name} for ${dmg}! (${tgt.hp} HP)`,c:'s'});
+      const smsg=s._isFriend?`Lysara hurls a hex bolt at ${tgt.name} for ${dmg}! (${tgt.hp} HP)`
+        :`${s.name} attacks ${tgt.name} for ${dmg}! (${tgt.hp} HP)`;
+      ms.push({t:smsg,c:'s'});
       if(tgt.hp<=0){ms.push({t:`The ${tgt.name} falls!`,c:'s'});GS.recDef(tgt.id)}}}});
   // Check victory after summon attacks
   if(cs.enemies.filter(e=>e.hp>0).length===0){cs.over=true;cs.won=true;ms.push({t:'Victory!',c:'s'});return ms}
@@ -2047,7 +2305,8 @@ _enemyAttack(e,cs,r){
       if(te2.firstHitReduction>0&&!cs._firstHitTaken){d=Math.max(1,d-te2.firstHitReduction);cs._firstHitTaken=true;ms.push({t:'Thick Skin: first hit reduced!',c:'y'})}
       if(te2.statusDurationSelfMod<0&&r.debuffs){r.debuffs.forEach(db=>{db.remaining=Math.max(1,db.remaining+te2.statusDurationSelfMod)})}
     }
-    d=CALC.safeDmg(d);r.hp=Math.max(0,r.hp-d);
+    d=CALC.safeDmg(d);d=_applyBlessing(d,ms);r.hp=Math.max(0,r.hp-d);
+    if(r.runStats)r.runStats.damageTaken+=d;
     // Stalwart Stand: can't drop below 1 HP
     if(r.hp<=0&&cs.activeBuff&&cs.activeBuff.effect.stalwart){r.hp=1;ms.push({t:'Stalwart Stand! You refuse to fall! (1 HP)',c:'s'})}
     // Undying Rage (disabled by One Life modifier)
@@ -2090,6 +2349,8 @@ eTurn(e,cs,r){
     if(e.hp<=0){cs.over=cs.enemies.filter(en=>en.hp>0).length===0;if(cs.over)cs.won=true;
       ms.push({t:`The ${e.name} falls!`,c:'s'});GS.recDef(e.id);cs.activeBuff=null;return ms}
     if(eStunned){ms.push({t:`${e.name} is stunned! Action lost!`,c:'s'});return ms}}
+  // Batch 7B: Betrayer custom AI
+  if(e._isBetrayer){ms.push(...this._betrayerTurn(e,cs,r));return ms}
   // Enemy AI: move toward preferred zone if not there
   if(e.zone!==e.preferredZone&&!e.debuffs.some(d=>d.type==='rooted'||d.type==='slow')){
     const zones=['close','mid','far'];const ci=zones.indexOf(e.zone),pi=zones.indexOf(e.preferredZone||'mid');
@@ -2099,14 +2360,126 @@ eTurn(e,cs,r){
   ms.push(...this._enemyAttack(e,cs,r));
   return ms},
 
+// --- Batch 7B: Betrayer boss damage through player defenses ---
+_enemyDmgToPlayer(baseDmg,cs,r,ms){
+  let d=baseDmg;
+  if(cs.blocking){const tier=getBlockTier(r);
+    if(tier>=2&&cs.pBlk>0){d=Math.max(1,d-cs.pBlk)}
+    else{d=Math.max(1,Math.floor(d/2))}}
+  if(cs.activeBuff&&cs.activeBuff.effect.ward&&cs.activeBuff.effect.ward>0){
+    const ab=Math.min(d,cs.activeBuff.effect.ward);cs.activeBuff.effect.ward-=ab;d=Math.max(0,d-ab);
+    if(cs.activeBuff.effect.ward<=0)cs.activeBuff=null}
+  if(cs.activeBuff&&cs.activeBuff.effect.dmgImmunity){d=0}
+  if(cs.activeBuff&&cs.activeBuff.effect.manaShield&&r.mp>0){const ab=Math.min(d,r.mp);r.mp-=ab;d=Math.max(0,d-ab)}
+  cs.activeBuffs.forEach(b=>{if(b.effect.defBonus)d=Math.max(1,d-b.effect.defBonus);
+    if(b.effect.incomingDmgReduction)d=Math.max(1,d-b.effect.incomingDmgReduction)});
+  const te=r._treeEffects;
+  if(te&&te.damageReduction>0)d=Math.max(1,d-te.damageReduction);
+  d=CALC.safeDmg(d);d=_applyBlessing(d,ms);
+  return d;
+},
+// --- Batch 7B: The Betrayer Boss AI (two-phase warlock) ---
+_betrayerTurn(e,cs,r){
+  const ms=[];
+  const hpPct=e.hp/e.mHP;
+  const phase2=hpPct<=e._phase2Threshold;
+  // Phase 2 transition announcement
+  if(phase2&&!e._phase2Active){
+    e._phase2Active=true;e.atk+=2;e.dB+=2;
+    ms.push({t:'The Betrayer\'s eyes blaze with dark fire. "You think you can end this? I am BEYOND you now!"',c:'d'});
+    ms.push({t:'Phase 2! The Betrayer grows stronger. (+2 ATK, +2 damage)',c:'y'})}
+  // Silenced check
+  if(e.debuffs&&e.debuffs.some(d=>d.type==='silenced')){
+    ms.push({t:'The Betrayer is Silenced! Forced into a melee attack!',c:'s'});
+    ms.push(...this._enemyAttack(e,cs,r));return ms}
+  const roll=CALC.roll100();
+  if(!phase2){
+    // --- Phase 1 actions ---
+    if(roll<=25){
+      // Hex Bolt: 2d4+3, 40% curse
+      let d=CALC.rollDice(4)+CALC.rollDice(4)+3;
+      d=this._enemyDmgToPlayer(d,cs,r,ms);
+      r.hp=Math.max(0,r.hp-d);if(r.runStats)r.runStats.damageTaken+=d;
+      ms.push({t:`The Betrayer hurls a Hex Bolt for ${d} dark damage! (${r.hp}/${r.mHP} HP)`,c:'d'});
+      if(r.hp>0&&CALC.roll100()<=40)this._applyStatus(r,'curse',3,ms);
+    }else if(roll<=45){
+      // Brittle Hex: apply brittle to player
+      ms.push({t:'The Betrayer weaves a Brittle Hex!',c:'d'});
+      this._applyStatus(r,'brittle',3,ms);
+    }else if(roll<=60&&!cs.effigy){
+      // Effigy (once in phase 1)
+      cs.effigy={turnsLeft:3,dmgShare:0.3};
+      ms.push({t:'The Betrayer conjures a dark Effigy! Damage is shared for 3 turns.',c:'d'});
+    }else if(roll<=75){
+      // Mark of Ruin: exposed + weaken combo
+      ms.push({t:'The Betrayer traces a Mark of Ruin on you!',c:'d'});
+      this._applyStatus(r,'exposed',2,ms);
+      this._applyStatus(r,'weaken',2,ms);
+    }else{
+      // Normal attack with curse onHit
+      ms.push(...this._enemyAttack(e,cs,r));
+    }
+  }else{
+    // --- Phase 2 actions ---
+    if(roll<=30){
+      // Enhanced Hex Bolt with lifesteal
+      let d=CALC.rollDice(4)+CALC.rollDice(4)+5;
+      d=this._enemyDmgToPlayer(d,cs,r,ms);
+      r.hp=Math.max(0,r.hp-d);if(r.runStats)r.runStats.damageTaken+=d;
+      ms.push({t:`The Betrayer unleashes an empowered Hex Bolt for ${d}! (${r.hp}/${r.mHP} HP)`,c:'d'});
+      if(r.hp>0&&CALC.roll100()<=40)this._applyStatus(r,'curse',3,ms);
+      // 40% lifesteal
+      const heal=Math.floor(d*0.4);if(heal>0){e.hp=Math.min(e.mHP,e.hp+heal);
+        ms.push({t:`The Betrayer drains ${heal} HP! (${e.hp}/${e.mHP} HP)`,c:'d'})}
+    }else if(roll<=50){
+      // Curse Wave: AoE curse + brittle
+      ms.push({t:'The Betrayer unleashes a wave of dark energy!',c:'d'});
+      this._applyStatus(r,'curse',3,ms);
+      this._applyStatus(r,'brittle',2,ms);
+      // Also hits summons
+      cs.summons.forEach(s=>{if(s.hp>0){const sd=CALC.rollDice(4)+2;s.hp=Math.max(0,s.hp-sd);
+        ms.push({t:`Curse Wave hits ${s.name} for ${sd}! (${s.hp} HP)`,c:'d'})}});
+    }else if(roll<=65){
+      // Reusable Effigy
+      if(!cs.effigy||cs.effigy.turnsLeft<=0){
+        cs.effigy={turnsLeft:3,dmgShare:0.3};
+        ms.push({t:'The Betrayer reforms the dark Effigy!',c:'d'})}
+      else{ms.push(...this._enemyAttack(e,cs,r))}
+    }else{
+      // Normal attack + guaranteed curse in phase 2
+      ms.push(...this._enemyAttack(e,cs,r));
+      if(r.hp>0)this._applyStatus(r,'curse',2,ms);
+    }
+  }
+  return ms;
+},
 // --- Enemy intent generation ---
 _genIntent(e,r){
   if(e.hp<=0)return null;
+  // Batch 7B: Betrayer-specific intent
+  if(e._isBetrayer){
+    const hpPct=e.hp/e.mHP;const phase2=hpPct<=(e._phase2Threshold||0.4);
+    const prevType=e.intent?e.intent.type:null;
+    let intent;
+    const roll=CALC.roll100();
+    if(phase2&&!e._phase2Active)intent={type:'special',desc:'Something is changing...'};
+    else if(roll<=50)intent={type:'cast',desc:phase2?'Dark power surges':'Weaving a hex'};
+    else if(roll<=80)intent={type:'attack',desc:phase2?'Attack (empowered)':'Attack (curse chance)'};
+    else intent={type:'special',desc:'Preparing something'};
+    if(prevType&&prevType!==intent.type){e._intentChanged=true;BattleRenderer.showIntentBang()}
+    else e._intentChanged=false;
+    return intent;
+  }
   const hpPct=e.hp/e.mHP;
-  if(e.zone!==e.preferredZone)return{type:'move',desc:`Moving to ${e.preferredZone}`};
-  if(hpPct<0.3&&e.def>0)return{type:'defend',desc:'Bracing'};
-  if(e.onHit&&e.onHit.effect)return{type:'attack',desc:`Attack (${e.onHit.effect} chance)`};
-  return{type:'attack',desc:'Attack'}}
+  const prevType=e.intent?e.intent.type:null;
+  let intent;
+  if(e.zone!==e.preferredZone)intent={type:'move',desc:`Moving to ${e.preferredZone}`};
+  else if(hpPct<0.3&&e.def>0)intent={type:'defend',desc:'Bracing'};
+  else if(e.onHit&&e.onHit.effect)intent={type:'attack',desc:`Attack (${e.onHit.effect} chance)`};
+  else intent={type:'attack',desc:'Attack'};
+  if(prevType&&prevType!==intent.type){e._intentChanged=true;BattleRenderer.showIntentBang()}
+  else e._intentChanged=false;
+  return intent}
 };
 
 // === TOAST SYSTEM ===
@@ -2153,7 +2526,7 @@ init(){
     ds:$('death-screen'),dsq:$('death-quote'),dsl:$('ds-load'),dsn:$('ds-new'),dst:$('ds-title'),dss:$('ds-summary'),dsp:$('ds-pedia'),
     ash:$('action-sheet'),asl:$('as-list'),asb:$('as-backdrop')};
   this.renderIcons();this.bind();this.vvp();
-  const st=GS.getSettings();document.documentElement.classList.toggle('settings-high-contrast',!!st.highContrast);document.documentElement.classList.toggle('settings-large-text',!!st.largeText);
+  GS.setSettings(GS.getSettings());
 },
 renderIcons(){
   const map=[[this.el.bchar,PA.icons.person],[this.el.bj,PA.icons.book],[this.el.bmenu,PA.icons.menu],
@@ -2227,6 +2600,8 @@ updateCombatUI(){
   const e=cs.enemy;
   // Zone display
   this.el.cbZoneTag.textContent=(cs.playerZone||'mid').toUpperCase();
+  // Speed indicator
+  const spd=getSpeed();const spEl=$('cb-speed');if(spEl)spEl.textContent=spd>1?spd+'×':'';
   // Intent display
   const alive=cs.enemies.filter(en=>en.hp>0);
   if(alive.length&&alive[0].intent){
@@ -2249,11 +2624,22 @@ updateCombatUI(){
     const se=STATUS_EFFECTS[d.type];const icon=se?se.icon:'';
     const sp=document.createElement('span');sp.className='cb-debuff';sp.textContent=icon+(se?se.name:d.type)+' '+d.remaining+'t';
     this.el.cbStatusBar.appendChild(sp)})}
-  // Grave charges display for Necromancer
+  // Grave charges display for Necromancer (skull icons)
   if(cs.graveCharges!==undefined&&CL[r.classes[0]]&&CL[r.classes[0]].graveCharges){
-    const sp=document.createElement('span');sp.className='cb-debuff';sp.style.cssText='background:rgba(201,168,76,.12);color:var(--gold)';
-    sp.textContent='💀 '+cs.graveCharges+'/'+CL[r.classes[0]].graveCharges.max;
+    const gc=CL[r.classes[0]].graveCharges;
+    const sp=document.createElement('span');sp.className='cb-graves';
+    let skulls='';for(let i=0;i<gc.max;i++){skulls+='<span class="skull'+(i<cs.graveCharges?' filled':'')+'">💀</span>'}
+    sp.innerHTML=skulls;
     this.el.cbStatusBar.appendChild(sp)}
+  // Consumable tray (compact quick-use)
+  const tray=$('cb-tray');
+  if(tray){tray.innerHTML='';
+    r.bp.filter(i=>i.t==='consumable').slice(0,4).forEach(it=>{
+      const btn=document.createElement('button');btn.className='tray-btn';
+      btn.textContent=it.name.substring(0,3);btn.title=it.name+': '+(it.desc||'');
+      const bpIdx=r.bp.indexOf(it);
+      btn.onclick=()=>SE.doCombatAction('use_item_'+bpIdx);
+      tray.appendChild(btn)})}
   // Attack button: zone-aware hit%
   const w=r.wpn;if(w){const isMelee=w.t==='melee';
     let hitPct=isMelee?CALC.meleeHit(r,e.def):CALC.rangedHit(r,e.def);
@@ -2276,19 +2662,28 @@ updateCombatUI(){
     this.el.cbAbility.style.display='';
     this.el.cbAbilityName.textContent=abilities.length>1?'Abilities':'Ability';
     const cost=CALC.abilityCost(r,ab);this.el.cbAbilityCost.textContent=cost+'MP';
+    if(typeof TOOLTIP_TEXT!=='undefined')TT.show('tt_ability',TOOLTIP_TEXT.tt_ability.replace('{name}',ab.name).replace('{desc}',ab.desc||'').replace('{cost}',cost));
     let canUse=!isSilenced&&abilities.some(a=>{const c=CALC.abilityCost(r,a);return r.mp>=c});
     this.el.cbAbility.disabled=!canUse;
   }else{this.el.cbAbility.style.display='none'}
-  // Verb button
+  // Verb button (four-state)
   const verb=getVerb(r);
   if(verb){this.el.cbVerb.style.display='';this.el.cbVerbName.textContent=verb.name;
-    let canVerb=true;
-    if(verb.limit==='once_per_combat'&&cs.usedVerbThisCombat)canVerb=false;
-    if(verb.condition==='hp_below_50'&&r.hp>=r.mHP*0.5)canVerb=false;
-    if(verb.condition==='has_minion'&&cs.summons.length===0)canVerb=false;
-    if(verb.cost&&r.mp<verb.cost)canVerb=false;
-    if(isSilenced)canVerb=false;
+    let canVerb=true,reason='';
+    if(isSilenced){canVerb=false;reason='Silenced'}
+    else if(verb.limit==='once_per_combat'&&cs.usedVerbThisCombat){canVerb=false;reason='Used'}
+    else if(verb.condition==='hp_below_50'&&r.hp>=r.mHP*0.5){canVerb=false;reason='< 50% HP'}
+    else if(verb.condition==='has_minion'&&cs.summons.length===0){canVerb=false;reason='Need minion'}
+    else if(verb.cost&&r.mp<verb.cost){canVerb=false;reason=verb.cost+' MP'}
     this.el.cbVerb.disabled=!canVerb;
+    this.el.cbVerb.classList.toggle('verb-used',reason==='Used');
+    this.el.cbVerb.classList.toggle('verb-locked',!!reason&&reason!=='Used');
+    let sub=this.el.cbVerb.querySelector('.verb-sub');
+    if(!sub){sub=document.createElement('span');sub.className='verb-sub';this.el.cbVerb.appendChild(sub)}
+    sub.textContent=reason||'';
+    if(typeof TOOLTIP_TEXT!=='undefined')TT.show('tt_verb',TOOLTIP_TEXT.tt_verb.replace('{name}',verb.name));
+    // Toast on disabled tap
+    this.el.cbVerb.onclick=canVerb?()=>SE.doCombatAction('verb'):()=>showToast(verb.name+' — '+reason,'info');
   }else{this.el.cbVerb.style.display='none'}
   this.updateBattleScene(true);
 },
@@ -2318,15 +2713,15 @@ updateHUD(){const r=GS.run;if(!r)return;
   const cs=CMB.gs();if(cs&&!cs.over)this.setCombatMode(true);else this.setCombatMode(false);
 },
 addN(text,type=''){const e=document.createElement('div');e.className='ne';
-  const cls={h:'ne-h',f:'ne-f',c:'ne-c',s:'ne-s',d:'ne-d',y:'ne-y',g:'ne-g'};
+  const cls={h:'ne-h',f:'ne-f',c:'ne-c',s:'ne-s',d:'ne-d',y:'ne-y',g:'ne-g',crit:'ne-crit',synergy:'ne-synergy',block:'ne-block',status:'ne-status'};
   if(cls[type])e.classList.add(cls[type]);e.textContent=text;
   this.el.nl.appendChild(e);
   if(GS.run){GS.run.nlog.push({t:text,c:type});if(GS.run.nlog.length>200)GS.run.nlog=GS.run.nlog.slice(-200);GS.saveA()}this.scroll()},
 clearN(){this.el.nl.innerHTML=''},
-restoreN(){this.clearN();if(GS.run&&GS.run.nlog)GS.run.nlog.forEach(n=>{const e=document.createElement('div');e.className='ne';const cls={h:'ne-h',f:'ne-f',c:'ne-c',s:'ne-s',d:'ne-d',y:'ne-y',g:'ne-g'};if(cls[n.c])e.classList.add(cls[n.c]);e.textContent=n.t;this.el.nl.appendChild(e)});this.scroll()},
+restoreN(){this.clearN();if(GS.run&&GS.run.nlog)GS.run.nlog.forEach(n=>{const e=document.createElement('div');e.className='ne';const cls={h:'ne-h',f:'ne-f',c:'ne-c',s:'ne-s',d:'ne-d',y:'ne-y',g:'ne-g',crit:'ne-crit',synergy:'ne-synergy',block:'ne-block',status:'ne-status'};if(cls[n.c])e.classList.add(cls[n.c]);e.textContent=n.t;this.el.nl.appendChild(e)});this.scroll()},
 scroll(){requestAnimationFrame(()=>{this.el.nw.scrollTop=this.el.nw.scrollHeight})},
 pulseJ(){this.el.bj.classList.add('pulse');setTimeout(()=>this.el.bj.classList.remove('pulse'),3100)},
-_wait(ms){return new Promise(r=>setTimeout(r,REDUCED_MOTION?0:ms))},
+_wait(ms){return new Promise(r=>setTimeout(r,REDUCED_MOTION?0:Math.floor(ms/getSpeed())))},
 addEl(el){this.el.nl.appendChild(el);this.scroll()},
 
 async showTitleCard(name,subtitle,holdMs){
@@ -2344,11 +2739,22 @@ showDeathScreen(){
   // Batch 4: Death summary
   const sum=SE._deathSummary;
   if(sum){
-    let sH='Enemies defeated: '+sum.defeated+'<br>Bestiary entries: '+sum.newEntries;
-    if(sum.cpEarned)sH+='<br>Class Points earned: +'+sum.cpEarned;
-    if(sum.sfEarned)sH+='<br>Spiritfire earned: +'+sum.sfEarned;
-    if(sum.modBonus>1)sH+='<br>Modifier bonus: x'+sum.modBonus.toFixed(1);
-    sH+='<br>Adventurepedia: '+sum.pediaPct+'% complete';
+    let sH='<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;text-align:left">';
+    sH+='<span>Enemies defeated:</span><span>'+sum.defeated+'</span>';
+    sH+='<span>Bestiary entries:</span><span>'+sum.newEntries+'</span>';
+    if(sum.damageDealt)sH+='<span>Damage dealt:</span><span>'+sum.damageDealt+'</span>';
+    if(sum.damageTaken)sH+='<span>Damage taken:</span><span>'+sum.damageTaken+'</span>';
+    if(sum.highestHit)sH+='<span>Highest hit:</span><span>'+sum.highestHit+'</span>';
+    if(sum.turnsTotal)sH+='<span>Turns fought:</span><span>'+sum.turnsTotal+'</span>';
+    if(sum.nodesExplored)sH+='<span>Nodes explored:</span><span>'+sum.nodesExplored+'</span>';
+    if(sum.goldEarned)sH+='<span>Gold earned:</span><span>'+sum.goldEarned+'g</span>';
+    if(sum.consumablesUsed)sH+='<span>Items used:</span><span>'+sum.consumablesUsed+'</span>';
+    if(sum.runDuration){const mins=Math.floor(sum.runDuration/60000);sH+='<span>Duration:</span><span>'+(mins<1?'< 1':mins)+' min</span>'}
+    if(sum.cpEarned)sH+='<span>Class Points:</span><span>+'+sum.cpEarned+'</span>';
+    if(sum.sfEarned)sH+='<span>Spiritfire:</span><span>+'+sum.sfEarned+'</span>';
+    if(sum.modBonus>1)sH+='<span>Modifier bonus:</span><span>x'+sum.modBonus.toFixed(1)+'</span>';
+    sH+='<span>Adventurepedia:</span><span>'+sum.pediaPct+'%</span>';
+    sH+='</div>';
     this.el.dss.innerHTML=sH;this.el.dss.style.display='';
     this.el.dsp.style.display='';
   }else{this.el.dss.style.display='none';this.el.dsp.style.display='none'}
@@ -2562,6 +2968,16 @@ combatFX(type,value){
   if(type==='enemy_hit'){
     BattleRenderer.showDmgPop(value||0,'enemy_hit');
   }
+  if(type==='crit'){
+    if(flash){flash.className='hit-flash-gold';setTimeout(()=>{flash.className='';flash.style.display='none'},350)}
+    BattleRenderer.showDmgPop(value||0,'crit');
+  }
+  if(type==='synergy'){
+    if(flash){flash.className='hit-flash-gold';setTimeout(()=>{flash.className='';flash.style.display='none'},350)}
+    if(typeof value==='string')BattleRenderer.showSynergyFlash(value);
+  }
+  if(type==='block'){BattleRenderer.showDmgPop(value||0,'block')}
+  if(type==='status_tick'){BattleRenderer.showDmgPop(value||0,'status_tick')}
   if(type==='dmg'||type==='heal'||type==='miss'){
     BattleRenderer.showDmgPop(Math.abs(value||0),type==='heal'?'heal':type==='miss'?'miss':(value<0?'enemy_hit':'player_dmg'));
   }
@@ -2579,6 +2995,7 @@ function useConsumable(it,r){
   if(!it||it.t!=='consumable')return null;
   const idx=r.bp.indexOf(it);if(idx===-1)return null;
   r.bp.splice(idx,1);
+  if(r.runStats)r.runStats.consumablesUsed++;
   const parts=[];
   if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;parts.push('+'+h+' HP');GS.trackClassStat('hpHealed',h);_unlockSystem('consumables')}
   if(it.mana){const m=Math.min(it.mana,r.mMP-r.mp);r.mp+=m;parts.push('+'+m+' MP')}
@@ -2949,9 +3366,34 @@ openMenu(){
   chgBtn.onclick=()=>{b.innerHTML='<h3 class="mt" style="margin-bottom:12px">Changelog</h3><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v1.0 \u2014 Massive Content Expansion</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Third adventure: The Ashen Waste (10 scenes, Elder Dragon boss)</li><li>Expanded tavern settlement: Market Square, Guard Post, Cellar</li><li>32 new enemies across all 5 tiers (39 total)</li><li>40 new items: weapons, armor, offhand, consumables, loot</li><li>12 new NPCs with data-driven dialogue trees and shops</li><li>18 new bounties and 10 new quests</li><li>Multi-ability system: 3 abilities per class (unlock at levels 1, 4, 8)</li><li>Lootable weapons, armor, and offhand from backpack</li><li>Generic shop system: multiple merchants with unique inventories</li><li>4 new debuff types: burn, curse, blind, weaken</li><li>Undying Rage, Divine Shield, Mana Shield combat buffs</li><li>Side locations: Witch Hut, Hermit Cave</li><li>12 new death quotes</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.9</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Combat overhaul: enemy HP bars, tier badges, visual hit/miss feedback</li><li>5-tier enemy system: Common, Uncommon, Dangerous, Elite, Boss</li><li>Screen shake and damage flash effects in combat</li><li>Variable combat pacing: suspense delays scale with enemy tier</li><li>Multi-wave encounters: face sequential enemies in one fight</li><li>Quick Resolve: skip trivial fights when significantly overleveled</li><li>The Hearthstone Tavern: hub scene with Brynn the Innkeeper</li><li>Bounty Board: repeatable combat bounties with gold and XP rewards</li><li>Quest system: accept and track one-off quests with milestone rewards</li><li>Bounty combat: non-lethal defeat returns you to the tavern</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.8</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Zone-based combat: Close/Mid/Far zones replace meter distance</li><li>Movement costs your action (free move for Quickfoot, Rogues, high Movement)</li><li>Block halves incoming damage instead of flat reduction</li><li>Failed flee gives enemy a free attack</li><li>Melee requires Close range; ranged has zone penalties</li><li>Turn counter in combat log</li><li>Toast notification system for errors and feedback</li><li>Global error boundary with auto-save</li><li>Save/load validation and corruption recovery</li><li>Character creation input validation with visual feedback</li><li>Scene navigation safety guards</li><li>Redesigned pixel art: icons, species portraits, class icons</li><li>Gameplay balance audit for zone system</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.7</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Second adventure: The Iron Hollows</li><li>3 new enemies, 2 new items, new NPC</li><li>Slow &amp; stun status effects</li><li>Accessibility improvements</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.6</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Gold economy: earn gold from combat, sell items from backpack</li><li>Merchant NPC: Garrett the Peddler at Trail\u2019s End (buy/sell potions)</li><li>New item: Marsh Root (heals 5 HP, sellable)</li><li>Items now have sell values</li><li>Bleed status effect from Dire Wolf</li><li>Generic debuff system: any effect type ticks automatically</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.5</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Extra scene branch: Whispering Bog (optional side path from midway)</li><li>New enemy: Bog Wraith</li><li>Gather Herbs search in post_bog grants Mana Potion</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.4</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>New enemies: Giant Spider (poison) and Dire Wolf</li><li>New items: Mana Potion, Antidote, Wolf Pelt</li><li>Weighted loot drops from enemies</li><li>Poison status effect with Antidote cure</li><li>Extended trail: 4 new scenes with spider and wolf encounters</li><li>Richer NPC dialogue for Aldric and Mira</li><li>Combat item overhaul: use any consumable in combat</li><li>Game data extracted to data.js for easier modding</li><li>Code cleanup: removed legacy CSS vars, unified consumable logic</li></ul><p style="font-size:.9rem;color:var(--text2);margin-bottom:8px">v0.3</p><ul style="margin:0 0 12px 1.2em;color:var(--text2);font-size:.9rem"><li>Choice-only play: no typing; use Actions and scene buttons</li><li>New warm color palette</li><li>Menu: How to play, Changelog, Settings (high contrast, larger text)</li></ul>';b.appendChild(backBtn('Back to menu'))};b.appendChild(chgBtn);
   const setBtn=document.createElement('button');setBtn.className='slb';setBtn.textContent='Settings';setBtn.style.cssText='margin-top:8px;width:100%';
   setBtn.onclick=()=>{const st=GS.getSettings();b.innerHTML='<h3 class="mt" style="margin-bottom:12px">Settings</h3>';
-    const row=(label,checked,key)=>{const wrap=document.createElement('div');wrap.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px';
-      const lab=document.createElement('span');lab.textContent=label;lab.style.color='var(--text2)';const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!checked;cb.onchange=()=>{st[key]=cb.checked;GS.setSettings(st)};wrap.appendChild(lab);wrap.appendChild(cb);return wrap};
-    b.appendChild(row('High contrast',st.highContrast,'highContrast'));b.appendChild(row('Larger text',st.largeText,'largeText'));b.appendChild(backBtn('Back to menu'))};b.appendChild(setBtn);
+    const _row=(label,widget)=>{const w=document.createElement('div');w.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px';
+      const l=document.createElement('span');l.textContent=label;l.style.cssText='color:var(--text2);font-size:.9rem';w.appendChild(l);w.appendChild(widget);return w};
+    const _toggle=(checked,onchange)=>{const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!checked;cb.onchange=onchange;return cb};
+    const _radio=(opts,current,onchange)=>{const g=document.createElement('div');g.style.cssText='display:flex;gap:6px';
+      opts.forEach(o=>{const btn=document.createElement('button');btn.className='slb';btn.textContent=o.label;
+        btn.style.cssText='font-size:.75rem;padding:4px 10px;min-height:28px;'+(current===o.value?'border-color:var(--gold);color:var(--gold)':'');
+        btn.onclick=()=>{onchange(o.value)};g.appendChild(btn)});return g};
+    // Category 1: Gameplay
+    b.innerHTML+='<div class="ist" style="margin-bottom:8px">Gameplay</div>';
+    const jm=GS.getJM();const bless=jm.hearthkeeperBlessing||{enabled:false,resistance:15};
+    b.appendChild(_row("Hearthkeeper's Blessing"+(bless.enabled?' ('+bless.resistance+'% resist)':''),_toggle(bless.enabled,e=>{
+      const jm2=GS.getJM();if(!jm2.hearthkeeperBlessing)jm2.hearthkeeperBlessing={enabled:false,resistance:15,deathCount:0,cap:60};
+      jm2.hearthkeeperBlessing.enabled=e.target.checked;GS.setJM({hearthkeeperBlessing:jm2.hearthkeeperBlessing})})));
+    b.appendChild(_row('Game Speed',_radio([{label:'1×',value:1},{label:'2×',value:2},{label:'4×',value:4}],st.gameSpeed||1,v=>{st.gameSpeed=v;GS.setSettings(st);this.openMenu();setBtn.click()})));
+    // Category 2: Display
+    b.innerHTML+='<div class="ist" style="margin-top:12px;margin-bottom:8px">Display</div>';
+    b.appendChild(_row('Text Size',_radio([{label:'Standard',value:'standard'},{label:'Large',value:'large'},{label:'XL',value:'xl'}],st.textSize||'standard',v=>{st.textSize=v;GS.setSettings(st);this.openMenu();setBtn.click()})));
+    b.appendChild(_row('High Contrast',_toggle(st.highContrast,e=>{st.highContrast=e.target.checked;GS.setSettings(st)})));
+    b.appendChild(_row('Screen Shake',_toggle(st.screenShake!==false,e=>{st.screenShake=e.target.checked;GS.setSettings(st)})));
+    // Category 3: Accessibility
+    b.innerHTML+='<div class="ist" style="margin-top:12px;margin-bottom:8px">Accessibility</div>';
+    b.appendChild(_row('Colorblind Mode',_radio([{label:'Off',value:'off'},{label:'Deut',value:'deuteranopia'},{label:'Prot',value:'protanopia'},{label:'Trit',value:'tritanopia'}],st.colorblindMode||'off',v=>{st.colorblindMode=v;GS.setSettings(st);this.openMenu();setBtn.click()})));
+    b.appendChild(_row('Show Tips',_toggle(st.showTips!==false,e=>{st.showTips=e.target.checked;
+      if(e.target.checked){const jm3=GS.getJM();jm3.tutorialSeen={};GS.setJM({tutorialSeen:{}})}GS.setSettings(st)})));
+    // Category 4: Audio (placeholder)
+    b.innerHTML+='<div class="ist" style="margin-top:12px;margin-bottom:8px">Audio</div>';
+    b.innerHTML+='<p style="color:var(--text3);font-size:.85rem;font-style:italic;margin-bottom:8px">Audio settings coming soon.</p>';
+    b.appendChild(backBtn('Back to menu'))};b.appendChild(setBtn);
   this.open('m-menu')},
 
 openDlg(speaker,title,text,opts,cb){
@@ -3106,6 +3548,68 @@ openMemorial(){
   doneBtn.onclick=()=>ML.closeAll();b.appendChild(doneBtn);
   this.open('m-dlg');
   const modal=$('m-dlg');const mx=modal.querySelector('.mx');if(mx)mx.style.display='';
+},
+// Batch 7A: The Chronicle
+openChronicle(){
+  const b=$('m-dlg-b');b.innerHTML='';
+  $('dlg-t').textContent='THE CHRONICLE';
+  b.innerHTML+='<div class="dlg-name">THE CHRONICLE</div>';
+  b.innerHTML+='<div style="font-size:.85rem;color:var(--gold);font-style:italic;margin-bottom:12px">'+
+    (CHRONICLE_QUOTES?CHRONICLE_QUOTES[Math.floor(Math.random()*CHRONICLE_QUOTES.length)]:'The Hearthkeeper traces a finger along the Chronicle\'s pages...')+'</div>';
+  const jm=GS.getJM();const ch=jm.chronicle||{lifetimeStats:{},personalRecords:{}};
+  const rh=jm.runHistory||{totalRuns:0,bestLevel:0,totalKills:0};
+  const ls=ch.lifetimeStats||{};
+  // Tabs
+  const tabBar=document.createElement('div');tabBar.className='tab-bar';
+  const panels={};const tabs=['Lifetime','Per-Class','Records'];const keys=['life','class','rec'];
+  keys.forEach((k,i)=>{
+    const t=document.createElement('button');t.className='tab-btn'+(i===0?' act':'');t.textContent=tabs[i];
+    t.onclick=()=>{tabBar.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('act'));t.classList.add('act');
+      Object.values(panels).forEach(p=>p.classList.remove('act'));panels[k].classList.add('act')};
+    tabBar.appendChild(t);
+    const pg=document.createElement('div');pg.className='tab-panel'+(i===0?' act':'');panels[k]=pg});
+  // Lifetime tab
+  const lp=panels.life;
+  const _stat=(label,val)=>'<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2);font-size:.85rem">'+label+'</span><span style="color:var(--text);font-size:.85rem">'+val+'</span></div>';
+  let lH=_stat('Total runs',rh.totalRuns||0)+_stat('Best level',rh.bestLevel||0)+_stat('Total kills',rh.totalKills||0);
+  lH+=_stat('Damage dealt',ls.totalDamageDealt||0)+_stat('Damage taken',ls.totalDamageTaken||0);
+  lH+=_stat('Gold earned',ls.totalGoldEarned||0)+_stat('Highest hit',ls.highestHit||0);
+  lH+=_stat('Longest run (turns)',ls.longestRun||0);
+  const mins=Math.floor((ls.totalPlayTime||0)/60000);lH+=_stat('Play time',(mins<1?'< 1':mins)+' min');
+  const comp=_pediaCompletion();const totalComp=PEDIA_SECTIONS.reduce((s,sec)=>{const c=comp[sec.key];return s+(c&&c.total?c.found:0)},0);
+  const totalTotal=PEDIA_SECTIONS.reduce((s,sec)=>{const c=comp[sec.key];return s+(c?c.total:0)},0);
+  const pediaPct=totalTotal>0?Math.floor(totalComp/totalTotal*100):0;
+  lH+=_stat('Adventurepedia',pediaPct+'%');
+  lp.innerHTML=lH;
+  // Per-Class tab
+  const cp=panels.class;
+  const cs2=jm.classStats||{};
+  if(!Object.keys(cs2).length){cp.innerHTML='<p style="color:var(--text3);font-style:italic;margin-top:8px">No class stats recorded yet.</p>'}
+  else{let cH='';Object.keys(cs2).forEach(cl=>{
+    const clName=typeof CL!=='undefined'&&CL[cl]?CL[cl].name:cl;
+    const stats=cs2[cl]||{};
+    const cpAmt=(jm.classPoints&&jm.classPoints[cl])||0;
+    // Find favorite ability
+    let favAb='—';
+    if(GS.run&&GS.run.runStats&&GS.run.runStats.abilitiesUsed){
+      let maxUse=0;Object.entries(GS.run.runStats.abilitiesUsed).forEach(([n,c])=>{if(c>maxUse){maxUse=c;favAb=n}})}
+    cH+='<div style="margin-bottom:8px;padding:6px;background:var(--bg3);border-radius:4px">';
+    cH+='<div style="color:var(--gold);font-size:.9rem;font-weight:600;margin-bottom:4px">'+clName+'</div>';
+    cH+=_stat('Kills',stats.kills||0)+_stat('CP earned',cpAmt);
+    cH+='</div>'});
+  cp.innerHTML=cH}
+  // Records tab
+  const rp=panels.rec;
+  const pr=ch.personalRecords||{};
+  let rH=_stat('Highest single hit',ls.highestHit||0);
+  rH+=_stat('Best level',rh.bestLevel||0);
+  rH+=_stat('Most kills (run)',rh.totalKills||0);
+  rp.innerHTML=rH;
+  b.appendChild(tabBar);Object.values(panels).forEach(p=>b.appendChild(p));
+  const doneBtn=document.createElement('button');doneBtn.className='mbtn';doneBtn.textContent='Close';doneBtn.style.marginTop='12px';
+  doneBtn.onclick=()=>ML.closeAll();b.appendChild(doneBtn);
+  this.open('m-dlg');
+  const modal=$('m-dlg');const mx=modal.querySelector('.mx');if(mx)mx.style.display='';
 }
 };
 
@@ -3145,7 +3649,7 @@ async next(){
     UI.showGame();
     UI.el.gm.style.opacity='0';UI.el.gm.style.transition='opacity '+d+'ms ease';
     await UI._wait(50);UI.el.gm.style.opacity='1';
-    SE.enter('trailhead');return}
+    if(OPENING.isActive()){OPENING.start()}else{SE.enter('trailhead')}return}
   this.step++;
   if(this.step===3&&this.sp==='human'){this.step=4;this.buildHumanBonus()}
   else if(this.step===3)this.buildSubSP();
@@ -3193,9 +3697,12 @@ buildCL(){const c=$('cl-cards');c.innerHTML='';
   const jm=GS.getJM();const unlocked=jm.unlockedClasses||['fighter','ranger','gunslinger'];
   Object.entries(CL).forEach(([k,cl])=>{
     const isLocked=!unlocked.includes(k);
+    // Batch 7B: Warlock requires defeating The Betrayer
+    const betrayerLock=(k==='warlock'&&!jm.betrayerDefeated);
+    const effectivelyLocked=isLocked||betrayerLock;
     const card=document.createElement('div');card.className='ccd';card.setAttribute('role','radio');card.setAttribute('aria-checked','false');card.setAttribute('tabindex','0');
     card.setAttribute('aria-label',cl.name+': '+cl.desc);
-    if(isLocked){card.style.opacity='.4';card.style.pointerEvents='none'}
+    if(effectivelyLocked){card.style.opacity='.4';card.style.pointerEvents='none'}
     const cv=document.createElement('canvas');cv.width=64;cv.height=64;cv.setAttribute('aria-hidden','true');
     PA.renderClassIcon(cv,k);
     const info=document.createElement('div');info.className='ccd-i';
@@ -3205,9 +3712,10 @@ buildCL(){const c=$('cl-cards');c.innerHTML='';
     let lockLine='';
     if(isLocked){const tierEntry=Object.entries(CLASS_UNLOCK_TIERS).find(([,t])=>t.classes.includes(k));
       if(tierEntry){const [tierName,tierData]=tierEntry;lockLine='<div class="ccd-s" style="color:var(--red)">Locked — Unlock '+tierData.reqUnlocked+' classes first</div>'}}
+    if(betrayerLock&&!isLocked)lockLine='<div class="ccd-s" style="color:var(--red)">Locked — Defeat The Betrayer to unlock</div>';
     info.innerHTML='<div class="ccd-n">'+cl.name+'</div><div class="ccd-d">'+cl.desc+'</div><div class="ccd-s">Gear: '+gearLine+'</div>'+abilityLine+lockLine;
     card.appendChild(cv);card.appendChild(info);
-    const pick=()=>{if(isLocked)return;c.querySelectorAll('.ccd').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-checked','false')});card.classList.add('sel');card.setAttribute('aria-checked','true');this.cl=k};
+    const pick=()=>{if(effectivelyLocked)return;c.querySelectorAll('.ccd').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-checked','false')});card.classList.add('sel');card.setAttribute('aria-checked','true');this.cl=k};
     card.onclick=pick;card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}};c.appendChild(card)})},
 buildSum(){const c=$('cc-sum');const nm=UI.el.ni.value.trim(),sp=SP[this.sp],cl=CL[this.cl];
   const subData=sp.subspecies?sp.subspecies[this.subsp]:null;
@@ -3379,12 +3887,17 @@ async doCombatAction(cmd){
   if(pAnimType&&!REDUCED_MOTION)await new Promise(ok=>BattleRenderer.playAttack(pAnimType,eDmgDealt,ok));
   for(const m of playerMs){UI.addN(m.t,m.c)}
   UI.updateBattleScene(true);
-  if(eDmgDealt>0)UI.combatFX('enemy_hit',eDmgDealt);
+  const isCrit=playerMs.some(m=>m.t.includes('Critical')||m.t.includes('SHATTER'));
+  if(eDmgDealt>0)UI.combatFX(isCrit?'crit':'enemy_hit',eDmgDealt);
+  // Synergy flash
+  if(cs1&&cs1._lastSynergy){UI.combatFX('synergy',cs1._lastSynergy);
+    if(typeof TOOLTIP_TEXT!=='undefined')TT.show('tt_synergy',TOOLTIP_TEXT.tt_synergy);
+    cs1._lastSynergy=null}
   const hasPlayerMiss=playerMs.some(m=>m.t.includes('MISS'));
   if(hasPlayerMiss)UI.combatFX('miss');
   if(enemyMs.length){
     const tier=cs1&&cs1.enemy?cs1.enemy.tier||1:1;
-    const suspenseDelay=Math.min(800,300+tier*80);
+    const suspenseDelay=Math.min(800,300+tier*80)/getSpeed();
     await UI._wait(REDUCED_MOTION?0:suspenseDelay);
     if(!REDUCED_MOTION&&pDmgTaken>0)await new Promise(ok=>BattleRenderer.playAttack('enemy_attack',pDmgTaken,ok));
   }
@@ -3415,12 +3928,17 @@ async _handleFlee(){
 },
 
 resume(){
+  // Batch 7B: Handle resume mid-opening
+  const r=GS.run;
+  if(r&&r.scene==='__opening__'){
+    r.scene='trailhead';r._openingStep=null;GS.saveA();
+    if(OPENING.isActive()){OPENING.start();return}
+  }
   const cs=CMB.gs();
   if(cs&&!cs.over){UI.setCombatMode(true)}
   else{
     UI.setCombatMode(false);
     // If in map mode with no active combat or dungeon, show map
-    const r=GS.run;
     if(r&&MAP.isMapMode()&&!r.dungeonState){
       MAP._showMapAfterNode();return;
     }
@@ -3437,7 +3955,10 @@ getActions(){
       a.push({l:'Visit the Spiritfire Shrine',cmd:'shrine',d:'Spend Spiritfire on permanent upgrades.'});
     // Batch 5: Memorial Wall
     if(jm.memorialWall&&jm.memorialWall.length)
-      a.push({l:'Memorial Wall',cmd:'memorial_wall',d:'Remember those who fell.'})
+      a.push({l:'Memorial Wall',cmd:'memorial_wall',d:'Remember those who fell.'});
+    // Batch 7A: Chronicle
+    if(jm.chronicle||jm.runHistory)
+      a.push({l:'The Chronicle',cmd:'chronicle',d:'Lifetime stats and personal records.'})
   }
   if(scene.npcs)scene.npcs.forEach(nid=>{
     if(nid.startsWith('tvn_')){const tn=TAVERN_NPCS[nid];if(tn)a.push({l:'Talk to '+tn.name,cmd:'talk_'+nid,d:typeof tn.desc==='string'?tn.desc:''})}
@@ -3456,6 +3977,7 @@ handleAction(cmd){
   const r=GS.run,sceneId=r.scene;
   if(cmd==='shrine'){ML.openShrine();return}
   if(cmd==='memorial_wall'){ML.openMemorial();return}
+  if(cmd==='chronicle'){ML.openChronicle();return}
   if(cmd.startsWith('go_')){this.enter(cmd.slice(3));return}
   if(cmd.startsWith('talk_')){
     const nid=cmd.slice(5);
@@ -3548,7 +4070,7 @@ async onWin(){
   const waveIdx=(r._combatWaveIdx||0)+1;
   if(waveIdx<waves.length){
     r._combatWaveIdx=waveIdx;
-    const goldDrop=enemy.gold||0;if(goldDrop){if(!r.gold)r.gold=0;r.gold+=goldDrop}
+    const goldDrop=enemy.gold||0;if(goldDrop){if(!r.gold)r.gold=0;r.gold+=goldDrop;if(r.runStats)r.runStats.goldEarned+=goldDrop}
     if(xp)GS.addXP(xp);
     const loot=rollLoot(enemy,r.modifiers);if(loot)r.bp.push(loot);
     GS.saveA();UI.updateHUD();
@@ -3572,7 +4094,7 @@ async onWin(){
   card.innerHTML+='<div class="vic-stat">'+enemy.name+' defeated</div>';
   const xpRes=xp?GS.addXP(xp):{gained:0,leveled:false,lvls:[]};
   if(xp)card.innerHTML+='<div class="vic-stat">XP gained: +'+xpRes.gained+'</div>';
-  const goldDrop=enemy.gold||0;if(goldDrop){if(!r.gold)r.gold=0;r.gold+=goldDrop;GS.saveA()}
+  const goldDrop=enemy.gold||0;if(goldDrop){if(!r.gold)r.gold=0;r.gold+=goldDrop;if(r.runStats)r.runStats.goldEarned+=goldDrop;GS.saveA()}
   // Batch 4: Check milestones/spiritfire after victory
   GS.checkMilestones();GS.checkSpiritfire();
   card.innerHTML+='<div class="vic-stat">HP remaining: '+r.hp+'/'+r.mHP+'</div>';
@@ -3609,6 +4131,8 @@ async onWin(){
 
   UI.addEl(card);UI.updateHUD();
   await UI._wait(500);
+  // Batch 7B: Opening sequence combat routing
+  if(r.scene==='__opening__'){OPENING._onCombatWin();return}
   if(r.activeBounty&&r.scene==='bounty_arena'){
     // Batch 5: Capture bounty — if not captured, fail with message
     if(r.activeBounty.capture&&!r.activeBounty.captured){
@@ -3631,7 +4155,7 @@ async onWin(){
     bone_sentinel:'ih_post_bone',
     cave_crawler:'ih_post_crawler',mine_shade:'ih_post_shade',iron_golem:'ih_post_golem',
     ironscale_lizard:'ash_post_road',
-    corrupted_knight:'ash_post_ruins',ash_wyrm:'ash_post_tower',elder_dragon:'ash_exit'};
+    corrupted_knight:'ash_post_ruins',ash_wyrm:'ash_post_tower',the_betrayer:'ash_exit'};
   const nextScene=nextMap[enemy.id]||null;
   if(nextScene){
     const goBtn=document.createElement('button');goBtn.className='nav-btn';goBtn.style.marginTop='12px';
@@ -3673,7 +4197,27 @@ async onDeath(){
   const comp=_pediaCompletion();const totalComp=PEDIA_SECTIONS.reduce((s,sec)=>{const c=comp[sec.key];return s+(c&&c.total?c.found:0)},0);
   const totalTotal=PEDIA_SECTIONS.reduce((s,sec)=>{const c=comp[sec.key];return s+(c?c.total:0)},0);
   const pediaPct=totalTotal>0?Math.floor(totalComp/totalTotal*100):0;
-  this._deathSummary={defeated:totalDefeated,newEntries,cpEarned,sfEarned,modBonus,pediaPct};
+  // Batch 7A: Hearthkeeper's Blessing increment on death
+  const bless=m.hearthkeeperBlessing;
+  if(bless&&bless.enabled){bless.deathCount=(bless.deathCount||0)+1;
+    bless.resistance=Math.min(bless.cap||60,15+bless.deathCount*5);
+    GS.setJM({hearthkeeperBlessing:bless})}
+  // Batch 7A: Aggregate run stats to Chronicle
+  const rs=r.runStats||{};
+  if(!m.chronicle)m.chronicle={lifetimeStats:{totalDamageDealt:0,totalDamageTaken:0,totalGoldEarned:0,totalPlayTime:0,highestHit:0,longestRun:0,mostSynergies:0},personalRecords:{}};
+  const ch=m.chronicle;
+  ch.lifetimeStats.totalDamageDealt+=(rs.damageDealt||0);
+  ch.lifetimeStats.totalDamageTaken+=(rs.damageTaken||0);
+  ch.lifetimeStats.totalGoldEarned+=(rs.goldEarned||0);
+  ch.lifetimeStats.totalPlayTime+=Date.now()-(rs.startTime||Date.now());
+  if((rs.highestHit||0)>ch.lifetimeStats.highestHit)ch.lifetimeStats.highestHit=rs.highestHit;
+  const runLen=rs.turnsTotal||0;if(runLen>ch.lifetimeStats.longestRun)ch.lifetimeStats.longestRun=runLen;
+  GS.setJM({chronicle:ch});
+  this._deathSummary={defeated:totalDefeated,newEntries,cpEarned,sfEarned,modBonus,pediaPct,
+    damageDealt:rs.damageDealt||0,damageTaken:rs.damageTaken||0,nodesExplored:rs.nodesExplored||0,
+    goldEarned:rs.goldEarned||0,highestHit:rs.highestHit||0,
+    runDuration:Date.now()-(rs.startTime||Date.now()),turnsTotal:rs.turnsTotal||0,consumablesUsed:rs.consumablesUsed||0};
+  if(typeof TOOLTIP_TEXT!=='undefined')TT.show('tt_death',TOOLTIP_TEXT.tt_death);
   UI.addN('Everything fades to black\u2026','d');
   await UI._wait(1000);
   UI.showDeathScreen();
@@ -3764,7 +4308,7 @@ garrettBuy(){
     const btn=document.createElement('button');btn.className='iab';btn.textContent='Buy ('+s.price+'g)';
     btn.disabled=(r.gold||0)<s.price;
     btn.onclick=()=>{if((r.gold||0)<s.price)return;
-      r.gold-=s.price;r.bp.push({...ITEMS[s.key]});GS.saveA();UI.updateHUD();
+      r.gold-=s.price;if(r.runStats)r.runStats.goldSpent+=s.price;r.bp.push({...ITEMS[s.key]});GS.saveA();UI.updateHUD();
       UI.addN('Bought '+it.name+' for '+s.price+'g.','s');this.garrettBuy()};
     row.appendChild(btn);b.appendChild(row)});
   const backBtn=document.createElement('button');backBtn.className='mbtn';backBtn.textContent='Done';backBtn.style.marginTop='12px';
@@ -4086,7 +4630,9 @@ _checkClassUnlocks(){
   if(!availableTiers.length)return;
   // Show class unlock choice for the first available tier
   const [tierName,tier]=availableTiers[0];
-  const available=tier.classes.filter(cl=>!jm.unlockedClasses.includes(cl));
+  let available=tier.classes.filter(cl=>!jm.unlockedClasses.includes(cl));
+  // Batch 7B: Gate warlock behind Betrayer defeat
+  available=available.filter(cl=>cl!=='warlock'||jm.betrayerDefeated);
   if(!available.length)return;
   this._showClassUnlockChoice(available,tierName);
 },
@@ -4372,8 +4918,19 @@ _trackQuestProgress(trigger){
 
 runComplete(){
   const r=GS.run,adv=r.adventure||'muddy_trail',xpRes=GS.addXP(25);
-  // Batch 4: Track adventure completion + milestone/spiritfire checks
-  const jm=GS.getJM();if(!jm.adventuresCompleted)jm.adventuresCompleted={};
+  // Batch 7A: Aggregate run stats to Chronicle on win
+  const rs=r.runStats||{};
+  const jm=GS.getJM();
+  if(!jm.chronicle)jm.chronicle={lifetimeStats:{totalDamageDealt:0,totalDamageTaken:0,totalGoldEarned:0,totalPlayTime:0,highestHit:0,longestRun:0,mostSynergies:0},personalRecords:{}};
+  const ch=jm.chronicle;
+  ch.lifetimeStats.totalDamageDealt+=(rs.damageDealt||0);
+  ch.lifetimeStats.totalDamageTaken+=(rs.damageTaken||0);
+  ch.lifetimeStats.totalGoldEarned+=(rs.goldEarned||0);
+  ch.lifetimeStats.totalPlayTime+=Date.now()-(rs.startTime||Date.now());
+  if((rs.highestHit||0)>ch.lifetimeStats.highestHit)ch.lifetimeStats.highestHit=rs.highestHit;
+  const runLen=rs.turnsTotal||0;if(runLen>ch.lifetimeStats.longestRun)ch.lifetimeStats.longestRun=runLen;
+  GS.setJM({chronicle:ch});
+  // Batch 4: Track adventure completion + milestone/spiritfire checksif(!jm.adventuresCompleted)jm.adventuresCompleted={};
   jm.adventuresCompleted[adv]=true;GS.setJM({adventuresCompleted:jm.adventuresCompleted});
   GS.checkMilestones();GS.checkSpiritfire();
   // Batch 5: Sync reputation, check recruitment, class unlocks, milestones
@@ -5401,8 +5958,13 @@ _resolveBoss(node,ad){
   node.encounter={enemy:bossKey};
   UI.clearN();
   const boss=ENEMIES[bossKey];
-  UI.addN('The air grows heavy. Something immense waits ahead.','d');
-  UI.addN('A '+boss.name+' stands between you and freedom!','d');
+  if(bossKey==='the_betrayer'){
+    UI.addN('A figure steps from the shadows. You know this face.','d');
+    UI.addN('The Betrayer stands between you and freedom!','d');
+  }else{
+    UI.addN('The air grows heavy. Something immense waits ahead.','d');
+    UI.addN('A '+boss.name+' stands between you and freedom!','d');
+  }
 
   // Start combat — no bypass, no quick resolve for bosses
   const cs=CMB.start(bossKey);
@@ -5514,7 +6076,9 @@ _checkDungeonEnd(){
 
 _completeNode(node){
   node.completed=true;
-  const r=GS.run,m=r.map;GS.saveA();
+  const r=GS.run,m=r.map;
+  if(r.runStats)r.runStats.nodesExplored++;
+  GS.saveA();
   const region=m.regions[r.mapPos.region];
 
   // Check if last row of region

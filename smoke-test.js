@@ -7,11 +7,11 @@ const vm = require('vm');
 
 // Load data.js (same as validate.js)
 const dataSrc = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_COLORS=RARITY_COLORS;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;this.TAVERN_NPCS=TAVERN_NPCS;this.ADVENTURE_SIDE_NPCS=ADVENTURE_SIDE_NPCS;this.TAVERN_STATES=TAVERN_STATES;this.REPUTATION_TIERS=REPUTATION_TIERS;this.CLASS_UNLOCK_TIERS=CLASS_UNLOCK_TIERS;this.MILESTONES=MILESTONES;this.BOUNTIES=BOUNTIES;this.SUBCLASS_ABILITIES=SUBCLASS_ABILITIES;this.CLASS_OOC_ABILITIES=CLASS_OOC_ABILITIES;';
+const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_COLORS=RARITY_COLORS;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;this.TAVERN_NPCS=TAVERN_NPCS;this.ADVENTURE_SIDE_NPCS=ADVENTURE_SIDE_NPCS;this.TAVERN_STATES=TAVERN_STATES;this.REPUTATION_TIERS=REPUTATION_TIERS;this.CLASS_UNLOCK_TIERS=CLASS_UNLOCK_TIERS;this.MILESTONES=MILESTONES;this.BOUNTIES=BOUNTIES;this.SUBCLASS_ABILITIES=SUBCLASS_ABILITIES;this.CLASS_OOC_ABILITIES=CLASS_OOC_ABILITIES;this.CHRONICLE_QUOTES=CHRONICLE_QUOTES;this.TOOLTIP_TEXT=TOOLTIP_TEXT;this.TUTORIAL_COMPANION=TUTORIAL_COMPANION;this.TUTORIAL_ENCOUNTERS=TUTORIAL_ENCOUNTERS;this.OPENING_DIALOGUE=OPENING_DIALOGUE;';
 const dataSandbox = { UI: { addN() {} } };
 vm.createContext(dataSandbox);
 vm.runInContext(dataWrapped, dataSandbox);
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS, RECIPES, ITEM_RARITY, RARITY_COLORS, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS, TAVERN_NPCS, ADVENTURE_SIDE_NPCS, TAVERN_STATES, REPUTATION_TIERS, CLASS_UNLOCK_TIERS, MILESTONES, BOUNTIES, SUBCLASS_ABILITIES, CLASS_OOC_ABILITIES } = dataSandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS, RECIPES, ITEM_RARITY, RARITY_COLORS, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS, TAVERN_NPCS, ADVENTURE_SIDE_NPCS, TAVERN_STATES, REPUTATION_TIERS, CLASS_UNLOCK_TIERS, MILESTONES, BOUNTIES, SUBCLASS_ABILITIES, CLASS_OOC_ABILITIES, CHRONICLE_QUOTES, TOOLTIP_TEXT, TUTORIAL_COMPANION, TUTORIAL_ENCOUNTERS, OPENING_DIALOGUE } = dataSandbox;
 
 // Replicate rollLoot from index.html
 function rollLoot(enemy) {
@@ -458,6 +458,96 @@ else {
   if (captureCount === 0) err('No bounties have capture:true flag');
   console.log('Bounty capture flags: ' + captureCount + ' capture bounties found.');
 }
+
+// === BATCH 7A: CHRONICLE & TOOLTIP TESTS ===
+
+// Test CHRONICLE_QUOTES
+if (!CHRONICLE_QUOTES || !Array.isArray(CHRONICLE_QUOTES)) err('CHRONICLE_QUOTES missing or not an array');
+else {
+  if (CHRONICLE_QUOTES.length < 5) err('CHRONICLE_QUOTES should have at least 5 entries, got ' + CHRONICLE_QUOTES.length);
+  for (const q of CHRONICLE_QUOTES) {
+    if (typeof q !== 'string' || q.length < 10) err('CHRONICLE_QUOTES entry too short or not a string');
+  }
+  console.log('CHRONICLE_QUOTES validation passed (' + CHRONICLE_QUOTES.length + ' quotes).');
+}
+
+// Test TOOLTIP_TEXT
+if (!TOOLTIP_TEXT || typeof TOOLTIP_TEXT !== 'object') err('TOOLTIP_TEXT missing or not an object');
+else {
+  const ttKeys = Object.keys(TOOLTIP_TEXT);
+  if (ttKeys.length !== 17) err('TOOLTIP_TEXT should have 17 entries, got ' + ttKeys.length);
+  for (const [k, v] of Object.entries(TOOLTIP_TEXT)) {
+    if (typeof v !== 'string') err('TOOLTIP_TEXT "' + k + '" is not a string');
+    if (!k.startsWith('tt_')) err('TOOLTIP_TEXT key "' + k + '" should start with tt_');
+  }
+  console.log('TOOLTIP_TEXT validation passed (' + ttKeys.length + ' tooltips).');
+}
+
+// Test runStats structure shape
+{
+  const expectedKeys = ['damageDealt','damageTaken','turnsTotal','nodesExplored','goldEarned','goldSpent','consumablesUsed','abilitiesUsed','statusApplied','highestHit','startTime'];
+  const testStats = {damageDealt:0,damageTaken:0,turnsTotal:0,nodesExplored:0,goldEarned:0,goldSpent:0,consumablesUsed:0,abilitiesUsed:{},statusApplied:{},highestHit:0,startTime:Date.now()};
+  for (const k of expectedKeys) {
+    if (!(k in testStats)) err('runStats missing expected key: ' + k);
+  }
+  console.log('runStats structure validation passed (' + expectedKeys.length + ' fields).');
+}
+
+// === BATCH 7B: TUTORIAL & BETRAYER TESTS ===
+
+// Test TUTORIAL_COMPANION structure
+if (!TUTORIAL_COMPANION || typeof TUTORIAL_COMPANION !== 'object') err('TUTORIAL_COMPANION missing');
+else {
+  if (!TUTORIAL_COMPANION.name || TUTORIAL_COMPANION.name !== 'Lysara') err('TUTORIAL_COMPANION name should be Lysara');
+  if (!TUTORIAL_COMPANION.summonStats || typeof TUTORIAL_COMPANION.summonStats.hp !== 'number') err('TUTORIAL_COMPANION missing summonStats.hp');
+  if (!TUTORIAL_COMPANION.summonStats.dmgDice || !Array.isArray(TUTORIAL_COMPANION.summonStats.dmgDice)) err('TUTORIAL_COMPANION missing summonStats.dmgDice');
+  console.log('TUTORIAL_COMPANION validation passed.');
+}
+
+// Test TUTORIAL_ENCOUNTERS
+if (!TUTORIAL_ENCOUNTERS || !Array.isArray(TUTORIAL_ENCOUNTERS)) err('TUTORIAL_ENCOUNTERS missing or not an array');
+else {
+  if (TUTORIAL_ENCOUNTERS.length !== 2) err('TUTORIAL_ENCOUNTERS should have 2 entries, got ' + TUTORIAL_ENCOUNTERS.length);
+  for (const ek of TUTORIAL_ENCOUNTERS) {
+    if (!ENEMIES[ek]) err('TUTORIAL_ENCOUNTERS references unknown enemy: ' + ek);
+  }
+  console.log('TUTORIAL_ENCOUNTERS validation passed (' + TUTORIAL_ENCOUNTERS.length + ' encounters).');
+}
+
+// Test OPENING_DIALOGUE keys
+if (!OPENING_DIALOGUE || typeof OPENING_DIALOGUE !== 'object') err('OPENING_DIALOGUE missing');
+else {
+  const reqKeys = ['friend_intro','friend_combat_1','friend_combat_2','friend_post_combat','friend_turn','betrayal','hearthkeeper_merge'];
+  for (const k of reqKeys) {
+    if (!OPENING_DIALOGUE[k]) err('OPENING_DIALOGUE missing key: ' + k);
+  }
+  if (Array.isArray(OPENING_DIALOGUE.friend_intro) && OPENING_DIALOGUE.friend_intro.length < 3)
+    err('OPENING_DIALOGUE.friend_intro should have at least 3 lines');
+  console.log('OPENING_DIALOGUE validation passed (' + reqKeys.length + ' keys verified).');
+}
+
+// Test the_betrayer enemy
+if (!ENEMIES.the_betrayer) err('ENEMIES missing the_betrayer');
+else {
+  const tb = ENEMIES.the_betrayer;
+  if (!tb._isBetrayer) err('the_betrayer missing _isBetrayer flag');
+  if (typeof tb._phase2Threshold !== 'number') err('the_betrayer missing _phase2Threshold');
+  if (tb.tier !== 5) err('the_betrayer should be tier 5');
+  console.log('the_betrayer enemy validation passed.');
+}
+
+// Test boss swap: Ashen Waste boss should be the_betrayer
+if (REGION_DATA.ashen_waste.boss !== 'the_betrayer')
+  err('REGION_DATA.ashen_waste.boss should be the_betrayer, got ' + REGION_DATA.ashen_waste.boss);
+else console.log('Ashen Waste boss swap verified: the_betrayer.');
+
+// Test ENEMY_STATUS_DATA has the_betrayer
+if (!ENEMY_STATUS_DATA.the_betrayer) err('ENEMY_STATUS_DATA missing the_betrayer');
+else console.log('ENEMY_STATUS_DATA.the_betrayer verified.');
+
+// Test bounty/quest updates
+if (BOUNTIES.dragon_hunt && BOUNTIES.dragon_hunt.enemy !== 'the_betrayer')
+  err('BOUNTIES.dragon_hunt should target the_betrayer');
 
 if (errors === 0) {
   console.log('Smoke test passed: ' + visited.size + ' scenes walked, combat/loot and exits OK.');
