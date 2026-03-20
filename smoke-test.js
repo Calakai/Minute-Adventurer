@@ -7,11 +7,11 @@ const vm = require('vm');
 
 // Load data.js (same as validate.js)
 const dataSrc = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;';
+const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_COLORS=RARITY_COLORS;this.RARITY_NAMES=RARITY_NAMES;';
 const dataSandbox = { UI: { addN() {} } };
 vm.createContext(dataSandbox);
 vm.runInContext(dataWrapped, dataSandbox);
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS } = dataSandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS, RECIPES, ITEM_RARITY, RARITY_COLORS, RARITY_NAMES } = dataSandbox;
 
 // Replicate rollLoot from index.html
 function rollLoot(enemy) {
@@ -182,6 +182,47 @@ if (mapStart === -1 || mapEnd === -1) {
     console.log('MAP generation tests passed for all 3 adventures.');
   }
 }
+
+// === ECONOMY & ITEMS TESTS ===
+
+// Sell price is ~45% of value
+const SELL_FACTOR = 0.45;
+function sellPrice(item) { return Math.floor((item.value || 0) * SELL_FACTOR); }
+for (const [iid, item] of Object.entries(ITEMS)) {
+  if (item.value) {
+    const sp = sellPrice(item);
+    if (sp < 0) err('sellPrice for "' + iid + '" is negative: ' + sp);
+    if (sp > item.value) err('sellPrice for "' + iid + '" exceeds value: ' + sp + ' > ' + item.value);
+  }
+}
+console.log('Sell price tests passed.');
+
+// Recipe ingredient validation
+if (RECIPES) {
+  for (const [rid, recipe] of Object.entries(RECIPES)) {
+    for (const ing of recipe.ingredients) {
+      if (!ITEMS[ing]) err('Recipe "' + rid + '" references unknown ingredient: ' + ing);
+    }
+    if (!ITEMS[recipe.output]) err('Recipe "' + rid + '" references unknown output: ' + recipe.output);
+  }
+  console.log('Recipe validation passed (' + Object.keys(RECIPES).length + ' recipes).');
+}
+
+// New consumable field validation
+for (const [iid, item] of Object.entries(ITEMS)) {
+  if (item.applyStatus && !item.statusDuration)
+    err('Item "' + iid + '" has applyStatus but no statusDuration');
+  if (item.combatBuff && !item.combatBuff.duration)
+    err('Item "' + iid + '" has combatBuff but no duration');
+}
+console.log('New consumable field validation passed.');
+
+// All items have valid rarity
+for (const [iid, item] of Object.entries(ITEMS)) {
+  if (item.rarity === undefined || item.rarity < 0 || item.rarity > 5)
+    err('Item "' + iid + '" has invalid rarity: ' + item.rarity);
+}
+console.log('Rarity validation passed.');
 
 if (errors === 0) {
   console.log('Smoke test passed: ' + visited.size + ' scenes walked, combat/loot and exits OK.');

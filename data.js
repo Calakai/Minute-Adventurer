@@ -57,6 +57,11 @@ const ENEMY_TIERS={
 // === v1.0 WEIGHT LABELS ===
 const WEIGHT_LABELS=['Weightless','Very Light','Light','Medium','Heavy','Very Heavy','Crushing'];
 
+// === v1.0 ITEM RARITY ===
+const ITEM_RARITY={common:0,uncommon:1,rare:2,very_rare:3,legendary:4,unique:5};
+const RARITY_COLORS=['#aaa','#5a9c6a','#4a8bc4','#9b59b6','#c9a84c','#c44054'];
+const RARITY_NAMES=['Common','Uncommon','Rare','Very Rare','Legendary','Unique'];
+
 const ENEMIES={
 // === TIER 1 — COMMON (8 total) ===
 gray_ooze:{name:'Gray Ooze',id:'gray_ooze',tier:1,lore:'A shimmering mass of corrosive slime that oozes along forest trails, drawn to warmth and movement. Slow but relentless.',hp:15,mHP:15,atk:5,def:0,dD:4,dB:1,xp:50,gold:8,preferredZone:'close',
@@ -174,73 +179,120 @@ demon_lord:{name:'Demon Lord',id:'demon_lord',tier:5,lore:'A being of pure malic
 
 const ITEMS={
 // === CONSUMABLES ===
-hpot:{name:'Health Potion',t:'consumable',wt:0,heal:10,desc:'Restores 10 HP.',value:8},
-mpot:{name:'Mana Potion',t:'consumable',wt:0,mana:10,desc:'Restores 10 MP.',value:8},
-ghpot:{name:'Greater Health Potion',t:'consumable',wt:0,heal:20,desc:'Restores 20 HP.',value:18},
-gmpot:{name:'Greater Mana Potion',t:'consumable',wt:0,mana:20,desc:'Restores 20 MP.',value:18},
-elixir:{name:'Elixir',t:'consumable',wt:0,heal:10,mana:10,desc:'Restores 10 HP and 10 MP.',value:22},
-antidote:{name:'Antidote',t:'consumable',wt:0,cure:'poison',desc:'Cures poison.',value:6},
-bandage:{name:'Bandage',t:'consumable',wt:0,cure:'bleed',desc:'Stops bleeding.',value:6},
-smelling_salts:{name:'Smelling Salts',t:'consumable',wt:0,cure:'stun',desc:'Clears stun.',value:6},
-burn_salve:{name:'Burn Salve',t:'consumable',wt:0,cure:'burn',desc:'Soothes burns.',value:6},
-purification_scroll:{name:'Purification Scroll',t:'consumable',wt:0,cure:'curse',desc:'Lifts curses.',value:10},
-eye_drops:{name:'Eye Drops',t:'consumable',wt:0,cure:'blind',desc:'Restores sight.',value:6},
-strength_tonic:{name:'Strength Tonic',t:'consumable',wt:0,heal:5,desc:'A bitter draught. Restores 5 HP.',value:8},
-focus_draught:{name:'Focus Draught',t:'consumable',wt:0,mana:8,desc:'Sharpens the mind. Restores 8 MP.',value:8},
-ration:{name:'Ration',t:'consumable',wt:0,heal:3,desc:'Dry bread and jerky. Restores 3 HP.',value:3},
-mushroom_brew:{name:'Mushroom Brew',t:'consumable',wt:0,heal:8,desc:'A pungent fungal tea. Restores 8 HP.',value:6},
-marsh_root:{name:'Marsh Root',t:'consumable',wt:0,heal:5,desc:'A bitter root. Restores 5 HP.',value:5},
-dwarven_ale:{name:'Dwarven Ale',t:'consumable',wt:0,heal:3,cure:'bleed',desc:'Burns going down. Cures bleed, heals 3 HP.',value:10},
+hpot:{name:'Health Potion',t:'consumable',wt:0,rarity:0,heal:10,desc:'Restores 10 HP.',value:8},
+mpot:{name:'Mana Potion',t:'consumable',wt:0,rarity:0,mana:10,desc:'Restores 10 MP.',value:8},
+ghpot:{name:'Greater Health Potion',t:'consumable',wt:0,rarity:1,heal:20,desc:'Restores 20 HP.',value:18},
+gmpot:{name:'Greater Mana Potion',t:'consumable',wt:0,rarity:1,mana:20,desc:'Restores 20 MP.',value:18},
+elixir:{name:'Elixir',t:'consumable',wt:0,rarity:1,heal:10,mana:10,desc:'Restores 10 HP and 10 MP.',value:22},
+antidote:{name:'Antidote',t:'consumable',wt:0,rarity:0,cure:'poison',desc:'Cures poison.',value:6},
+bandage:{name:'Bandage',t:'consumable',wt:0,rarity:0,cure:'bleed',desc:'Stops bleeding.',value:6},
+smelling_salts:{name:'Smelling Salts',t:'consumable',wt:0,rarity:0,cure:'stun',desc:'Clears stun.',value:6},
+burn_salve:{name:'Burn Salve',t:'consumable',wt:0,rarity:0,cure:'burn',desc:'Soothes burns.',value:6},
+purification_scroll:{name:'Purification Scroll',t:'consumable',wt:0,rarity:1,cure:'curse',desc:'Lifts curses.',value:10},
+eye_drops:{name:'Eye Drops',t:'consumable',wt:0,rarity:0,cure:'blind',desc:'Restores sight.',value:6},
+strength_tonic:{name:'Strength Tonic',t:'consumable',wt:0,rarity:1,heal:5,desc:'A bitter draught. Restores 5 HP.',value:8},
+focus_draught:{name:'Focus Draught',t:'consumable',wt:0,rarity:1,mana:8,desc:'Sharpens the mind. Restores 8 MP.',value:8},
+ration:{name:'Ration',t:'consumable',wt:0,rarity:0,heal:3,desc:'Dry bread and jerky. Restores 3 HP.',value:3},
+mushroom_brew:{name:'Mushroom Brew',t:'consumable',wt:0,rarity:1,heal:8,desc:'A pungent fungal tea. Restores 8 HP.',value:6},
+marsh_root:{name:'Marsh Root',t:'consumable',wt:0,rarity:0,heal:5,desc:'A bitter root. Restores 5 HP.',value:5},
+dwarven_ale:{name:'Dwarven Ale',t:'consumable',wt:0,rarity:1,heal:3,cure:'bleed',desc:'Burns going down. Cures bleed, heals 3 HP.',value:10},
 
 // === WEAPONS — MELEE ===
-iron_sword:{name:'Iron Sword',t:'melee',wt:2,dD:6,dB:1,desc:'Melee, 1d6+1. Reliable.',value:20},
-steel_sword:{name:'Steel Sword',t:'melee',wt:2,dD:8,dB:1,desc:'Melee, 1d8+1. Well-forged.',value:35},
-enchanted_blade:{name:'Enchanted Blade',t:'melee',wt:2,dD:8,dB:3,desc:'Melee, 1d8+3. Glows faintly blue.',value:60},
-war_hammer:{name:'War Hammer',t:'melee',wt:3,dD:10,dB:1,desc:'Melee, 1d10+1. Two-handed.',twoHand:true,value:40},
-mace:{name:'Mace',t:'melee',wt:2,dD:6,dB:2,desc:'Melee, 1d6+2. Crushes armor.',value:25},
-rapier:{name:'Rapier',t:'melee',wt:1,dD:6,dB:1,desc:'Melee, 1d6+1. Light and fast.',value:22},
-broadsword:{name:'Broadsword',t:'melee',wt:2,dD:8,dB:0,desc:'Melee, 1d8. Versatile blade.',value:28},
-flaming_sword:{name:'Flaming Sword',t:'melee',wt:2,dD:8,dB:2,desc:'Melee, 1d8+2. Wreathed in flame.',value:70},
-halberd:{name:'Halberd',t:'melee',wt:3,dD:10,dB:0,desc:'Melee, 1d10. Two-handed reach.',twoHand:true,value:35},
-bone_cleaver:{name:'Bone Cleaver',t:'melee',wt:3,dD:10,dB:2,desc:'Melee, 1d10+2. Two-handed. Grim.',twoHand:true,value:50},
+iron_sword:{name:'Iron Sword',t:'melee',wt:2,rarity:0,dD:6,dB:1,desc:'Melee, 1d6+1. Reliable.',value:20},
+steel_sword:{name:'Steel Sword',t:'melee',wt:2,rarity:1,dD:8,dB:1,desc:'Melee, 1d8+1. Well-forged.',value:35},
+enchanted_blade:{name:'Enchanted Blade',t:'melee',wt:2,rarity:2,dD:8,dB:3,desc:'Melee, 1d8+3. Glows faintly blue.',value:60},
+war_hammer:{name:'War Hammer',t:'melee',wt:3,rarity:2,dD:10,dB:1,desc:'Melee, 1d10+1. Two-handed.',twoHand:true,value:40},
+mace:{name:'Mace',t:'melee',wt:2,rarity:1,dD:6,dB:2,desc:'Melee, 1d6+2. Crushes armor.',value:25},
+rapier:{name:'Rapier',t:'melee',wt:1,rarity:1,dD:6,dB:1,desc:'Melee, 1d6+1. Light and fast.',value:22},
+broadsword:{name:'Broadsword',t:'melee',wt:2,rarity:1,dD:8,dB:0,desc:'Melee, 1d8. Versatile blade.',value:28},
+flaming_sword:{name:'Flaming Sword',t:'melee',wt:2,rarity:3,dD:8,dB:2,desc:'Melee, 1d8+2. Wreathed in flame.',value:70},
+halberd:{name:'Halberd',t:'melee',wt:3,rarity:2,dD:10,dB:0,desc:'Melee, 1d10. Two-handed reach.',twoHand:true,value:35},
+bone_cleaver:{name:'Bone Cleaver',t:'melee',wt:3,rarity:2,dD:10,dB:2,desc:'Melee, 1d10+2. Two-handed. Grim.',twoHand:true,value:50},
 
 // === WEAPONS — RANGED ===
-longbow:{name:'Longbow',t:'ranged',wt:2,dD:8,dB:0,desc:'Ranged, 1d8. 12 arrows.',ammo:12,twoHand:true,value:30},
-crossbow:{name:'Crossbow',t:'ranged',wt:2,dD:10,dB:0,desc:'Ranged, 1d10. 6 bolts.',ammo:6,twoHand:true,value:40},
-throwing_knives:{name:'Throwing Knives',t:'ranged',wt:1,dD:4,dB:3,desc:'Ranged, 1d4+3. 12 knives.',ammo:12,value:25},
-pistol:{name:'Pistol',t:'ranged',wt:1,dD:6,dB:1,desc:'Ranged, 1d6+1. 6 shots.',ammo:6,value:30},
+longbow:{name:'Longbow',t:'ranged',wt:2,rarity:1,dD:8,dB:0,desc:'Ranged, 1d8. 12 arrows.',ammo:12,twoHand:true,value:30},
+crossbow:{name:'Crossbow',t:'ranged',wt:2,rarity:2,dD:10,dB:0,desc:'Ranged, 1d10. 6 bolts.',ammo:6,twoHand:true,value:40},
+throwing_knives:{name:'Throwing Knives',t:'ranged',wt:1,rarity:1,dD:4,dB:3,desc:'Ranged, 1d4+3. 12 knives.',ammo:12,value:25},
+pistol:{name:'Pistol',t:'ranged',wt:1,rarity:1,dD:6,dB:1,desc:'Ranged, 1d6+1. 6 shots.',ammo:6,value:30},
 
 // === ARMOR ===
-padded_armor:{name:'Padded Armor',t:'armor',wt:0,dB:1,desc:'+1 defense (Weightless).',value:15},
-leather_armor:{name:'Leather Armor',t:'armor',wt:2,dB:1,desc:'+1 defense (Light).',value:18},
-scale_mail:{name:'Scale Mail',t:'armor',wt:2,dB:2,desc:'+2 defense (Light).',value:30},
-iron_plate:{name:'Iron Plate',t:'armor',wt:4,dB:3,desc:'+3 defense (Heavy).',value:50},
-knights_plate:{name:"Knight's Plate",t:'armor',wt:5,dB:4,desc:'+4 defense (Very Heavy).',value:80},
-mage_vestments:{name:'Mage Vestments',t:'armor',wt:0,dB:0,desc:'+0 defense. Enhances magic.',value:20},
-shadow_cloak:{name:'Shadow Cloak',t:'armor',wt:0,dB:1,desc:'+1 defense (Weightless). Whisper-quiet.',value:35},
+padded_armor:{name:'Padded Armor',t:'armor',wt:0,rarity:0,dB:1,desc:'+1 defense (Weightless).',value:15},
+leather_armor:{name:'Leather Armor',t:'armor',wt:2,rarity:0,dB:1,desc:'+1 defense (Light).',value:18},
+scale_mail:{name:'Scale Mail',t:'armor',wt:2,rarity:1,dB:2,desc:'+2 defense (Light).',value:30},
+iron_plate:{name:'Iron Plate',t:'armor',wt:4,rarity:2,dB:3,desc:'+3 defense (Heavy).',value:50},
+knights_plate:{name:"Knight's Plate",t:'armor',wt:5,rarity:3,dB:4,desc:'+4 defense (Very Heavy).',value:80},
+mage_vestments:{name:'Mage Vestments',t:'armor',wt:0,rarity:1,dB:0,desc:'+0 defense. Enhances magic.',value:20},
+shadow_cloak:{name:'Shadow Cloak',t:'armor',wt:0,rarity:2,dB:1,desc:'+1 defense (Weightless). Whisper-quiet.',value:35},
 
 // === OFFHAND ===
-iron_shield:{name:'Iron Shield',t:'shield',wt:2,blk:3,desc:'+3 block (Light).',value:25},
-tower_shield:{name:'Tower Shield',t:'shield',wt:3,blk:4,desc:'+4 block (Medium).',value:45},
-wooden_shield:{name:'Wooden Shield',t:'shield',wt:2,blk:2,desc:'+2 block (Light).',value:15},
-grimoire:{name:'Grimoire',t:'spellbook',wt:1,desc:'Dark tome. Required for spell abilities.',value:40},
-crystal_orb:{name:'Crystal Orb',t:'spellbook',wt:1,desc:'Arcane focus. Required for spell abilities.',value:45},
-tome_of_dead:{name:'Tome of the Dead',t:'spellbook',wt:1,desc:'Necromantic focus. Required for death magic.',value:35},
-hex_totem:{name:'Hex Totem',t:'spellbook',wt:1,desc:'Warlock focus. Channels curse energy.',value:35},
+iron_shield:{name:'Iron Shield',t:'shield',wt:2,rarity:1,blk:3,desc:'+3 block (Light).',value:25},
+tower_shield:{name:'Tower Shield',t:'shield',wt:3,rarity:2,blk:4,desc:'+4 block (Medium).',value:45},
+wooden_shield:{name:'Wooden Shield',t:'shield',wt:2,rarity:0,blk:2,desc:'+2 block (Light).',value:15},
+grimoire:{name:'Grimoire',t:'spellbook',wt:1,rarity:2,desc:'Dark tome. Required for spell abilities.',value:40},
+crystal_orb:{name:'Crystal Orb',t:'spellbook',wt:1,rarity:2,desc:'Arcane focus. Required for spell abilities.',value:45},
+tome_of_dead:{name:'Tome of the Dead',t:'spellbook',wt:1,rarity:2,desc:'Necromantic focus. Required for death magic.',value:35},
+hex_totem:{name:'Hex Totem',t:'spellbook',wt:1,rarity:2,desc:'Warlock focus. Channels curse energy.',value:35},
 
-// === CONSUMABLES — NEW ===
-smoke_bomb:{name:'Smoke Bomb',t:'consumable',wt:0,desc:'Guaranteed flee from any zone. Any class.',value:18,guaranteedFlee:true},
-map_fragment:{name:'Map Fragment',t:'consumable',wt:0,desc:'Reveals all node types in the current region.',value:25,mapReveal:true},
+// === CONSUMABLES — TACTICAL ===
+smoke_bomb:{name:'Smoke Bomb',t:'consumable',wt:0,rarity:1,desc:'Guaranteed flee from any zone. Any class.',value:18,guaranteedFlee:true},
+map_fragment:{name:'Map Fragment',t:'consumable',wt:0,rarity:1,desc:'Reveals all node types in the current region.',value:25,mapReveal:true},
+
+// === CONSUMABLES — STATUS-APPLYING ===
+poison_vial:{name:'Poison Vial',t:'consumable',wt:0,rarity:0,desc:'Apply Poison to an enemy (2 turns).',value:8,applyStatus:'poison',statusDuration:2,statusDmg:1},
+fire_flask:{name:'Fire Flask',t:'consumable',wt:0,rarity:0,desc:'Apply Burn to an enemy (2 turns).',value:8,applyStatus:'burn',statusDuration:2,statusDmg:2},
+caltrops:{name:'Caltrops',t:'consumable',wt:0,rarity:0,desc:'Apply Slow to an enemy (2 turns).',value:6,applyStatus:'slow',statusDuration:2,statusDmg:0},
+binding_rope:{name:'Binding Rope',t:'consumable',wt:0,rarity:0,desc:'Apply Rooted to an enemy (2 turns).',value:8,applyStatus:'rooted',statusDuration:2,statusDmg:0},
+flashbang:{name:'Flashbang',t:'consumable',wt:0,rarity:1,desc:'Apply Blind to an enemy (2 turns).',value:14,applyStatus:'blind',statusDuration:2,statusDmg:0},
+enfeebling_dust:{name:'Enfeebling Dust',t:'consumable',wt:0,rarity:1,desc:'Apply Weaken to an enemy (3 turns).',value:14,applyStatus:'weaken',statusDuration:3,statusDmg:0},
+concussion_bomb:{name:'Concussion Bomb',t:'consumable',wt:0,rarity:1,desc:'Apply Stun to an enemy (1 turn).',value:16,applyStatus:'stun',statusDuration:1,statusDmg:0},
+hex_scroll:{name:'Hex Scroll',t:'consumable',wt:0,rarity:2,desc:'Apply Curse to an enemy (3 turns).',value:22,applyStatus:'curse',statusDuration:3,statusDmg:0},
+root_snare:{name:'Root Snare',t:'consumable',wt:0,rarity:2,desc:'Apply Rooted to an enemy (3 turns).',value:20,applyStatus:'rooted',statusDuration:3,statusDmg:0},
+silencing_powder:{name:'Silencing Powder',t:'consumable',wt:0,rarity:2,desc:'Apply Silenced to an enemy (2 turns).',value:20,applyStatus:'silenced',statusDuration:2,statusDmg:0},
+
+// === CONSUMABLES — COMBAT BUFFS ===
+whetstone:{name:'Whetstone',t:'consumable',wt:0,rarity:0,desc:'Sharpen weapon: +3 damage for 2 turns.',value:6,combatBuff:{name:'Sharpened',dmgBonus:3,duration:2}},
+battle_elixir:{name:'Battle Elixir',t:'consumable',wt:0,rarity:1,desc:'+2 damage for 3 turns.',value:14,combatBuff:{name:'Battle Fury',dmgBonus:2,duration:3}},
+ironbark_tonic:{name:'Ironbark Tonic',t:'consumable',wt:0,rarity:1,desc:'+2 defense for 3 turns.',value:14,combatBuff:{name:'Ironbark',defBonus:2,duration:3}},
+swiftfoot_draught:{name:'Swiftfoot Draught',t:'consumable',wt:0,rarity:1,desc:'+10% dodge for 3 turns.',value:14,combatBuff:{name:'Swiftfoot',dodgeBonus:10,duration:3}},
+elixir_fortitude:{name:'Elixir of Fortitude',t:'consumable',wt:0,rarity:2,desc:'+3 defense, 20% status resist for 3 turns.',value:25,combatBuff:{name:'Fortitude',defBonus:3,statusResist:20,duration:3}},
+potion_resistance:{name:'Potion of Resistance',t:'consumable',wt:0,rarity:2,desc:'Reduce incoming damage by 2 for 3 turns.',value:25,combatBuff:{name:'Resistance',incomingDmgReduction:2,duration:3}},
+
+// === CONSUMABLES — UTILITY ===
+scroll_dispel:{name:'Scroll of Dispel',t:'consumable',wt:0,rarity:2,desc:'Cure all status effects.',value:20,cureAll:true},
+
+// === CONSUMABLES — EXPLORATION ===
+lockpick_set:{name:'Lockpick Set',t:'consumable',wt:0,rarity:1,desc:'Aids in perception checks. +10% Sight.',value:12,exploreBonus:{stat:'sight',bonus:10}},
+diplomats_wine:{name:"Diplomat's Wine",t:'consumable',wt:0,rarity:1,desc:'Aids in social encounters. +10% Speech.',value:12,exploreBonus:{stat:'speech',bonus:10}},
+climbing_rope:{name:'Climbing Rope',t:'consumable',wt:0,rarity:1,desc:'Aids in physical challenges. +10% Movement.',value:12,exploreBonus:{stat:'movement',bonus:10}},
 
 // === MISC/LOOT ===
-wolf_pelt:{name:'Wolf Pelt',t:'misc',wt:1,desc:'A thick grey pelt. Proof of the kill.',value:15},
-iron_shard:{name:'Iron Shard',t:'misc',wt:1,desc:'A jagged fragment of living iron. Warm to the touch.',value:20},
-dragon_scale:{name:'Dragon Scale',t:'misc',wt:1,desc:'A scale of volcanic glass. Almost indestructible.',value:50},
-lich_dust:{name:'Lich Dust',t:'misc',wt:0,desc:'Powdered bone from an undead mage. Radiates cold.',value:40},
-demon_horn:{name:'Demon Horn',t:'misc',wt:1,desc:'A curved horn of obsidian black. Pulses with malice.',value:55},
-troll_blood:{name:'Troll Blood',t:'misc',wt:0,desc:'Viscous green blood. Alchemists pay well for this.',value:30},
-banshee_essence:{name:'Banshee Essence',t:'misc',wt:0,desc:'Bottled wailing. Useful in rituals.',value:35},
-guide:{name:"Player's Guide",t:'key',wt:0,desc:'A weathered guide to combat, creatures, and the world.',undrop:true}
+wolf_pelt:{name:'Wolf Pelt',t:'misc',wt:1,rarity:0,desc:'A thick grey pelt. Proof of the kill.',value:15},
+iron_shard:{name:'Iron Shard',t:'misc',wt:1,rarity:0,desc:'A jagged fragment of living iron. Warm to the touch.',value:20},
+dragon_scale:{name:'Dragon Scale',t:'misc',wt:1,rarity:2,desc:'A scale of volcanic glass. Almost indestructible.',value:50},
+lich_dust:{name:'Lich Dust',t:'misc',wt:0,rarity:2,desc:'Powdered bone from an undead mage. Radiates cold.',value:40},
+demon_horn:{name:'Demon Horn',t:'misc',wt:1,rarity:3,desc:'A curved horn of obsidian black. Pulses with malice.',value:55},
+troll_blood:{name:'Troll Blood',t:'misc',wt:0,rarity:1,desc:'Viscous green blood. Alchemists pay well for this.',value:30},
+banshee_essence:{name:'Banshee Essence',t:'misc',wt:0,rarity:1,desc:'Bottled wailing. Useful in rituals.',value:35},
+guide:{name:"Player's Guide",t:'key',wt:0,rarity:5,desc:'A weathered guide to combat, creatures, and the world.',undrop:true}
+};
+
+// === RECIPES (Crafting System) ===
+const RECIPES={
+// Upgraded consumables
+greater_antidote:{name:'Greater Antidote',ingredients:['antidote','marsh_root'],output:'scroll_dispel',category:'consumable'},
+fortified_potion:{name:'Fortified Potion',ingredients:['ghpot','troll_blood'],output:'elixir_fortitude',category:'consumable'},
+enhanced_elixir:{name:'Enhanced Elixir',ingredients:['elixir','marsh_root'],output:'battle_elixir',category:'consumable'},
+ironbark_brew:{name:'Ironbark Brew',ingredients:['mushroom_brew','iron_shard'],output:'ironbark_tonic',category:'consumable'},
+swift_brew:{name:'Swift Brew',ingredients:['focus_draught','wolf_pelt'],output:'swiftfoot_draught',category:'consumable'},
+resistance_draught:{name:'Resistance Draught',ingredients:['ghpot','iron_shard'],output:'potion_resistance',category:'consumable'},
+// Status consumables
+poison_concentrate:{name:'Poison Concentrate',ingredients:['antidote','marsh_root','troll_blood'],output:'hex_scroll',category:'status'},
+flash_powder:{name:'Flash Powder',ingredients:['burn_salve','iron_shard'],output:'flashbang',category:'status'},
+binding_craft:{name:'Binding Craft',ingredients:['bandage','wolf_pelt'],output:'root_snare',category:'status'},
+silence_mix:{name:'Silence Mix',ingredients:['banshee_essence','marsh_root'],output:'silencing_powder',category:'status'},
+// Equipment
+tempered_blade:{name:'Tempered Blade',ingredients:['iron_sword','iron_shard','iron_shard'],output:'steel_sword',category:'equipment'},
+reinforced_mail:{name:'Reinforced Mail',ingredients:['scale_mail','iron_shard','dragon_scale'],output:'iron_plate',category:'equipment'}
 };
 
 const NPCS={
@@ -284,14 +336,14 @@ captain_vane:{name:'Captain Vane',title:'Guard Captain',desc:'A stern woman in b
     marks:{text:'"Tier 4 and 5 creatures — Death Knights, Void Stalkers, worse. They come from beyond the mountains. The Ashen Waste breeds horrors. Only the strong survive out there."',options:[{text:'"I\'ll handle it."',next:null}]},
     garrison:{text:'"Twenty soldiers and this stone wall. That\'s all that stands between the settlements and what lurks in the dark. We do our best."',options:[{text:'"You do good work."',next:null}]}}},
 whisper:{name:'Whisper',title:'The Informant',desc:'A hooded figure leans against the wall in the shadows. You almost didn\'t see them.',
-  shop:{stock:[{key:'shadow_cloak',price:40},{key:'throwing_knives',price:32},{key:'antidote',price:8},{key:'smelling_salts',price:8},{key:'eye_drops',price:8}]},
+  shop:{stock:[{key:'shadow_cloak',price:40},{key:'throwing_knives',price:32},{key:'antidote',price:8},{key:'smelling_salts',price:8},{key:'eye_drops',price:8},{key:'flashbang',price:18},{key:'silencing_powder',price:24}]},
   dialogue:{
     initial:{text:'"...You found me. That\'s already more than most can say. I\'m Whisper. I deal in things people don\'t want seen. Rare goods, useful information. Interested?"',options:[{text:'"Show me what you have."',next:'shop_node'},{text:'"What information?"',next:'info'},{text:'"I\'ll pass."',next:null}]},
     returning:{text:'"You know where to find me. What do you need?"',options:[{text:'"Your wares."',next:'shop_node'},{text:'"Any news?"',next:'info'},{text:'"Nothing."',next:null}]},
     shop_node:{text:'"Discreet purchases. No questions asked."',effect:'shop',options:[{text:'"Done."',next:null}]},
     info:{text:'"The Ashen Waste — there\'s a witch out there, Grizelda. She sells things you can\'t find anywhere else. And deeper in, a hermit who knows the old history. Both worth finding, if you survive the trip."',options:[{text:'"Good to know."',next:null}]}}},
 brother_cedric:{name:'Brother Cedric',title:'Traveling Cleric',desc:'A man in simple brown robes sits by the road, a worn holy symbol around his neck. His pack is full of scrolls and vials.',
-  shop:{stock:[{key:'purification_scroll',price:12},{key:'antidote',price:8},{key:'bandage',price:8},{key:'burn_salve',price:8},{key:'ghpot',price:20},{key:'elixir',price:25}]},
+  shop:{stock:[{key:'purification_scroll',price:12},{key:'antidote',price:8},{key:'bandage',price:8},{key:'burn_salve',price:8},{key:'ghpot',price:20},{key:'elixir',price:25},{key:'scroll_dispel',price:24}]},
   dialogue:{
     initial:{text:'"Blessings, traveler. I am Brother Cedric, a wandering cleric of the old faith. I carry healing supplies and cures for those the road has wounded. May I be of service?"',options:[{text:'"Heal me, please."',next:'heal_node'},{text:'"Show me your supplies."',next:'shop_node'},{text:'"Tell me of your faith."',next:'faith'},{text:'"Not now, thank you."',next:null}]},
     returning:{text:'"The road brings you back. How may I serve?"',options:[{text:'"Heal me."',next:'heal_node'},{text:'"Your supplies."',next:'shop_node'},{text:'"Just resting."',next:null}]},
@@ -299,7 +351,7 @@ brother_cedric:{name:'Brother Cedric',title:'Traveling Cleric',desc:'A man in si
     shop_node:{text:'"Take what you need. I ask only fair coin to continue my work."',effect:'shop',options:[{text:'"That\'s all."',next:null}]},
     faith:{text:'"The old gods are quiet, but their light remains in the world — in healing, in mercy, in the courage to face darkness. I carry that light where I can."',options:[{text:'"A noble calling."',next:null}]}}},
 grizelda:{name:'Grizelda',title:'The Swamp Witch',desc:'A hunched woman stirs a bubbling cauldron over a sickly green fire. The air smells of sulfur and strange herbs.',
-  shop:{stock:[{key:'mushroom_brew',price:8},{key:'antidote',price:6},{key:'burn_salve',price:8},{key:'strength_tonic',price:10},{key:'focus_draught',price:10},{key:'elixir',price:22}]},
+  shop:{stock:[{key:'mushroom_brew',price:8},{key:'antidote',price:6},{key:'burn_salve',price:8},{key:'strength_tonic',price:10},{key:'focus_draught',price:10},{key:'elixir',price:22},{key:'poison_vial',price:10},{key:'fire_flask',price:10}]},
   dialogue:{
     initial:{text:'"Heh heh... a visitor. Don\'t get many out here. I\'m Grizelda. The locals call me witch — I prefer \'herbalist with unconventional methods.\' Want to buy something useful?"',options:[{text:'"What do you sell?"',next:'shop_node'},{text:'"Why do you live out here?"',next:'why'},{text:'"I\'ll be going."',next:null}]},
     returning:{text:'"Back for more of my brews? Smart. The waste eats the unprepared."',options:[{text:'"Show me your potions."',next:'shop_node'},{text:'"Any wisdom?"',next:'wisdom'},{text:'"Just visiting."',next:null}]},
@@ -564,7 +616,7 @@ hermit_cave:{name:"The Hermit's Cave",subtitle:'Where memory endures',
   npcs:['hermit'],
   exits:{back:{scene:'ash_village',label:'Cinderhaven Ruins',discovered:true}},
   events:{onFirstVisit:null,onEnter(r){if(!r.ss.hermitVisit){r.ss.hermitVisit=true;
-    if(r.bp.length<6){r.bp.push({...ITEMS.elixir});UI.addN('The Hermit offers you a gift \u2014 an Elixir, old but potent.','s')}
+    r.bp.push({...ITEMS.elixir});UI.addN('The Hermit offers you a gift \u2014 an Elixir, old but potent.','s');
     GS.saveA()}},combat:null}},
 
 // === BOUNTY ARENA ===

@@ -6,12 +6,12 @@ const fs = require('fs');
 const vm = require('vm');
 
 const src = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const wrapped = src + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.BOUNTIES=BOUNTIES;this.QUESTS=QUESTS;this.DEATH_QUOTES=DEATH_QUOTES;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;';
+const wrapped = src + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.BOUNTIES=BOUNTIES;this.QUESTS=QUESTS;this.DEATH_QUOTES=DEATH_QUOTES;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_NAMES=RARITY_NAMES;';
 const sandbox = { UI: { addN() {} }, GS: { saveA() {} } };
 vm.createContext(sandbox);
 vm.runInContext(wrapped, sandbox);
 
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA, BOUNTIES, QUESTS, DEATH_QUOTES, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT } = sandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, BOUNTIES, QUESTS, DEATH_QUOTES, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, RECIPES, ITEM_RARITY, RARITY_NAMES } = sandbox;
 let errors = 0;
 let warnings = 0;
 
@@ -150,6 +150,28 @@ if (EXPLORATION_EVENTS) {
           err(`EXPLORATION_EVENTS "${evId}" reward pool references unknown item "${ik}"`);
       }
     }
+  }
+}
+
+// Item rarity validation
+for (const [iid, item] of Object.entries(ITEMS)) {
+  if (item.rarity === undefined || item.rarity < 0 || item.rarity > 5)
+    err(`Item "${iid}" has invalid or missing rarity (got ${item.rarity})`);
+}
+
+// Recipe validation
+if (RECIPES) {
+  for (const [rid, recipe] of Object.entries(RECIPES)) {
+    if (!recipe.ingredients || !recipe.ingredients.length)
+      err(`Recipe "${rid}" has no ingredients`);
+    for (const ing of (recipe.ingredients || [])) {
+      if (!ITEMS[ing])
+        err(`Recipe "${rid}" references unknown ingredient "${ing}"`);
+    }
+    if (!recipe.output || !ITEMS[recipe.output])
+      err(`Recipe "${rid}" references unknown output "${recipe.output}"`);
+    if (recipe.output && ITEMS[recipe.output] && ITEMS[recipe.output].rarity > 2)
+      warn(`Recipe "${rid}" output "${recipe.output}" exceeds Rare rarity (${ITEMS[recipe.output].rarity})`);
   }
 }
 

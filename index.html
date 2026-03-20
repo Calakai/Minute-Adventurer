@@ -259,7 +259,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .dopts{display:flex;flex-direction:column;gap:8px}
 /* Weight tags */
 .wt-tag{font-size:.7rem;padding:1px 5px;border-radius:3px;margin-left:4px}
-.wt-0{color:var(--green);border:1px solid var(--green)}.wt-1{color:var(--gold);border:1px solid var(--gold)}.wt-2{color:var(--red);border:1px solid var(--red)}
+.wt-0{color:var(--green);border:1px solid var(--green)}.wt-1{color:#8bc48b;border:1px solid #8bc48b}.wt-2{color:var(--text);border:1px solid var(--text)}.wt-3{color:var(--gold);border:1px solid var(--gold)}.wt-4{color:var(--red);border:1px solid var(--red)}.wt-5{color:#b060d0;border:1px solid #b060d0}.wt-6{color:#8b0000;border:1px solid #8b0000}
 /* Misc */
 .msep{border:none;border-top:1px solid var(--border);margin:10px 0}
 .rc{text-align:center;padding:20px 0}
@@ -970,7 +970,7 @@ halfling:{name:'Halfling',desc:'Small, fast, and dangerously resourceful. Halfli
 };
 
 // === CLASS DATA ===
-const WT_NAMES=['Light','Medium','Heavy'];
+const WT_NAMES=WEIGHT_LABELS;
 const CL={
 fighter:{name:'Fighter',desc:'No tricks, no magic. Just steel and the skill to use it.',complexity:'simple',
   verb:{name:'Rally',desc:'Clear 1 status effect and gain +1 DEF for 2 turns.',cost:0,limit:'once_per_combat'},
@@ -1146,7 +1146,7 @@ newRun(nm,sp,subsp,cl,humanBonus){
     activeBounty:null,bountyBoard:null,activeQuests:[],completedQuests:{},questProgress:{},
     verbUsed:false,usedAbilities:{},graveCharges:0,
     map:null,mapPos:null,mapRevealed:{},restBudget:{short:2,long:1},
-    dungeonState:null,encounterHistory:[],deferredEffects:[]};
+    dungeonState:null,encounterHistory:[],deferredEffects:[],discoveredRecipes:{}};
   this.run.mHP=CALC.maxHP(this.run);this.run.mMP=CALC.maxMP(this.run);
   this.run.hp=this.run.mHP;this.run.mp=this.run.mMP;
   this.saveA();return this.run;
@@ -1160,7 +1160,7 @@ _validateSave(p){if(!(p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof
   if(!p.map)p.map=null;if(!p.mapPos)p.mapPos=null;if(!p.mapRevealed)p.mapRevealed={};
   if(!p.restBudget)p.restBudget={short:2,long:1};if(!p.dungeonState)p.dungeonState=null;
   if(!p.encounterHistory)p.encounterHistory=[];if(!p.deferredEffects)p.deferredEffects=[];
-  if(p._mapReturnRegion===undefined)p._mapReturnRegion=null;return true},
+  if(p._mapReturnRegion===undefined)p._mapReturnRegion=null;if(!p.discoveredRecipes)p.discoveredRecipes={};return true},
 saveA(){if(this.run)try{localStorage.setItem('activeRun',JSON.stringify(this.run));this._saveFail=false}catch(e){if(!this._saveFail){this._saveFail=true;console.warn('Auto-save failed:',e);
   if(e.name==='QuotaExceededError')showToast('Save failed \u2014 storage may be full.','error');else showToast('Auto-save failed.','error')}}},
 loadA(){try{const d=localStorage.getItem('activeRun');if(d){const p=JSON.parse(d);if(!this._validateSave(p))return'incompatible';this.run=p;return true}}catch(e){showToast('Save data corrupted. Starting fresh.','error')}return false},
@@ -1328,7 +1328,14 @@ pAct(act){
     ms.push({t:'You melt into the shadows... (2 MP spent)',c:'s'});ms.push({t:'Your next attack will deal double damage!',c:'y'});break}
   case'verb':{
     ms.push(...this._resolveVerb(r,cs));break}
-  default:ms.push({t:'You hesitate.',c:'d'})}
+  default:{
+    if(act.startsWith('use_item_')){
+      if(cs.usedItemThisTurn){ms.push({t:'Already used an item this turn!',c:'y'});GS.saveA();return ms}
+      const idx=parseInt(act.split('_')[2]);const it=r.bp[idx];
+      if(!it){ms.push({t:'Item not found!',c:'y'});GS.saveA();return ms}
+      if(it.guaranteedFlee){ms.push({t:`${it.name}! Smoke fills the air!`,c:'s'});r.bp.splice(idx,1);cs.fled=true;cs.over=true;eActs=false;cs.usedItemThisTurn=true;break}
+      const msg=useConsumable(it,r);ms.push({t:msg,c:'s'});cs.usedItemThisTurn=true;GS.saveA();return ms}
+    else ms.push({t:'You hesitate.',c:'d'})}}
   // Check all enemies dead
   const aliveNow=cs.enemies.filter(en=>en.hp>0);
   if(aliveNow.length===0){cs.over=true;cs.won=true;eActs=false;
@@ -1362,6 +1369,8 @@ _doPlayerAttack(r,cs,e){
   if(buff&&buff.trigger==='any_hit'&&buff.effect.hitBonus){hitPct=CALC.pct(hitPct+buff.effect.hitBonus);ms.push({t:`${buff.name}: +${buff.effect.hitBonus}% accuracy!`,c:'s'})}
   // Marked bonus
   if(e.debuffs){const mk=e.debuffs.find(d=>d.type==='marked');if(mk)hitPct=CALC.pct(hitPct+15)}
+  // Consumable buff hit bonuses
+  cs.activeBuffs.forEach(b=>{if(b.effect.hitBonus)hitPct=CALC.pct(hitPct+b.effect.hitBonus)});
   // Stagger on player
   if(r.debuffs.some(d=>d.type==='stagger'))hitPct=CALC.pct(hitPct-10);
   let roll=CALC.roll100();
@@ -1376,6 +1385,8 @@ _doPlayerAttack(r,cs,e){
     let dmg=CALC.rollDice(w.dD)+(w.dB||0)+(isMelee?CALC.meleeDmgMod(r):CALC.rangedDmgMod(r));
     // Buff damage bonuses
     if(buff&&buff.trigger==='sustained'&&buff.effect.dmgBonus)dmg+=buff.effect.dmgBonus;
+    // Consumable buff damage bonuses
+    cs.activeBuffs.forEach(b=>{if(b.effect.dmgBonus)dmg+=b.effect.dmgBonus});
     if(buff&&buff.trigger==='melee_hit'&&isMelee&&buff.effect.dmgMult&&!buff.conditions){
       dmg*=buff.effect.dmgMult;ms.push({t:`Power Strike! ${buff.effect.dmgMult}× damage!`,c:'s'});cs.activeBuff=null}
     if(buff&&buff.trigger==='melee_hit'&&isMelee&&buff.conditions){
@@ -1663,7 +1674,8 @@ _enemyAttack(e,cs,r){
   if(e.hp<=0||r.hp<=0)return ms;
   // If player is hidden (Vanish verb), enemy misses
   if(r.traitState.hidden){ms.push({t:`${e.name}'s attack passes through empty air! (Vanish)`,c:'s'});return ms}
-  const dodgePct=CALC.dodge(r);
+  let dodgePct=CALC.dodge(r);
+  cs.activeBuffs.forEach(b=>{if(b.effect.dodgeBonus)dodgePct+=b.effect.dodgeBonus});
   if(dodgePct>0&&CALC.roll100()<=dodgePct){ms.push({t:`You dodge ${e.name}'s attack! (${dodgePct}% dodge)`,c:'s'});return ms}
   // Evasion buff
   if(cs.activeBuff&&cs.activeBuff.effect.evasion){ms.push({t:'Evasion! Attack dodged!',c:'s'});cs.activeBuff=null;return ms}
@@ -1694,6 +1706,10 @@ _enemyAttack(e,cs,r){
       const absorbed=Math.min(d,cs.activeBuff.effect.ward);cs.activeBuff.effect.ward-=absorbed;d=Math.max(0,d-absorbed);
       ms.push({t:`Ward absorbs ${absorbed} damage! (${cs.activeBuff.effect.ward} remaining)`,c:'s'});
       if(cs.activeBuff.effect.ward<=0)cs.activeBuff=null}
+    // Consumable buff defenses
+    cs.activeBuffs.forEach(b=>{
+      if(b.effect.defBonus)d=Math.max(1,d-b.effect.defBonus);
+      if(b.effect.incomingDmgReduction)d=Math.max(1,d-b.effect.incomingDmgReduction)});
     // Frenzy: damage taken = bonus stacks
     cs.activeBuffs.forEach(b=>{if(b.effect.frenzy&&d>0){cs.frenzyStacks+=2;ms.push({t:`Frenzy! +2 bonus damage stored (${cs.frenzyStacks} total)`,c:'y'})}});
     d=CALC.safeDmg(d);r.hp=Math.max(0,r.hp-d);
@@ -1705,7 +1721,11 @@ _enemyAttack(e,cs,r){
     if(cs.activeBuff&&cs.activeBuff.effect.bloodRage&&d>0){cs.frenzyStacks+=d;ms.push({t:`Blood Rage! +${d} stored damage (${cs.frenzyStacks} total)`,c:'y'})}
     // Enemy on-hit status effects
     if(e.onHit&&r.hp>0){if(!r.debuffs)r.debuffs=[];
-      const oh=e.onHit;if(CALC.roll100()<=oh.chance&&!(r.subspecies==='stoneblood'&&oh.effect==='poison')){
+      const oh=e.onHit;
+      let statusResisted=false;
+      cs.activeBuffs.forEach(b=>{if(b.effect.statusResist&&CALC.roll100()<=b.effect.statusResist)statusResisted=true});
+      if(statusResisted){ms.push({t:'Status effect resisted!',c:'s'})}
+      else if(CALC.roll100()<=oh.chance&&!(r.subspecies==='stoneblood'&&oh.effect==='poison')){
         this._applyStatus(r,oh.effect,oh.duration,ms,oh.dmg)}}}
   else ms.push({t:`${e.name} lunges but misses!`,c:'d'});
   return ms},
@@ -2133,12 +2153,13 @@ _toggleItemSub(){
     let desc=it.heal?'Heal '+it.heal+' HP':'';
     if(it.mana)desc+=(desc?' · ':'')+'Restore '+it.mana+' MP';
     if(it.cure)desc+=(desc?' · ':'')+'Cure '+it.cure;
-    b.innerHTML=it.name+(desc?'<span class="sub-desc">'+desc+'</span>':'');
-    b.onclick=()=>{this._closeAllSubs();
-      if(it.heal)SE.doCombatAction('use_hpot');
-      else if(it.mana)SE.doCombatAction('use_mpot');
-      else if(it.cure)SE.doCombatAction('use_antidote');
-      else SE.doCombatAction('use_item')};
+    if(it.applyStatus)desc+=(desc?' · ':'')+'Apply '+it.applyStatus;
+    if(it.combatBuff)desc+=(desc?' · ':'')+it.combatBuff.name;
+    if(it.cureAll)desc+=(desc?' · ':'')+'Cure all effects';
+    if(it.guaranteedFlee)desc+=(desc?' · ':'')+'Guaranteed flee';
+    b.innerHTML=rarityName(it)+(desc?'<span class="sub-desc">'+desc+'</span>':'');
+    const bpIdx=r.bp.indexOf(it);
+    b.onclick=()=>{this._closeAllSubs();SE.doCombatAction('use_item_'+bpIdx)};
     sub.appendChild(b)});
   const bk=document.createElement('button');bk.className='cmd-back';bk.textContent='← Back';
   bk.onclick=()=>this._closeAllSubs();sub.appendChild(bk)},
@@ -2182,6 +2203,10 @@ combatFX(type,value){
 function $(id){return document.getElementById(id)}
 function statBar(label,val,max){max=max||25;return'<div class="sbar"><span class="sbar-l">'+label+'</span><div class="sbar-o"><div class="sbar-i" style="width:'+Math.min(100,(val/max)*100)+'%"></div></div><span class="sbar-v">'+val+'</span></div>'}
 function wtTag(wt){return'<span class="wt-tag wt-'+wt+'">'+(WT_NAMES[wt]||'?')+'</span>'}
+const SELL_FACTOR=0.45;
+const ADVENTURE_MARKUP=1.25;
+function rarityName(item){const r=item.rarity!==undefined?item.rarity:0;return'<span style="color:'+RARITY_COLORS[r]+'">'+item.name+'</span>'}
+function sellPrice(item){return Math.floor((item.value||0)*SELL_FACTOR)}
 
 function useConsumable(it,r){
   if(!it||it.t!=='consumable')return null;
@@ -2197,9 +2222,36 @@ function useConsumable(it,r){
     const rDef=MAP.getCurrentRegionDef();
     if(rDef){MAP.revealRegion(rDef.id);parts.push('region revealed')}}
   if(it.guaranteedFlee&&r.cs&&!r.cs.over){r.cs.fled=true;r.cs.over=true;parts.push('fled combat')}
+  // Status-applying consumables
+  if(it.applyStatus&&r.cs&&!r.cs.over){
+    const tgt=r.cs.enemies.find(e=>e.hp>0);
+    if(tgt){
+      if(!tgt.debuffs)tgt.debuffs=[];
+      tgt.debuffs.push({type:it.applyStatus,remaining:it.statusDuration||2,dmg:it.statusDmg||0});
+      parts.push(it.applyStatus+' applied to '+tgt.name)}}
+  // Combat buff consumables
+  if(it.combatBuff&&r.cs&&!r.cs.over){
+    r.cs.activeBuffs.push({name:it.combatBuff.name,trigger:'sustained',effect:{...it.combatBuff},turnsLeft:it.combatBuff.duration});
+    parts.push(it.combatBuff.name+' active')}
+  // Cure all
+  if(it.cureAll){if(r.debuffs&&r.debuffs.length){r.debuffs=[];parts.push('all effects cured')}else parts.push('no effects to cure')}
   GS.saveA();UI.updateHUD();
   return'Used '+it.name+(parts.length?': '+parts.join(', ')+'.':'.');
 }
+
+function checkRecipeDiscovery(r){
+  const newFound=[];
+  const bpKeys=r.bp.map(it=>{
+    for(const[k,v]of Object.entries(ITEMS)){if(it.name===v.name&&it.t===v.t)return k}return null}).filter(Boolean);
+  for(const[rk,recipe]of Object.entries(RECIPES)){
+    if(r.discoveredRecipes[rk])continue;
+    const hasAll=recipe.ingredients.every(ing=>{
+      const count=recipe.ingredients.filter(x=>x===ing).length;
+      return bpKeys.filter(k=>k===ing).length>=count});
+    if(hasAll){r.discoveredRecipes[rk]=true;newFound.push(recipe);
+      const jm=GS.getJM();if(!jm.recipes)jm.recipes={};jm.recipes[rk]=true;GS.setJM(jm)}}
+  if(newFound.length){GS.saveA();newFound.forEach(rec=>showToast('Recipe discovered: '+rec.name,'info'))}
+  return newFound}
 
 function rollLoot(enemy){
   if(!enemy.loot||!enemy.loot.length)return null;
@@ -2223,8 +2275,9 @@ closeAll(){document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('
 openChar(tab){
   const b=$('m-char-b');b.innerHTML='';const r=GS.run;if(!r)return;
   const tabs=document.createElement('div');tabs.className='tab-bar';tabs.setAttribute('role','tablist');
-  const panels={};const names=['Stats','Equipment','Backpack '+r.bp.length+'/6'];
-  const keys=['stats','equip','bp'];
+  checkRecipeDiscovery(r);
+  const panels={};const names=['Stats','Equipment','Backpack ('+r.bp.length+')','Crafting'];
+  const keys=['stats','equip','bp','craft'];
   const activeTab=tab||'stats';
   keys.forEach((k,i)=>{
     const t=document.createElement('button');t.className='tab-btn'+(k===activeTab?' act':'');t.textContent=names[i];
@@ -2253,7 +2306,9 @@ openChar(tab){
     if(k==='speech')derived=CALC.speech(r)+'%';
     else if(k==='sight')derived=CALC.search(r)+'%';
     else if(k==='smarts')derived=CALC.smarts(r)+'%';
-    else if(k==='movement'){const eff=CALC.effMov(r);derived='Eff: '+eff+(eff>=7?' (free zone move)':'');
+    else if(k==='movement'){const eff=CALC.effMov(r);
+      const effColor=eff>=7?'var(--green)':eff>=4?'var(--text)':eff>=2?'var(--gold)':'var(--red)';
+      derived='Eff: <span style="color:'+effColor+'">'+eff+'</span>'+(eff>=7?' (free zone move)':'');
       if(eff!==r.stats[k])sh+='<div class="stat-row"><span class="stat-name">'+STAT_LABELS[k]+'</span><span class="stat-val">'+r.stats[k]+' ('+eff+')</span><span class="stat-derived">'+derived+'</span></div>';return}
     sh+='<div class="stat-row"><span class="stat-name">'+STAT_LABELS[k]+'</span><span class="stat-val">'+r.stats[k]+'</span><span class="stat-derived">'+derived+'</span></div>'});
   const traitName=subData?subData.trait:(r.species==='human'?sp.trait:'');
@@ -2276,26 +2331,25 @@ openChar(tab){
   [{l:'Weapon',k:'wpn',i:r.wpn},{l:'Offhand',k:'oh',i:r.oh},{l:'Armor',k:'arm',i:r.arm}].forEach(s=>{
     eh+='<div class="isl-l">'+s.l+'</div>';
     if(s.k==='oh'&&twoHanded){eh+='<div class="isl isl-empty"><span class="isl-e" style="color:var(--text3);font-style:italic">Locked \u2014 '+r.wpn.name+' (two-handed)</span></div>';return}
-    if(s.i){eh+='<div class="isl"><div class="isl-top"><span class="isl-name">'+s.i.name+(s.i.wt!==undefined?wtTag(s.i.wt):'')+'</span></div><div class="isl-i">'+( s.i.desc||'')+'</div>';
+    if(s.i){eh+='<div class="isl"><div class="isl-top"><span class="isl-name">'+rarityName(s.i)+(s.i.wt!==undefined?wtTag(s.i.wt):'')+'</span></div><div class="isl-i">'+( s.i.desc||'')+'</div>';
       eh+='<div class="isl-a"><button class="iab" data-unequip="'+s.k+'">Unequip</button></div>';
       eh+='</div>'}
     else eh+='<div class="isl isl-empty"><span class="isl-e">Empty</span></div>'});
   const wt=CALC.totalWt(r);if(wt>0)eh+='<div style="font-size:.8rem;color:var(--text3);margin-top:8px">Weight penalty: -'+wt+' Movement</div>';
   panels.equip.innerHTML=eh;
   panels.equip.querySelectorAll('[data-unequip]').forEach(btn=>{
-    btn.onclick=()=>{const k=btn.dataset.unequip;if(r.bp.length>=6){showToast('Backpack full!','error');return}r.bp.push(r[k]);r[k]=null;GS.recalcDerived();GS.saveA();ML.openChar('equip');UI.updateHUD()}});
+    btn.onclick=()=>{const k=btn.dataset.unequip;r.bp.push(r[k]);r[k]=null;GS.recalcDerived();GS.saveA();ML.openChar('equip');UI.updateHUD()}});
 
   // Backpack tab
   let bh='';
-  for(let i=0;i<6;i++){
-    if(i<r.bp.length){const it=r.bp[i];
-      bh+='<div class="isl"><div class="isl-top"><span class="isl-name">'+it.name+(it.wt!==undefined?wtTag(it.wt):'')+'</span></div><div class="isl-i">'+(it.desc||'')+'</div><div class="isl-a">';
+  if(!r.bp.length)bh+='<div class="isl isl-empty"><span class="isl-e">Backpack is empty</span></div>';
+  for(let i=0;i<r.bp.length;i++){const it=r.bp[i];
+      bh+='<div class="isl"><div class="isl-top"><span class="isl-name">'+rarityName(it)+(it.wt!==undefined?wtTag(it.wt):'')+'</span></div><div class="isl-i">'+(it.desc||'')+'</div><div class="isl-a">';
       if(it.t==='consumable')bh+='<button class="iab" data-use="'+i+'">Use</button>';
       if(it.t==='melee'||it.t==='ranged'||it.t==='armor'||it.t==='shield'||it.t==='quiver'||it.t==='spellbook'||it.t==='light')bh+='<button class="iab" data-equip="'+i+'">Equip</button>';
-      if(it.value&&!it.undrop)bh+='<button class="iab" data-sell="'+i+'">Sell ('+it.value+'g)</button>';
+      if(it.value&&!it.undrop)bh+='<button class="iab" data-sell="'+i+'">Sell ('+sellPrice(it)+'g)</button>';
       if(!it.undrop)bh+='<button class="iab" data-drop="'+i+'">Drop</button>';
       bh+='</div></div>'}
-    else bh+='<div class="isl isl-empty"><span class="isl-e">Empty slot</span></div>'}
   panels.bp.innerHTML=bh;
   panels.bp.querySelectorAll('[data-use]').forEach(btn=>{
     btn.onclick=()=>{const idx=parseInt(btn.dataset.use);const it=r.bp[idx];if(it){const msg=useConsumable(it,r);if(msg)UI.addN(msg,'s');ML.openChar('bp')}}});
@@ -2313,8 +2367,44 @@ openChar(tab){
     btn.onclick=()=>{const idx=parseInt(btn.dataset.drop);const it=r.bp.splice(idx,1)[0];GS.saveA();UI.addN('Dropped '+it.name+'.','y');ML.openChar('bp')}});
   panels.bp.querySelectorAll('[data-sell]').forEach(btn=>{
     btn.onclick=()=>{const idx=parseInt(btn.dataset.sell);const it=r.bp[idx];if(!it||!it.value)return;
-      r.bp.splice(idx,1);if(!r.gold)r.gold=0;r.gold+=it.value;GS.saveA();UI.updateHUD();
-      UI.addN('Sold '+it.name+' for '+it.value+'g.','s');ML.openChar('bp')}});
+      const sp=sellPrice(it);r.bp.splice(idx,1);if(!r.gold)r.gold=0;r.gold+=sp;GS.saveA();UI.updateHUD();
+      UI.addN('Sold '+it.name+' for '+sp+'g.','s');ML.openChar('bp')}});
+  // Crafting tab
+  let ch='';
+  const discovered=Object.keys(r.discoveredRecipes||{});
+  if(!discovered.length)ch+='<div style="font-size:.9rem;color:var(--text3);font-style:italic">No recipes discovered yet. Collect crafting ingredients to discover recipes.</div>';
+  else{
+    const bpKeys=r.bp.map(it=>{for(const[k,v]of Object.entries(ITEMS)){if(it.name===v.name&&it.t===v.t)return k}return null}).filter(Boolean);
+    discovered.forEach(rk=>{
+      const recipe=RECIPES[rk];if(!recipe)return;
+      const outIt=ITEMS[recipe.output];if(!outIt)return;
+      ch+='<div class="isl" style="margin-bottom:10px"><div class="isl-top"><span class="isl-name" style="color:var(--gold)">'+recipe.name+'</span></div>';
+      ch+='<div style="font-size:.82rem;color:var(--text2);margin:4px 0">Ingredients: ';
+      const ingCounts={};recipe.ingredients.forEach(ing=>{ingCounts[ing]=(ingCounts[ing]||0)+1});
+      const ingParts=[];
+      for(const[ing,count]of Object.entries(ingCounts)){
+        const have=bpKeys.filter(k=>k===ing).length;
+        const color=have>=count?'var(--green)':'var(--red)';
+        const itName=ITEMS[ing]?ITEMS[ing].name:ing;
+        ingParts.push('<span style="color:'+color+'">'+itName+(count>1?' x'+count:'')+'</span>')}
+      ch+=ingParts.join(', ')+'</div>';
+      ch+='<div style="font-size:.82rem;color:var(--text2)">Output: '+rarityName(outIt)+'</div>';
+      const canCraft=recipe.ingredients.every(ing=>{
+        const count=recipe.ingredients.filter(x=>x===ing).length;
+        return bpKeys.filter(k=>k===ing).length>=count});
+      ch+='<div class="isl-a"><button class="iab" data-craft="'+rk+'"'+(canCraft&&!r.cs?'':' disabled')+'>Craft</button></div></div>'})}
+  panels.craft.innerHTML=ch;
+  panels.craft.querySelectorAll('[data-craft]').forEach(btn=>{
+    btn.onclick=()=>{const rk=btn.dataset.craft;const recipe=RECIPES[rk];if(!recipe)return;
+      const bpKeys2=r.bp.map((it,idx)=>{for(const[k,v]of Object.entries(ITEMS)){if(it.name===v.name&&it.t===v.t)return{k,idx}}return null}).filter(Boolean);
+      const used=[];
+      for(const ing of recipe.ingredients){
+        const found=bpKeys2.find(x=>x.k===ing&&!used.includes(x.idx));
+        if(!found)return;used.push(found.idx)}
+      used.sort((a,b)=>b-a).forEach(idx=>r.bp.splice(idx,1));
+      const outIt=ITEMS[recipe.output];if(outIt)r.bp.push({...outIt});
+      GS.saveA();UI.updateHUD();UI.addN('Crafted: '+outIt.name+'!','s');showToast('Crafted: '+outIt.name,'success');ML.openChar('craft')}});
+
   Object.values(panels).forEach(p=>b.appendChild(p));
   this.open('m-char')},
 
@@ -2323,7 +2413,7 @@ openAct(){UI.openActionSheet()},
 openJrn(){
   const b=$('m-jrn-b');b.innerHTML='';const r=GS.run,m=GS.getJM();
   const tabs=document.createElement('div');tabs.className='jtabs';tabs.setAttribute('role','tablist');
-  const pgs={},names=['Combat','Classes','Species','Bestiary','World'];
+  const pgs={},names=['Combat','Classes','Species','Bestiary','World','Recipes'];
   names.forEach((n,i)=>{const t=document.createElement('button');t.className='jtab'+(i===0?' act':'');t.textContent=n;t.setAttribute('role','tab');t.setAttribute('aria-selected',i===0?'true':'false');
     t.onclick=()=>{tabs.querySelectorAll('.jtab').forEach(x=>{x.classList.remove('act');x.setAttribute('aria-selected','false')});t.classList.add('act');t.setAttribute('aria-selected','true');Object.values(pgs).forEach(p=>p.classList.remove('act'));pgs[n].classList.add('act')};
     tabs.appendChild(t);const pg=document.createElement('div');pg.className='jp'+(i===0?' act':'');pg.setAttribute('role','tabpanel');pgs[n]=pg});
@@ -2341,6 +2431,15 @@ openJrn(){
   const bst=m.bestiary||{};if(!Object.keys(bst).length)pgs.Bestiary.innerHTML='<h3>Bestiary</h3><p style="color:var(--text3);font-style:italic">No creatures encountered yet.</p>';
   else{let bH='<h3>Bestiary</h3>';Object.entries(bst).forEach(([id,be])=>{const se=r?(r.bSeen[id]||0):0,de=r?(r.bDef[id]||0):0;bH+='<div class="be"><div class="be-n">'+be.name+'</div><div class="be-l">'+be.lore+'</div><div class="be-s">HP:'+be.hp+' ATK:'+be.atk+' DEF:'+be.def+' DMG:'+be.dmg+(be.preferredZone?' Zone:'+be.preferredZone:'')+'</div><div class="be-s" style="margin-top:4px">Encountered: '+se+' | Defeated: '+de+'</div></div>'});pgs.Bestiary.innerHTML=bH}
   pgs.World.innerHTML='<h3>The World</h3><p>The realm lies under an ashen sky. Once-great kingdoms crumbled into scattered settlements, connected by muddy trails winding through forests thick with ancient magic and creeping dangers. Travelers arm themselves not from paranoia but necessity — the wilds teem with oozes, beasts, and worse. Yet good folk remain on the roads: gatekeepers, healers, and wanderers who trade stories by firelight. The trail is dangerous, but it is the only way forward.</p>';
+  // Recipes tab (persists across deaths via journalMeta)
+  const jmRecipes=m.recipes||{};
+  if(!Object.keys(jmRecipes).length)pgs.Recipes.innerHTML='<h3>Recipe Book</h3><p style="color:var(--text3);font-style:italic">No recipes discovered yet. Collect crafting materials to discover recipes.</p>';
+  else{let rH='<h3>Recipe Book</h3>';Object.keys(jmRecipes).forEach(rk=>{
+    const recipe=RECIPES[rk];if(!recipe)return;const outIt=ITEMS[recipe.output];if(!outIt)return;
+    rH+='<div class="be"><div class="be-n">'+recipe.name+'</div>';
+    rH+='<div class="be-l">'+recipe.ingredients.map(ing=>ITEMS[ing]?ITEMS[ing].name:ing).join(' + ')+'</div>';
+    rH+='<div class="be-s">Output: '+rarityName(outIt)+' — '+(outIt.desc||'')+'</div></div>'});
+    pgs.Recipes.innerHTML=rH}
   Object.values(pgs).forEach(p=>b.appendChild(p));this.open('m-jrn')},
 
 openMenu(){
@@ -2695,17 +2794,15 @@ handleAction(cmd){
   if(cmd==='search'){
     if(sceneId==='midway'){
       if(!r.ss.pouch){r.ss.pouch=true;
-        if(r.bp.length<6){r.bp.push({...ITEMS.hpot});UI.addN('You pry the pouch from the mud. Inside: a small vial of glowing red liquid \u2014 a Health Potion! Stowed in your backpack.','s')}
-        else{UI.addN('The pouch holds a Health Potion but your backpack is full!','d');r.ss.pouch=false}GS.saveA()}
+        r.bp.push({...ITEMS.hpot});UI.addN('You pry the pouch from the mud. Inside: a small vial of glowing red liquid \u2014 a Health Potion! Stowed in your backpack.','s');GS.saveA()}
       else UI.addN('The empty pouch lies in the mud. Nothing else here.','f');return}
     if(sceneId==='post_ooze'){
       if(!r.ss.oozeSearch1){r.ss.oozeSearch1=true;
-        if(r.bp.length<6){r.bp.push({...ITEMS.guide});r.hbFound=true;r.jrnUnlk=true;
+        r.bp.push({...ITEMS.guide});r.hbFound=true;r.jrnUnlk=true;
           GS.setJM({guideFound:true});GS.saveA();
           UI.addN("You reach into the dissolving slime and pull out a weathered leather-bound book. Its pages are miraculously dry. The cover reads: \u201cPlayer\u2019s Guide.\u201d",'s');
           UI.addN("The guide has been added to your backpack. Your journal is now available!",'s');
           UI.updateHUD();UI.pulseJ()}
-        else{UI.addN('Something solid, but your backpack is full! Make room and search again.','d');r.ss.oozeSearch1=false;GS.saveA()}}
       else if(!r.ss.oozeSearch2){r.ss.oozeSearch2=true;GS.saveA();
         UI.addN('You sift through the remains more carefully, but find only dissolving slime and a faint acidic smell.','f')}
       else UI.addN('Nothing more to find in the remains.','f');return}
@@ -2713,33 +2810,27 @@ handleAction(cmd){
   }
   if(cmd==='search_spider'){
     if(!r.ss.spiderSearch1){r.ss.spiderSearch1=true;
-      if(r.bp.length<6){r.bp.push({...ITEMS.antidote});UI.addN('You cut through the webbing and find a small vial of greenish liquid \u2014 an Antidote. Someone came prepared.','s')}
-      else{UI.addN('Something useful in the webs, but your backpack is full!','d');r.ss.spiderSearch1=false}GS.saveA()}
+      r.bp.push({...ITEMS.antidote});UI.addN('You cut through the webbing and find a small vial of greenish liquid \u2014 an Antidote. Someone came prepared.','s');GS.saveA()}
     else UI.addN('Nothing but old bones and silk.','f');return}
   if(cmd==='search_wolf'){
     if(!r.ss.wolfSearch1){r.ss.wolfSearch1=true;
-      if(r.bp.length<6){r.bp.push({...ITEMS.hpot});UI.addN('Among the scattered remains you find a battered traveler\u2019s satchel. Inside: a Health Potion, still intact.','s')}
-      else{UI.addN('A satchel with supplies, but your backpack is full!','d');r.ss.wolfSearch1=false}GS.saveA()}
+      r.bp.push({...ITEMS.hpot});UI.addN('Among the scattered remains you find a battered traveler\u2019s satchel. Inside: a Health Potion, still intact.','s');GS.saveA()}
     else UI.addN('Nothing else of value in the den.','f');return}
   if(cmd==='search_bog'){
     if(!r.ss.bogSearch1){r.ss.bogSearch1=true;
-      if(r.bp.length<6){r.bp.push({...ITEMS.mpot});UI.addN('You gather the pale herbs. They have a faint magical shimmer \u2014 crushed into a vial, they could restore mana. A Mana Potion, of sorts.','s')}
-      else{UI.addN('The herbs look useful, but your backpack is full!','d');r.ss.bogSearch1=false}GS.saveA()}
+      r.bp.push({...ITEMS.mpot});UI.addN('You gather the pale herbs. They have a faint magical shimmer \u2014 crushed into a vial, they could restore mana. A Mana Potion, of sorts.','s');GS.saveA()}
     else UI.addN('Nothing more grows here.','f');return}
   if(cmd==='search_ih_tunnels'){
     if(!r.ss.ihTunnelSearch){r.ss.ihTunnelSearch=true;
-      if(r.bp.length<6){r.bp.push({...ITEMS.dwarven_ale});UI.addN('Inside the crate you find a dusty bottle of Dwarven Ale. Still sealed, still potent.','s')}
-      else{UI.addN('The crate holds something, but your backpack is full!','d');r.ss.ihTunnelSearch=false}GS.saveA()}
+      r.bp.push({...ITEMS.dwarven_ale});UI.addN('Inside the crate you find a dusty bottle of Dwarven Ale. Still sealed, still potent.','s');GS.saveA()}
     else UI.addN('Nothing else in the crate.','f');return}
   if(cmd==='search_ih_crawler'){
     if(!r.ss.ihCrawlerSearch){r.ss.ihCrawlerSearch=true;
-      if(r.bp.length<6){r.bp.push({...ITEMS.iron_shard});UI.addN('You pry a jagged shard of living iron from the nest. It\u2019s warm to the touch.','s')}
-      else{UI.addN('Something valuable in the nest, but your backpack is full!','d');r.ss.ihCrawlerSearch=false}GS.saveA()}
+      r.bp.push({...ITEMS.iron_shard});UI.addN('You pry a jagged shard of living iron from the nest. It\u2019s warm to the touch.','s');GS.saveA()}
     else UI.addN('Nothing else in the debris.','f');return}
   if(cmd==='search_ih_golem'){
     if(!r.ss.ihGolemSearch){r.ss.ihGolemSearch=true;
-      if(r.bp.length<6){r.bp.push({...ITEMS.dwarven_ale});UI.addN('The flask survived the golem\u2019s collapse. Dwarven Ale \u2014 could come in handy.','s')}
-      else{UI.addN('A flask among the rubble, but your backpack is full!','d');r.ss.ihGolemSearch=false}GS.saveA()}
+      r.bp.push({...ITEMS.dwarven_ale});UI.addN('The flask survived the golem\u2019s collapse. Dwarven Ale \u2014 could come in handy.','s');GS.saveA()}
     else UI.addN('Nothing more among the iron.','f');return}
   if(cmd==='camp_rest'){
     const restFlags={post_ooze:'restPostOoze',post_spider:'restPostSpider',ih_post_crawler:'restIhCrawler',ash_post_road:'restAshRoad'};
@@ -2760,8 +2851,7 @@ handleAction(cmd){
   if(cmd==='rest'){this.runComplete();return}
   if(cmd==='search_ash_ruins'){
     if(!r.ss.ashRuinsSearch){r.ss.ashRuinsSearch=true;
-      if(r.bp.length<6){r.bp.push({...ITEMS.ghpot});UI.addN('You pry open the visor. Inside: a Greater Health Potion, miraculously intact.','s')}
-      else{UI.addN('Something useful in the armor, but your backpack is full!','d');r.ss.ashRuinsSearch=false}GS.saveA()}
+      r.bp.push({...ITEMS.ghpot});UI.addN('You pry open the visor. Inside: a Greater Health Potion, miraculously intact.','s');GS.saveA()}
     else UI.addN('Nothing more in the ruins.','f');return}
   if(cmd==='bounty_board'){this.openBountyBoard();return}
 },
@@ -2776,10 +2866,10 @@ async onWin(){
     r._combatWaveIdx=waveIdx;
     const goldDrop=enemy.gold||0;if(goldDrop){if(!r.gold)r.gold=0;r.gold+=goldDrop}
     if(xp)GS.addXP(xp);
-    const loot=rollLoot(enemy);if(loot&&r.bp.length<6)r.bp.push(loot);
+    const loot=rollLoot(enemy);if(loot)r.bp.push(loot);
     GS.saveA();UI.updateHUD();
     UI.addN('The '+enemy.name+' falls!','s');
-    if(loot&&r.bp.length<=6)UI.addN('Looted: '+loot.name,'y');
+    if(loot)UI.addN('Looted: '+loot.name,'y');
     await UI._wait(600);
     const nextKey=waves[waveIdx],nextName=ENEMIES[nextKey]?ENEMIES[nextKey].name:'another foe';
     UI.addN('Another foe emerges \u2014 a '+nextName+'!','d');
@@ -2823,10 +2913,9 @@ async onWin(){
   if(loot){
     card.innerHTML+='<div class="vic-loot-h">Loot</div>';
     const lootRow=document.createElement('div');lootRow.className='vic-loot-row';
-    lootRow.innerHTML='<span class="vic-loot-name">'+loot.name+'</span><span class="vic-loot-desc">'+loot.desc+'</span>';
-    if(r.bp.length<6){const takeBtn=document.createElement('button');takeBtn.className='vic-take-btn';takeBtn.textContent='Take';
-      takeBtn.onclick=()=>{r.bp.push(loot);GS.saveA();takeBtn.disabled=true;takeBtn.textContent='Taken';UI.updateHUD()};lootRow.appendChild(takeBtn)}
-    else{const fullBtn=document.createElement('button');fullBtn.className='vic-take-btn';fullBtn.disabled=true;fullBtn.textContent='Full';lootRow.appendChild(fullBtn)}
+    lootRow.innerHTML='<span class="vic-loot-name">'+rarityName(loot)+'</span><span class="vic-loot-desc">'+loot.desc+'</span>';
+    const takeBtn=document.createElement('button');takeBtn.className='vic-take-btn';takeBtn.textContent='Take';
+      takeBtn.onclick=()=>{r.bp.push(loot);GS.saveA();takeBtn.disabled=true;takeBtn.textContent='Taken';UI.updateHUD()};lootRow.appendChild(takeBtn)
     card.appendChild(lootRow);
   }
 
@@ -2917,10 +3006,10 @@ mira(){
     '"Welcome, traveler. You bear the marks of battle \u2014 that acidic stench can only mean you faced an Ooze on the trail. Let me tend your wounds."',
     [{text:'"Please, I could use the help."'},{text:'"What can you tell me about this place?"'}],
     (i)=>{r.hp=r.mHP;r.mp=r.mMP;r.ss.mira=true;UI.updateHUD();
-      if(i===0){if(r.bp.length<6)r.bp.push({...ITEMS.hpot});GS.saveA();
+      if(i===0){r.bp.push({...ITEMS.hpot});GS.saveA();
         ML.openDlg('MIRA','The Healer','"There. Good as new. Take this potion as well \u2014 the road beyond here grows darker still. You\u2019ve done well to make it this far, '+r.name+'. Perhaps we\u2019ll meet again."',
           [{text:'"Until next time, Mira."'}],()=>{UI.addN('Mira smiles and returns to her herbs. You feel restored.','s');UI.addN('HP and MP fully restored. Health Potion added to backpack.','y');SE.runComplete()})}
-      else{if(r.bp.length<6)r.bp.push({...ITEMS.hpot});GS.saveA();
+      else{r.bp.push({...ITEMS.hpot});GS.saveA();
         ML.openDlg('MIRA','The Healer','"This shrine has stood since before the kingdoms fell. It\u2019s a place of healing \u2014 the forest seems to respect it. Beyond here, the trails lead to darker places: the Whispering Bog, the Iron Hollows\u2026 but those are journeys for another day."',
           [{text:'"I look forward to it. Thank you."'}],()=>{UI.addN('Mira heals your wounds and gives you a Health Potion.','s');UI.addN('HP and MP fully restored.','y');SE.runComplete()})}})},
 
@@ -2937,13 +3026,13 @@ garrettBuy(){
   const stock=[{key:'hpot',price:12},{key:'mpot',price:12},{key:'antidote',price:10}];
   const b=$('m-dlg-b');b.innerHTML='';
   b.innerHTML+='<div class="dlg-name">GARRETT</div><div class="dlg-title">The Peddler</div>';
-  b.innerHTML+='<div class="dtx" style="margin-bottom:12px">Gold: <span style="color:var(--gold)">'+(r.gold||0)+'g</span> \u00b7 Backpack: '+r.bp.length+'/6</div>';
+  b.innerHTML+='<div class="dtx" style="margin-bottom:12px">Gold: <span style="color:var(--gold)">'+(r.gold||0)+'g</span> \u00b7 Backpack ('+r.bp.length+')</div>';
   stock.forEach(s=>{const it=ITEMS[s.key];if(!it)return;
     const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
-    row.innerHTML='<div><strong style="color:var(--text)">'+it.name+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
+    row.innerHTML='<div><strong style="color:var(--text)">'+rarityName(it)+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
     const btn=document.createElement('button');btn.className='iab';btn.textContent='Buy ('+s.price+'g)';
-    btn.disabled=(r.gold||0)<s.price||r.bp.length>=6;
-    btn.onclick=()=>{if((r.gold||0)<s.price||r.bp.length>=6)return;
+    btn.disabled=(r.gold||0)<s.price;
+    btn.onclick=()=>{if((r.gold||0)<s.price)return;
       r.gold-=s.price;r.bp.push({...ITEMS[s.key]});GS.saveA();UI.updateHUD();
       UI.addN('Bought '+it.name+' for '+s.price+'g.','s');this.garrettBuy()};
     row.appendChild(btn);b.appendChild(row)});
@@ -2961,10 +3050,11 @@ garrettSell(){
     backBtn.onclick=()=>{ML.closeAll()};b.appendChild(backBtn);return}
   sellable.forEach(({it,i})=>{
     const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
-    row.innerHTML='<div><strong style="color:var(--text)">'+it.name+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
-    const btn=document.createElement('button');btn.className='iab';btn.textContent='Sell ('+it.value+'g)';
-    btn.onclick=()=>{r.bp.splice(r.bp.indexOf(it),1);if(!r.gold)r.gold=0;r.gold+=it.value;GS.saveA();UI.updateHUD();
-      UI.addN('Sold '+it.name+' for '+it.value+'g.','s');this.garrettSell()};
+    row.innerHTML='<div><strong>'+rarityName(it)+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
+    const sp=sellPrice(it);
+    const btn=document.createElement('button');btn.className='iab';btn.textContent='Sell ('+sp+'g)';
+    btn.onclick=()=>{r.bp.splice(r.bp.indexOf(it),1);if(!r.gold)r.gold=0;r.gold+=sp;GS.saveA();UI.updateHUD();
+      UI.addN('Sold '+it.name+' for '+sp+'g.','s');this.garrettSell()};
     row.appendChild(btn);b.appendChild(row)});
   const backBtn=document.createElement('button');backBtn.className='mbtn';backBtn.textContent='Done';backBtn.style.marginTop='12px';
   backBtn.onclick=()=>{ML.closeAll()};b.appendChild(backBtn)},
@@ -3029,26 +3119,27 @@ _dlgEffect(eff,nid){
   else if(eff==='bounty_board'){ML.closeAll();this.openBountyBoard()}
   else if(eff==='shop'){ML.closeAll();this.openShop(nid)}
   else if(eff.startsWith('give_item:')){const itemKey=eff.split(':')[1];
-    if(itemKey&&ITEMS[itemKey]&&r.bp.length<6){r.bp.push({...ITEMS[itemKey]});GS.saveA();UI.updateHUD();UI.addN('Received '+ITEMS[itemKey].name+'!','s')}
-    else if(r.bp.length>=6)UI.addN('Your backpack is full!','d')}
+    if(itemKey&&ITEMS[itemKey]){r.bp.push({...ITEMS[itemKey]});GS.saveA();UI.updateHUD();UI.addN('Received '+ITEMS[itemKey].name+'!','s')}}
 },
 openShop(nid){
   const r=GS.run,npc=NPCS[nid];if(!npc||!npc.shop)return;
   const b=$('m-dlg-b');b.innerHTML='';
   $('dlg-t').textContent=npc.name.toUpperCase();
   b.innerHTML+='<div class="dlg-name">'+npc.name.toUpperCase()+'</div><div class="dlg-title">'+npc.title+'</div>';
-  b.innerHTML+='<div class="dtx" style="margin-bottom:12px">Gold: <span style="color:var(--gold)">'+(r.gold||0)+'g</span> \u00b7 Backpack: '+r.bp.length+'/6</div>';
+  b.innerHTML+='<div class="dtx" style="margin-bottom:12px">Gold: <span style="color:var(--gold)">'+(r.gold||0)+'g</span> \u00b7 Backpack ('+r.bp.length+')</div>';
   b.innerHTML+='<div class="ist">Wares</div>';
+  const markup=r._shopMarkup||1;
   npc.shop.stock.forEach(s=>{
     const it=ITEMS[s.key];if(!it)return;
+    const displayPrice=markup>1?Math.ceil(s.price*markup):s.price;
     const row=document.createElement('div');
     row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
-    row.innerHTML='<div><strong style="color:var(--text)">'+it.name+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
-    const btn=document.createElement('button');btn.className='iab';btn.textContent='Buy ('+s.price+'g)';
-    btn.disabled=(r.gold||0)<s.price||r.bp.length>=6;
-    btn.onclick=()=>{if((r.gold||0)<s.price||r.bp.length>=6)return;
-      r.gold-=s.price;r.bp.push({...ITEMS[s.key]});GS.saveA();UI.updateHUD();
-      UI.addN('Bought '+it.name+' for '+s.price+'g.','s');this.openShop(nid)};
+    row.innerHTML='<div><strong>'+rarityName(it)+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
+    const btn=document.createElement('button');btn.className='iab';btn.textContent='Buy ('+displayPrice+'g)';
+    btn.disabled=(r.gold||0)<displayPrice;
+    btn.onclick=()=>{if((r.gold||0)<displayPrice)return;
+      r.gold-=displayPrice;r.bp.push({...ITEMS[s.key]});GS.saveA();UI.updateHUD();
+      UI.addN('Bought '+it.name+' for '+displayPrice+'g.','s');this.openShop(nid)};
     row.appendChild(btn);b.appendChild(row)});
   b.innerHTML+='<div class="ist" style="margin-top:12px">Sell</div>';
   const sellable=r.bp.map((it,i)=>({it,i})).filter(x=>x.it.value&&!x.it.undrop);
@@ -3056,13 +3147,14 @@ openShop(nid){
   sellable.forEach(({it})=>{
     const row=document.createElement('div');
     row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
-    row.innerHTML='<div><strong style="color:var(--text)">'+it.name+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
-    const btn=document.createElement('button');btn.className='iab';btn.textContent='Sell ('+it.value+'g)';
-    btn.onclick=()=>{r.bp.splice(r.bp.indexOf(it),1);if(!r.gold)r.gold=0;r.gold+=it.value;GS.saveA();UI.updateHUD();
-      UI.addN('Sold '+it.name+' for '+it.value+'g.','s');this.openShop(nid)};
+    row.innerHTML='<div><strong>'+rarityName(it)+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
+    const sp=sellPrice(it);
+    const btn=document.createElement('button');btn.className='iab';btn.textContent='Sell ('+sp+'g)';
+    btn.onclick=()=>{r.bp.splice(r.bp.indexOf(it),1);if(!r.gold)r.gold=0;r.gold+=sp;GS.saveA();UI.updateHUD();
+      UI.addN('Sold '+it.name+' for '+sp+'g.','s');this.openShop(nid)};
     row.appendChild(btn);b.appendChild(row)});
   const doneBtn=document.createElement('button');doneBtn.className='mbtn';doneBtn.textContent='Done';doneBtn.style.marginTop='12px';
-  doneBtn.onclick=()=>ML.closeAll();b.appendChild(doneBtn);
+  doneBtn.onclick=()=>{delete r._shopMarkup;ML.closeAll()};b.appendChild(doneBtn);
   ML.open('m-dlg');
   const modal=$('m-dlg');const mx=modal.querySelector('.mx');if(mx)mx.style.display='';
 },
@@ -3172,7 +3264,7 @@ _trackQuestProgress(trigger){
         r.activeQuests=r.activeQuests.filter(x=>x!==qid);
         if(!r.gold)r.gold=0;r.gold+=q.reward.gold;
         GS.addXP(q.reward.xp);
-        if(q.reward.item&&r.bp.length<6)r.bp.push({...ITEMS[q.reward.item]});
+        if(q.reward.item)r.bp.push({...ITEMS[q.reward.item]});
         UI.addN('Quest Complete: '+q.name+'!','h');
         UI.addN('Reward: +'+q.reward.gold+'g, +'+q.reward.xp+' XP'+(q.reward.item?' + '+ITEMS[q.reward.item].name:''),'s');
         showToast('Quest Complete: '+q.name,'success');
@@ -3889,7 +3981,7 @@ _resolveTreasure(node){
   // Give random loot
   const pool=['hpot','mpot','ghpot','gmpot','elixir','antidote','bandage'];
   const item=ITEMS[pool[Math.floor(Math.random()*pool.length)]];
-  if(item&&r.bp.length<6){
+  if(item){
     r.bp.push({...item});
     UI.addN('Found: '+item.name+'!','s');
   }
@@ -3961,7 +4053,8 @@ _resolveShop(node,rDef){
   const npcId=rDef.shopNPCs&&rDef.shopNPCs.length?
     rDef.shopNPCs[Math.floor(Math.random()*rDef.shopNPCs.length)]:'garrett';
   node.encounter={npc:npcId};
-  // Open shop, then show continue button when done
+  // Open shop with adventure markup
+  r._shopMarkup=ADVENTURE_MARKUP;
   if(typeof SE.openShop==='function'){
     SE.openShop(npcId);
   }
@@ -4055,7 +4148,7 @@ _onDungeonWin(){
     // Give dungeon-exclusive loot
     const lootKey=def.bossLoot;
     const loot=DUNGEON_LOOT[lootKey];
-    if(loot&&r.bp.length<6){
+    if(loot){
       r.bp.push({...loot});
       UI.addN('Dungeon reward: '+loot.name+'!','s');
     }
@@ -4165,8 +4258,7 @@ _giveReward(reward,r){
         // Handle gold_small as a special key
         if(itemKey==='gold_small'){r.gold=(r.gold||0)+10;UI.addN('Found 10 gold.','y')}
         else{const item=ITEMS[itemKey];
-          if(item&&r.bp.length<6){r.bp.push({...item});UI.addN('Found: '+item.name+'!','s')}
-          else if(item){UI.addN('Found '+item.name+' but backpack is full!','d')}}
+          if(item){r.bp.push({...item});UI.addN('Found: '+item.name+'!','s')}}
       }
       break;
   }
