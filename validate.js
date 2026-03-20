@@ -6,12 +6,12 @@ const fs = require('fs');
 const vm = require('vm');
 
 const src = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const wrapped = src + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.BOUNTIES=BOUNTIES;this.QUESTS=QUESTS;this.DEATH_QUOTES=DEATH_QUOTES;';
+const wrapped = src + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.BOUNTIES=BOUNTIES;this.QUESTS=QUESTS;this.DEATH_QUOTES=DEATH_QUOTES;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;';
 const sandbox = { UI: { addN() {} }, GS: { saveA() {} } };
 vm.createContext(sandbox);
 vm.runInContext(wrapped, sandbox);
 
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA, BOUNTIES, QUESTS, DEATH_QUOTES } = sandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, BOUNTIES, QUESTS, DEATH_QUOTES, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT } = sandbox;
 let errors = 0;
 let warnings = 0;
 
@@ -92,6 +92,65 @@ for (const [bid, bounty] of Object.entries(BOUNTIES)) {
 for (const [qid, quest] of Object.entries(QUESTS)) {
   if (quest.reward.item && !ITEMS[quest.reward.item])
     err(`Quest "${qid}" reward references unknown item "${quest.reward.item}"`);
+}
+
+// Region data validation
+if (REGION_DATA) {
+  for (const [advId, ad] of Object.entries(REGION_DATA)) {
+    if (!ad.regions || !ad.regions.length) err(`REGION_DATA "${advId}" has no regions`);
+    if (ad.boss && !ENEMIES[ad.boss]) err(`REGION_DATA "${advId}" boss "${ad.boss}" not in ENEMIES`);
+    if (ad.transitionEnemy && !ENEMIES[ad.transitionEnemy]) err(`REGION_DATA "${advId}" transitionEnemy "${ad.transitionEnemy}" not in ENEMIES`);
+    for (const ek of (ad.roamingPool || [])) {
+      if (!ENEMIES[ek]) err(`REGION_DATA "${advId}" roamingPool references unknown enemy "${ek}"`);
+    }
+    for (const reg of (ad.regions || [])) {
+      for (const ek of (reg.corePool || [])) {
+        if (!ENEMIES[ek]) err(`Region "${reg.id}" corePool references unknown enemy "${ek}"`);
+      }
+      for (const ek of (reg.elitePool || [])) {
+        if (!ENEMIES[ek]) err(`Region "${reg.id}" elitePool references unknown enemy "${ek}"`);
+      }
+      for (const ek of (reg.rarePool || [])) {
+        if (!ENEMIES[ek]) err(`Region "${reg.id}" rarePool references unknown enemy "${ek}"`);
+      }
+    }
+  }
+}
+
+// Dungeon definitions validation
+if (DUNGEON_DEFS) {
+  for (const [advId, def] of Object.entries(DUNGEON_DEFS)) {
+    if (!ENEMIES[def.boss]) err(`DUNGEON_DEFS "${advId}" boss "${def.boss}" not in ENEMIES`);
+    for (const ek of (def.enemies || [])) {
+      if (!ENEMIES[ek]) err(`DUNGEON_DEFS "${advId}" references unknown enemy "${ek}"`);
+    }
+    if (def.bossLoot && DUNGEON_LOOT && !DUNGEON_LOOT[def.bossLoot])
+      err(`DUNGEON_DEFS "${advId}" bossLoot "${def.bossLoot}" not in DUNGEON_LOOT`);
+  }
+}
+
+// Enemy synergies validation
+if (ENEMY_SYNERGIES) {
+  for (const syn of ENEMY_SYNERGIES) {
+    for (const ek of syn.pair) {
+      if (!ENEMIES[ek]) err(`ENEMY_SYNERGIES pair references unknown enemy "${ek}"`);
+    }
+  }
+}
+
+// Exploration events validation
+if (EXPLORATION_EVENTS) {
+  const validStats = ['sight', 'speech', 'movement', 'melee', 'ranged', 'health', 'smarts'];
+  for (const [evId, ev] of Object.entries(EXPLORATION_EVENTS)) {
+    if (ev.stat && !validStats.includes(ev.stat))
+      err(`EXPLORATION_EVENTS "${evId}" references unknown stat "${ev.stat}"`);
+    if (ev.reward && ev.reward.pool) {
+      for (const ik of ev.reward.pool) {
+        if (ik !== 'gold_small' && !ITEMS[ik])
+          err(`EXPLORATION_EVENTS "${evId}" reward pool references unknown item "${ik}"`);
+      }
+    }
+  }
 }
 
 // Summary

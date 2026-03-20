@@ -230,6 +230,7 @@ hex_totem:{name:'Hex Totem',t:'spellbook',wt:1,desc:'Warlock focus. Channels cur
 
 // === CONSUMABLES — NEW ===
 smoke_bomb:{name:'Smoke Bomb',t:'consumable',wt:0,desc:'Guaranteed flee from any zone. Any class.',value:18,guaranteedFlee:true},
+map_fragment:{name:'Map Fragment',t:'consumable',wt:0,desc:'Reveals all node types in the current region.',value:25,mapReveal:true},
 
 // === MISC/LOOT ===
 wolf_pelt:{name:'Wolf Pelt',t:'misc',wt:1,desc:'A thick grey pelt. Proof of the kill.',value:15},
@@ -655,3 +656,269 @@ const DEATH_QUOTES=[
 '"You fought well. It wasn\u2019t enough."',
 '"The darkness between worlds swallowed you whole."'
 ];
+
+// === ADVENTURE MAP DATA (System 4) ===
+
+// Region definitions with 3-layer encounter pools per adventure
+const REGION_DATA={
+muddy_trail:{
+  regions:[
+    {id:'mt_forest',name:'The Forest Edge',rows:4,nodesPerRow:[2,3],
+      corePool:['gray_ooze','moss_rat','giant_spider','dire_wolf'],
+      elitePool:['fungal_horror','rock_troll'],
+      rarePool:['darkwood_treant','cave_crawler'],
+      threatCategories:['status','beast','glass_cannon'],
+      shopNPCs:['garrett'],loreTheme:'forest'},
+    {id:'mt_deep',name:'The Deep Woods',rows:5,nodesPerRow:[2,3],
+      corePool:['bog_wraith','venomfang_snake','shadow_hound','dire_wolf'],
+      elitePool:['banshee','chimera_spawn'],
+      rarePool:['banshee','chimera_spawn'],
+      threatCategories:['undead','status','beast'],
+      shopNPCs:['garrett'],loreTheme:'swamp'}
+  ],
+  roamingPool:['fungal_horror','wyvern_hatchling','rock_troll'],
+  boss:'dire_wolf',transitionEnemy:'giant_spider'
+},
+iron_hollows:{
+  regions:[
+    {id:'ih_mines',name:'The Mine Entrance',rows:4,nodesPerRow:[2,3],
+      corePool:['tunnel_bat','moss_rat','cave_crawler','ironscale_lizard'],
+      elitePool:['bone_sentinel','ghoul'],
+      rarePool:['mine_shade'],
+      threatCategories:['beast','tank','zone_ctrl'],
+      shopNPCs:['garrett'],loreTheme:'mine'},
+    {id:'ih_tunnels',name:'The Deep Tunnels',rows:5,nodesPerRow:[2,3],
+      corePool:['bone_sentinel','ghoul','crystal_golem','fungal_horror'],
+      elitePool:['death_knight','lich_apprentice'],
+      rarePool:['death_knight','lich_apprentice'],
+      threatCategories:['undead','tank','status'],
+      shopNPCs:['garrett'],loreTheme:'undead'},
+    {id:'ih_forge',name:'The Forge',rows:5,nodesPerRow:[2,3],
+      corePool:['flame_elemental','corrupted_knight','plague_bearer','crystal_golem'],
+      elitePool:['ash_wyrm','death_knight'],
+      rarePool:['ash_wyrm'],
+      threatCategories:['status','tank','glass_cannon'],
+      shopNPCs:['garrett'],loreTheme:'forge'}
+  ],
+  roamingPool:['chimera_spawn','darkwood_treant'],
+  boss:'iron_golem',transitionEnemy:'bone_sentinel'
+},
+ashen_waste:{
+  regions:[
+    {id:'aw_road',name:'The Scorched Road',rows:4,nodesPerRow:[2,3],
+      corePool:['ember_beetle','ash_worm','spore_mite','flame_elemental','wyvern_hatchling'],
+      elitePool:['ash_wyrm','chimera_spawn'],
+      rarePool:['ash_wyrm','void_stalker'],
+      threatCategories:['status','swarm','glass_cannon'],
+      shopNPCs:['garrett'],loreTheme:'wasteland'},
+    {id:'aw_marsh',name:'The Blighted Marsh',rows:5,nodesPerRow:[2,3],
+      corePool:['marsh_toad','plague_bearer','banshee','wyvern_hatchling'],
+      elitePool:['death_knight','lich_apprentice'],
+      rarePool:['death_knight','lich_apprentice'],
+      threatCategories:['undead','status','beast'],
+      shopNPCs:['garrett'],loreTheme:'blight'},
+    {id:'aw_spire',name:'The Spire',rows:5,nodesPerRow:[2,3],
+      corePool:['corrupted_knight','crystal_golem','chimera_spawn','wyvern'],
+      elitePool:['troll_warlord','storm_elemental'],
+      rarePool:['troll_warlord','storm_elemental'],
+      threatCategories:['tank','status','glass_cannon'],
+      shopNPCs:['garrett'],loreTheme:'spire'}
+  ],
+  roamingPool:['storm_elemental','void_stalker','troll_warlord'],
+  boss:'elder_dragon',transitionEnemy:'corrupted_knight'
+}
+};
+
+// Exploration event templates (6 categories)
+const EXPLORATION_EVENTS={
+// === PERCEPTION (Sight-gated) ===
+hidden_cache:{cat:'perception',stat:'sight',dc:5,
+  desc:'You notice something glinting behind a loose stone in the wall.',
+  passText:'Your sharp eyes spot a hidden cache! Inside you find supplies.',
+  failText:'You poke around but find nothing of interest. The shadows play tricks.',
+  reward:{type:'loot',pool:['hpot','mpot','ghpot']},failPenalty:null},
+trap_detection:{cat:'perception',stat:'sight',dc:7,
+  desc:'The ground ahead looks disturbed. Something feels wrong.',
+  passText:'You spot the tripwire just in time! You carefully disarm the trap and salvage its mechanism.',
+  failText:'SNAP! A hidden trap springs, lashing at your legs.',
+  reward:{type:'gold',amount:15},failPenalty:{type:'damage',amount:5}},
+secret_path:{cat:'perception',stat:'sight',dc:8,
+  desc:'The rock face here looks different from the rest. Almost too regular.',
+  passText:'You find a concealed passage! It leads to a hidden alcove with treasure.',
+  failText:'You push at the rocks but find nothing. Perhaps your eyes deceived you.',
+  reward:{type:'loot',pool:['ghpot','gmpot','elixir','iron_shard']},failPenalty:null},
+environmental_clue:{cat:'perception',stat:'sight',dc:4,
+  desc:'Faded markings are scratched into the stone here.',
+  passText:'You decipher the markings — warnings about what lies ahead. Knowledge is power.',
+  failText:'The markings are too worn to read. You move on.',
+  reward:{type:'xp',amount:20},failPenalty:null},
+
+// === SOCIAL (Speech-gated) ===
+wounded_traveler:{cat:'social',stat:'speech',dc:5,
+  desc:'A wounded traveler slumps against a tree, clutching a bloodied satchel. They look up at you with desperate eyes.',
+  passText:'"Thank you, friend. Take this — I won\'t make it much further. You\'ll need it more than me."',
+  failText:'The traveler flinches away. "Stay back! I don\'t trust anyone on these roads."',
+  reward:{type:'loot',pool:['ghpot','elixir','strength_tonic']},failPenalty:null},
+merchant_caravan:{cat:'social',stat:'speech',dc:6,
+  desc:'A nervous merchant guards a small cart. Their goods look valuable, but they seem eager to leave.',
+  passText:'"You seem trustworthy. Here — take this at a fair price. And a word of advice: avoid the eastern path."',
+  failText:'"No deals! No bargains! Leave me be!" The merchant hurries away.',
+  reward:{type:'gold',amount:20},failPenalty:null},
+enemy_scout:{cat:'social',stat:'speech',dc:7,
+  desc:'A small creature watches you from a ledge. It seems intelligent — more curious than hostile.',
+  passText:'With careful gestures you communicate peaceful intent. The creature points to a safer route ahead.',
+  failText:'Your approach startles the creature. It shrieks and bolts, alerting everything nearby.',
+  reward:{type:'xp',amount:25},failPenalty:{type:'damage',amount:3}},
+hermit_with_knowledge:{cat:'social',stat:'speech',dc:5,
+  desc:'An old hermit sits by a dying fire. They look like they haven\'t spoken to anyone in years.',
+  passText:'"Sit, sit. I know things about these lands. The creatures here... I\'ve studied them all my life."',
+  failText:'"Go away. I want no company." The hermit turns their back.',
+  reward:{type:'xp',amount:20},failPenalty:null},
+
+// === PHYSICAL (Movement-gated) ===
+collapsed_bridge:{cat:'physical',stat:'movement',dc:6,
+  desc:'A rotting bridge spans a deep chasm. Half the planks are missing. It groans in the wind.',
+  passText:'With nimble footwork, you dance across the remaining planks! On the other side, you find an abandoned pack.',
+  failText:'You slip halfway across and barely catch yourself. A bruising scramble gets you to the other side.',
+  reward:{type:'loot',pool:['hpot','mpot','gold_small']},failPenalty:{type:'damage',amount:4}},
+climbing_opportunity:{cat:'physical',stat:'movement',dc:7,
+  desc:'A sheer cliff face rises above you. Handholds are sparse but present. Something glitters at the top.',
+  passText:'You scale the cliff with practiced ease! At the top, a small treasure cache awaits.',
+  failText:'The rock crumbles under your grip. You slide back down, scraping your arms.',
+  reward:{type:'loot',pool:['ghpot','iron_shard','dragon_scale']},failPenalty:{type:'damage',amount:5}},
+quicksand_hazard:{cat:'physical',stat:'movement',dc:5,
+  desc:'The ground turns soft and treacherous. One wrong step and you could sink.',
+  passText:'You read the terrain perfectly, hopping from firm ground to firm ground.',
+  failText:'Your boot sinks deep. You wrench free but lose something in the muck.',
+  reward:{type:'xp',amount:15},failPenalty:{type:'damage',amount:3}},
+chase_sequence:{cat:'physical',stat:'movement',dc:8,
+  desc:'A small creature darts past, something shiny clamped in its jaws. It stole from you!',
+  passText:'You sprint after it and corner it against a dead end. It drops its prize and flees.',
+  failText:'The creature is too fast. It vanishes into a burrow with your belongings.',
+  reward:{type:'loot',pool:['ghpot','gmpot','elixir']},failPenalty:{type:'damage',amount:2}},
+
+// === RISK/REWARD (no stat gate — pure choice) ===
+mysterious_shrine:{cat:'risk_reward',
+  desc:'A strange shrine hums with energy. Runes pulse on its surface. Something watches from within.',
+  choices:[
+    {text:'Touch the shrine',outcomes:[
+      {chance:50,text:'Power surges through you! The shrine heals your wounds.',reward:{type:'heal',amount:'full'}},
+      {chance:50,text:'Dark energy burns through you!',penalty:{type:'damage',amount:8}}]},
+    {text:'Leave it alone',outcomes:[
+      {chance:100,text:'You wisely move on. Some mysteries are best left alone.',reward:null}]}
+  ]},
+cursed_chest:{cat:'risk_reward',
+  desc:'An ornate chest sits in an alcove, its lock already broken. A faint purple mist seeps from the lid.',
+  choices:[
+    {text:'Open the chest',outcomes:[
+      {chance:65,text:'Inside lies a valuable item! The curse fades harmlessly.',reward:{type:'loot',pool:['enchanted_blade','scale_mail','ghpot','gmpot']}},
+      {chance:35,text:'A curse erupts from the chest!',penalty:{type:'debuff',effect:'curse',duration:3}}]},
+    {text:'Leave it closed',outcomes:[
+      {chance:100,text:'Better safe than sorry. You move on.',reward:null}]}
+  ]},
+sacrifice_altar:{cat:'risk_reward',
+  desc:'A stone altar stands in a clearing, stained dark with old offerings. An inscription reads: "Give freely, receive in kind."',
+  choices:[
+    {text:'Offer 15 gold',outcomes:[
+      {chance:60,text:'The altar glows! A warmth fills your body.',reward:{type:'heal',amount:'full'}},
+      {chance:40,text:'The gold vanishes. Nothing happens.',penalty:{type:'gold',amount:15}}]},
+    {text:'Walk away',outcomes:[
+      {chance:100,text:'You keep your gold and your wits.',reward:null}]}
+  ]},
+
+// === LORE & DISCOVERY (no fail state) ===
+ancient_mural:{cat:'lore',
+  desc:'An ancient mural covers the wall, its colors still vivid despite the centuries. It depicts a great battle.',
+  text:'The mural tells of a war between the old kingdoms and something that came from beneath the earth. The warriors in the painting carry weapons you recognize — the same designs still used today.',
+  reward:{type:'xp',amount:15}},
+fallen_journal:{cat:'lore',
+  desc:'A leather-bound journal lies beside a pile of old bones. The pages are brittle but legible.',
+  text:'The journal belongs to an adventurer who came this way long ago. Their observations about local creatures are remarkably detailed. You commit their findings to memory.',
+  reward:{type:'xp',amount:20}},
+biome_lore:{cat:'lore',
+  desc:'The landscape here tells a story. Scorch marks, collapsed structures, signs of something ancient.',
+  text:'You study the surroundings carefully. This place has a history — layers of conflict etched into stone and soil. Understanding where you are helps you understand what you might face.',
+  reward:{type:'xp',amount:10}},
+
+// === CLASS-SPECIFIC ===
+wounded_animal:{cat:'class_specific',classes:['ranger'],
+  desc:'A wounded deer lies on the path, breathing shallowly. A crude arrow protrudes from its flank.',
+  genericText:'You can do nothing for the creature. Its suffering ends as you watch.',
+  classText:'Your ranger training kicks in. You gently remove the arrow and bind the wound. The deer limps away — and something about its path catches your eye.',
+  classReward:{type:'loot',pool:['ghpot','antidote','hpot']},
+  genericReward:{type:'xp',amount:5}},
+magical_anomaly:{cat:'class_specific',classes:['wizard','warlock','necromancer'],
+  desc:'The air shimmers and crackles with residual magic. An arcane disturbance lingers here.',
+  genericText:'The magic is beyond your understanding. It fades before you can react.',
+  classText:'You recognize the signature — unstable enchantment. With careful channeling, you absorb the residual energy.',
+  classReward:{type:'restore_mp',amount:15},
+  genericReward:{type:'xp',amount:5}},
+collapsed_mine:{cat:'class_specific',classes:['fighter','berserker'],
+  desc:'A collapsed mine entrance is blocked by heavy rubble. Something glints beyond the stones.',
+  genericText:'The rubble is too heavy to move. You cannot reach whatever lies inside.',
+  classText:'You dig deep and heave the boulders aside with sheer strength! Behind them, a forgotten stash.',
+  classReward:{type:'loot',pool:['iron_shard','steel_sword','ghpot']},
+  genericReward:{type:'xp',amount:5}},
+restless_spirits:{cat:'class_specific',classes:['paladin'],
+  desc:'Translucent figures drift between the trees, wailing softly. The dead are restless here.',
+  genericText:'The spirits ignore you. Their sorrow is palpable but beyond your reach.',
+  classText:'You raise your hand and speak words of consecration. The spirits still, then bow in gratitude before fading.',
+  classReward:{type:'heal',amount:'full'},
+  genericReward:{type:'xp',amount:5}}
+};
+
+// Dungeon definitions (1 per adventure)
+const DUNGEON_DEFS={
+muddy_trail:{name:'The Whispering Hollow',nodes:3,
+  enemies:['bog_wraith','shadow_hound','fungal_horror'],boss:'banshee',
+  lore:'A mist-filled hollow where the dead whisper secrets. Those who enter rarely return, but those who do speak of treasures guarded by a wailing spirit.',
+  bossLoot:'hollow_blade'},
+iron_hollows:{name:'The Sunken Vault',nodes:4,
+  enemies:['bone_sentinel','crystal_golem','ghoul','corrupted_knight'],boss:'death_knight',
+  lore:'A sealed vault deep beneath the mines, flooded with dark water and undead sentinels. The dwarves locked something terrible inside — and it has been waiting.',
+  bossLoot:'vault_shield'},
+ashen_waste:{name:'The Crucible',nodes:5,
+  enemies:['flame_elemental','corrupted_knight','chimera_spawn','wyvern'],boss:'demon_lord',
+  lore:'A molten chamber at the heart of the waste, where fire and shadow merge. The Demon Lord dwells here, feeding on the agony of the scorched earth.',
+  bossLoot:'crucible_crown'}
+};
+
+// Enemy synergy pairs for 1v2 encounters
+const ENEMY_SYNERGIES=[
+{pair:['giant_spider','venomfang_snake'],reason:'Double poison pressure'},
+{pair:['bone_sentinel','ghoul'],reason:'Tank + Stun'},
+{pair:['fungal_horror','spore_mite'],reason:'AoE spore synergy'},
+{pair:['dire_wolf','shadow_hound'],reason:'Double bleed'},
+{pair:['flame_elemental','ash_wyrm'],reason:'Double burn'},
+{pair:['corrupted_knight','plague_bearer'],reason:'Bleed + Poison'},
+{pair:['crystal_golem','void_stalker'],reason:'Blind from two sources'},
+{pair:['banshee','lich_apprentice'],reason:'Double curse'},
+{pair:['rock_troll','ironscale_lizard'],reason:'Tank wall'},
+{pair:['wyvern','wyvern_hatchling'],reason:'Parent + offspring aggression'}
+];
+
+// Stat-check bypass templates for combat nodes (~30% chance)
+const COMBAT_BYPASS={
+sight:{stat:'sight',dc:6,
+  text:'You spot an alternate path around the danger.',
+  passText:'Your keen eyes find a way to avoid the confrontation entirely.',
+  failText:'The path was a dead end. Combat is unavoidable.'},
+speech:{stat:'speech',dc:6,
+  text:'You might be able to talk your way out of this.',
+  passText:'With careful words, you defuse the situation. The creature backs down.',
+  failText:'Your words fall on deaf ears. The creature attacks.'},
+movement:{stat:'movement',dc:6,
+  text:'You might be fast enough to dash past before it reacts.',
+  passText:'You sprint past before it can react!',
+  failText:'Not fast enough! The creature blocks your escape.'}
+};
+
+// Dungeon-exclusive boss loot items
+const DUNGEON_LOOT={
+hollow_blade:{name:'Hollow Blade',t:'melee',wt:1,dD:8,dB:2,desc:'Melee, 1d8+2. Whispers in combat. Rare dungeon drop.',value:75},
+vault_shield:{name:'Vault Shield',t:'shield',wt:2,blk:4,desc:'+4 block (Light). Dwarven rune-ward. Rare dungeon drop.',value:80},
+crucible_crown:{name:'Crucible Crown',t:'armor',wt:0,dB:2,desc:'+2 defense (Weightless). Burns with inner fire. Rare dungeon drop.',value:100}
+};
+
+// Map Fragment consumable (added to ITEMS above at runtime)
+// ITEMS.map_fragment handled in index.html init

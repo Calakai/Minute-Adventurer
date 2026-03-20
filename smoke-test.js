@@ -7,11 +7,11 @@ const vm = require('vm');
 
 // Load data.js (same as validate.js)
 const dataSrc = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;';
+const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;';
 const dataSandbox = { UI: { addN() {} } };
 vm.createContext(dataSandbox);
 vm.runInContext(dataWrapped, dataSandbox);
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA } = dataSandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS } = dataSandbox;
 
 // Replicate rollLoot from index.html
 function rollLoot(enemy) {
@@ -77,6 +77,109 @@ for (const sid of startScenes) {
     for (const nid of scene.npcs) {
       if (!NPCS[nid]) err('Scene ' + sid + ' NPC missing: ' + nid);
     }
+  }
+}
+
+// === MAP GENERATION TESTS ===
+
+// Load MAP module from index.html (extract only the MAP constant)
+const htmlSrc = fs.readFileSync(__dirname + '/index.html', 'utf8');
+const mapStart = htmlSrc.indexOf('const MAP={');
+const mapEnd = htmlSrc.indexOf('\n// === PARTICLES ===');
+if (mapStart === -1 || mapEnd === -1) {
+  err('Could not locate MAP module in index.html');
+} else {
+  // We need NODE_TYPES and NODE_ICONS too
+  const nodeTypesStart = htmlSrc.indexOf('const NODE_TYPES=');
+  const mapCode = htmlSrc.substring(nodeTypesStart, mapEnd);
+
+  // Create sandbox with dependencies
+  const mapSandbox = {
+    REGION_DATA, ENEMIES, ITEMS, DUNGEON_DEFS, ENEMY_SYNERGIES, COMBAT_BYPASS, DUNGEON_LOOT, STATUS_EFFECTS: {},
+    CALC: { roll100: () => Math.floor(Math.random() * 100) + 1, rollDice: (d) => Math.floor(Math.random() * d) + 1 },
+    GS: { run: null, saveA() {}, addXP() { return { gained: 0, leveled: false, lvls: [] } }, recDef() {} },
+    UI: { addN() {}, clearN() {}, addEl() {}, setCombatMode() {}, updateHUD() {}, el: { nw: {} }, _wait() { return Promise.resolve() } },
+    SE: { openShop() {}, runComplete() {}, enter() {} },
+    CMB: { start() { return null }, gs() { return null } },
+    ML: { openLvl() {} },
+    showToast() {},
+    console, Math, document: { createElement() { return { className: '', style: {}, innerHTML: '', textContent: '', appendChild() {}, classList: { add() {} }, setAttribute() {} } }, createElementNS() { return { setAttribute() {}, appendChild() {} } } }
+  };
+  vm.createContext(mapSandbox);
+  try {
+    vm.runInContext(mapCode + '\nthis.MAP=MAP;', mapSandbox);
+  } catch (e) {
+    err('Failed to load MAP module: ' + e.message);
+  }
+
+  if (mapSandbox.MAP) {
+    const MAP = mapSandbox.MAP;
+
+    // Test map generation for each adventure
+    for (const advId of ['muddy_trail', 'iron_hollows', 'ashen_waste']) {
+      let map;
+      try {
+        map = MAP.generate(advId);
+      } catch (e) {
+        err('MAP.generate("' + advId + '") threw: ' + e.message);
+        continue;
+      }
+      if (!map) { err('MAP.generate("' + advId + '") returned null'); continue; }
+      if (!map.regions || !map.regions.length) { err(advId + ' map has no regions'); continue; }
+
+      // Check each region
+      for (let ri = 0; ri < map.regions.length; ri++) {
+        const region = map.regions[ri];
+        if (!region.rows || !region.rows.length) { err(advId + ' region ' + ri + ' has no rows'); continue; }
+
+        // BFS: verify all nodes reachable from row 0
+        const reachable = new Set();
+        region.rows[0].nodes.forEach((_, ni) => reachable.add('0_' + ni));
+        for (let r = 0; r < region.rows.length - 1; r++) {
+          region.rows[r].nodes.forEach((node, ni) => {
+            if (reachable.has(r + '_' + ni)) {
+              node.connections.forEach(ci => reachable.add((r + 1) + '_' + ci));
+            }
+          });
+        }
+        // Check last row reachable
+        const lastRowIdx = region.rows.length - 1;
+        region.rows[lastRowIdx].nodes.forEach((_, ni) => {
+          if (!reachable.has(lastRowIdx + '_' + ni)) {
+            err(advId + ' region ' + ri + ' node row' + lastRowIdx + '_n' + ni + ' unreachable');
+          }
+        });
+
+        // Check sawtooth: max intensity jump <= 3 between adjacent rows
+        for (let r = 1; r < region.rows.length; r++) {
+          const prevMax = Math.max(...region.rows[r - 1].nodes.map(n => n.intensity));
+          region.rows[r].nodes.forEach(node => {
+            if (node.intensity - prevMax > 3) {
+              err(advId + ' region ' + ri + ' row ' + r + ' intensity jump too high: ' + prevMax + ' -> ' + node.intensity);
+            }
+          });
+        }
+      }
+
+      // Check boss node exists in last region last row
+      const lastRegion = map.regions[map.regions.length - 1];
+      const lastRow = lastRegion.rows[lastRegion.rows.length - 1];
+      const hasBoss = lastRow.nodes.some(n => n.type === 'boss');
+      if (!hasBoss) err(advId + ' has no boss node in final row');
+    }
+
+    // Test encounter selection doesn't reference undefined enemies
+    for (const advId of ['muddy_trail', 'iron_hollows', 'ashen_waste']) {
+      const ad = REGION_DATA[advId];
+      for (const rDef of ad.regions) {
+        for (let i = 0; i < 20; i++) {
+          const ek = MAP.selectEnemy(rDef, ad, ad.roamingPool.slice(0, 1), [], false, 3);
+          if (!ENEMIES[ek]) err('selectEnemy returned unknown enemy: ' + ek);
+        }
+      }
+    }
+
+    console.log('MAP generation tests passed for all 3 adventures.');
   }
 }
 

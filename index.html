@@ -323,6 +323,25 @@ html.settings-large-text{font-size:1.1rem}
 .vic-stat-btn{min-height:44px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--fn);font-size:.85rem;cursor:pointer;padding:6px 4px;text-align:center;transition:border-color .15s}
 .vic-stat-btn:hover{border-color:var(--gold)}
 .vic-stat-btn span{display:block;font-size:.7rem;color:var(--text3)}
+/* Adventure Map */
+.map-wrap{padding:8px 4px}
+.map-region-hdr{font-size:.9rem;color:var(--gold);font-weight:600;text-align:center;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.08em}
+.map-row{display:flex;justify-content:center;gap:16px;margin:2px 0;position:relative}
+.map-conns{display:flex;justify-content:center;height:18px;position:relative;margin:0}
+.map-conn-svg{position:absolute;top:0;left:0;width:100%;height:100%}
+.map-node{width:48px;height:48px;border-radius:8px;border:2px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-family:var(--fn);cursor:default;transition:border-color .15s,transform .15s,opacity .15s;position:relative;color:var(--text3);flex-shrink:0}
+.map-node.clickable{cursor:pointer;border-color:var(--gold);color:var(--gold)}
+.map-node.clickable:hover{transform:scale(1.12);background:rgba(201,168,76,.08)}
+.map-node.current{border-color:var(--gold);box-shadow:0 0 10px rgba(201,168,76,.3);color:var(--gold)}
+.map-node.completed{opacity:.4;border-style:dashed}
+.map-node.shrouded{color:var(--text3)}
+.map-node.bounty{border-color:var(--red);color:var(--red)}
+.map-node.boss-node{border-color:var(--purple,#9b59b6);color:var(--purple,#9b59b6)}
+.map-node.dungeon-node{border-color:#c9a84c;color:#c9a84c}
+.map-legend{display:flex;flex-wrap:wrap;gap:6px 10px;justify-content:center;font-size:.7rem;color:var(--text3);margin:12px 0 4px;padding-top:8px;border-top:1px solid var(--border)}
+.map-legend span{white-space:nowrap}
+.map-rest-info{text-align:center;font-size:.75rem;color:var(--text2);margin:4px 0 8px}
+.map-pos-marker{position:absolute;top:-6px;right:-6px;width:10px;height:10px;background:var(--gold);border-radius:50%;border:1px solid var(--bg)}
 /* Action Sheet */
 #action-sheet{display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;max-height:60vh;background:var(--bg2);border-top:1px solid var(--gold);border-radius:12px 12px 0 0;padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));overflow-y:auto;transform:translateY(100%);transition:transform .25s ease}
 #action-sheet.vis{display:block;transform:translateY(0)}
@@ -1125,7 +1144,9 @@ newRun(nm,sp,subsp,cl,humanBonus){
     bp:c.bp.map(i=>({...i})),gold:0,adventure:'muddy_trail',scene:'trailhead',ss:{},cs:null,
     nlog:[],traitState:{},jrnUnlk:false,hbFound:false,bSeen:{},bDef:{},srch:{},debuffs:[],
     activeBounty:null,bountyBoard:null,activeQuests:[],completedQuests:{},questProgress:{},
-    verbUsed:false,usedAbilities:{},graveCharges:0};
+    verbUsed:false,usedAbilities:{},graveCharges:0,
+    map:null,mapPos:null,mapRevealed:{},restBudget:{short:2,long:1},
+    dungeonState:null,encounterHistory:[],deferredEffects:[]};
   this.run.mHP=CALC.maxHP(this.run);this.run.mMP=CALC.maxMP(this.run);
   this.run.hp=this.run.mHP;this.run.mp=this.run.mMP;
   this.saveA();return this.run;
@@ -1135,7 +1156,11 @@ _saveFail:false,
 _validateSave(p){if(!(p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof p.level==='number'&&typeof p.hp==='number'&&typeof p.mHP==='number'))return false;
   if(!p.activeQuests)p.activeQuests=[];if(!p.completedQuests)p.completedQuests={};if(!p.questProgress)p.questProgress={};
   if(!p.activeBounty)p.activeBounty=null;if(!p.bountyBoard)p.bountyBoard=null;
-  if(p.verbUsed===undefined)p.verbUsed=false;if(!p.usedAbilities)p.usedAbilities={};if(p.graveCharges===undefined)p.graveCharges=0;return true},
+  if(p.verbUsed===undefined)p.verbUsed=false;if(!p.usedAbilities)p.usedAbilities={};if(p.graveCharges===undefined)p.graveCharges=0;
+  if(!p.map)p.map=null;if(!p.mapPos)p.mapPos=null;if(!p.mapRevealed)p.mapRevealed={};
+  if(!p.restBudget)p.restBudget={short:2,long:1};if(!p.dungeonState)p.dungeonState=null;
+  if(!p.encounterHistory)p.encounterHistory=[];if(!p.deferredEffects)p.deferredEffects=[];
+  if(p._mapReturnRegion===undefined)p._mapReturnRegion=null;return true},
 saveA(){if(this.run)try{localStorage.setItem('activeRun',JSON.stringify(this.run));this._saveFail=false}catch(e){if(!this._saveFail){this._saveFail=true;console.warn('Auto-save failed:',e);
   if(e.name==='QuotaExceededError')showToast('Save failed \u2014 storage may be full.','error');else showToast('Auto-save failed.','error')}}},
 loadA(){try{const d=localStorage.getItem('activeRun');if(d){const p=JSON.parse(d);if(!this._validateSave(p))return'incompatible';this.run=p;return true}}catch(e){showToast('Save data corrupted. Starting fresh.','error')}return false},
@@ -1815,7 +1840,8 @@ buildLandingButtons(){
     const cont=document.createElement('button');cont.className='lbtn lbtn-primary';
     cont.innerHTML='Continue<div class="lbtn-sub">Continue as '+r.name+' · Lv'+r.level+' '+clName+'</div>';
     cont.onclick=async()=>{this.el.landing.classList.add('hidden');Particles.stop();this.el.app.classList.add('vis');this.showGame();this.restoreN();
-      const scene=SCENE_DATA[GS.run.scene];if(scene)await this.showTitleCard(scene.name,null,500);
+      if(MAP.isMapMode()){const rDef=MAP.getCurrentRegionDef();if(rDef)await this.showTitleCard(rDef.name,null,500)}
+      else{const scene=SCENE_DATA[GS.run.scene];if(scene)await this.showTitleCard(scene.name,null,500)}
       SE.resume()};
     b.appendChild(cont);
     const nw=document.createElement('button');nw.className='lbtn lbtn-secondary';nw.textContent='New Adventure';
@@ -1983,6 +2009,18 @@ renderExits(sceneId){
     let label=(isBack?'\u2190 ':'')+ex.label+(!isBack?' \u2192':'');
     if(!visited)label+='<span class="nav-tag"> (unexplored)</span>';
     b.innerHTML=label;b.onclick=()=>SE.enter(ex.scene);bwrap.appendChild(b)});
+  // Map mode: add "Return to Adventure" exit from tavern hub
+  if(r._mapReturnRegion!==undefined&&r._mapReturnRegion!==null&&
+    (sceneId==='tavern_hub'||sceneId==='market_square'||sceneId==='guard_post'||sceneId==='tavern_cellar')){
+    const mb=document.createElement('button');mb.className='nav-btn';
+    mb.innerHTML='Continue Adventure \u2192';
+    mb.onclick=()=>{
+      const nextRi=r._mapReturnRegion;r._mapReturnRegion=null;
+      r.mapPos={region:nextRi,row:-1,nodeIdx:0};GS.saveA();
+      MAP._showMapAfterNode();
+    };
+    bwrap.appendChild(mb);
+  }
   wrap.appendChild(bwrap);this.addEl(wrap);
 },
 renderSceneActions(sceneId){
@@ -2155,6 +2193,10 @@ function useConsumable(it,r){
   if(it.cure){if(!r.debuffs)r.debuffs=[];const bi=r.debuffs.findIndex(d=>d.type===it.cure);
     if(bi!==-1){r.debuffs.splice(bi,1);parts.push(it.cure+' cured')}
     else if(!it.heal&&!it.mana)parts.push('no effect')}
+  if(it.mapReveal&&MAP.isMapMode()){
+    const rDef=MAP.getCurrentRegionDef();
+    if(rDef){MAP.revealRegion(rDef.id);parts.push('region revealed')}}
+  if(it.guaranteedFlee&&r.cs&&!r.cs.over){r.cs.fled=true;r.cs.over=true;parts.push('fled combat')}
   GS.saveA();UI.updateHUD();
   return'Used '+it.name+(parts.length?': '+parts.join(', ')+'.':'.');
 }
@@ -2609,7 +2651,14 @@ async _handleFlee(){
 resume(){
   const cs=CMB.gs();
   if(cs&&!cs.over){UI.setCombatMode(true)}
-  else{UI.setCombatMode(false)}
+  else{
+    UI.setCombatMode(false);
+    // If in map mode with no active combat or dungeon, show map
+    const r=GS.run;
+    if(r&&MAP.isMapMode()&&!r.dungeonState){
+      MAP._showMapAfterNode();return;
+    }
+  }
   UI.updateHUD();
 },
 
@@ -2787,6 +2836,17 @@ async onWin(){
   await UI._wait(500);
   if(r.activeBounty&&r.scene==='bounty_arena'){
     this.completeBounty();return}
+  // Map mode: dungeon or regular map node
+  if(r.dungeonState){
+    MAP._onDungeonWin();return}
+  if(MAP.isMapMode()){
+    const node=MAP.getCurrentNode();
+    if(node){
+      const goBtn=document.createElement('button');goBtn.className='nav-btn';goBtn.style.marginTop='12px';
+      goBtn.textContent='Continue \u2192';goBtn.onclick=()=>MAP._completeNode(node);
+      UI.addEl(goBtn);
+    }
+    return}
   const nextMap={gray_ooze:'post_ooze',giant_spider:'post_spider',dire_wolf:'post_wolf',bog_wraith:'post_bog',
     fungal_horror:r.scene==='ih_fungal_grotto'?'ih_post_fungal':'ash_post_swamp',
     bone_sentinel:'ih_post_bone',
@@ -3154,11 +3214,986 @@ startAdventure(advId){
   const r=GS.run;r.adventure=advId;r.cs=null;
   if(r.debuffs)r.debuffs=[];
   if(advId==='ashen_waste')r.ss.exit_tavern_hub_waste=true;
+
+  // Generate adventure map
+  if(REGION_DATA[advId]){
+    const map=MAP.generate(advId);
+    r.map=map;r.mapPos={region:0,row:-1,nodeIdx:0};
+    r.mapRevealed={};r.restBudget={short:2,long:1};
+    r.encounterHistory=[];r.dungeonState=null;r.deferredEffects=[];
+    r.scene='__map__';GS.saveA();
+    UI.clearN();
+    UI.addN('Entering '+REGION_DATA[advId].regions[0].name+'...','y');
+    MAP._showMapAfterNode();
+    return;
+  }
+  // Fallback for adventures without REGION_DATA (shouldn't happen)
   const starts={iron_hollows:'ih_entrance',ashen_waste:'ash_gate'};
   const startScene=starts[advId]||'trailhead';
   r.scene=startScene;GS.saveA();
   UI.clearN();this.enter(startScene);
 }
+};
+
+// === ADVENTURE MAP (System 4) ===
+const NODE_TYPES={combat:50,exploration:20,elite:10,treasure:5,rest:5,shop:5,dungeon:5};
+const NODE_ICONS={combat:'[X]',exploration:'[?]',elite:'[!]',treasure:'[$]',rest:'[R]',shop:'[S]',dungeon:'[D]',boss:'[B]',transition:'[>]',unknown:'[~]'};
+
+const MAP={
+
+// === GENERATION ===
+
+generate(advId){
+  const ad=REGION_DATA[advId];if(!ad)return null;
+  const roaming=this._pickRoaming(ad);
+  const regions=ad.regions.map((rDef,ri)=>this._genRegion(rDef,ri,ad,roaming));
+  // Enforce guaranteed placements
+  this._ensureGuarantees(regions,ad);
+  // Maybe add dungeon (before sawtooth so intensity is enforced)
+  const dungeon=this._maybeDungeon(advId,regions);
+  // Sawtooth enforcement pass (after all node types are finalized)
+  this._enforceSawtooth(regions);
+  return{advId,regions,roaming,dungeon,bossKey:ad.boss};
+},
+
+_pickRoaming(ad){
+  const pool=[...ad.roamingPool];
+  const count=1+Math.floor(Math.random()*Math.min(2,pool.length));
+  const picked=[];
+  for(let i=0;i<count&&pool.length;i++){
+    const idx=Math.floor(Math.random()*pool.length);
+    picked.push(pool.splice(idx,1)[0]);
+  }
+  return picked;
+},
+
+_genRegion(rDef,regionIdx,ad,roaming){
+  const rows=[];
+  for(let row=0;row<rDef.rows;row++){
+    // First and last rows: always 2 nodes. Middle rows: 2-3.
+    const minN=rDef.nodesPerRow[0]||2,maxN=rDef.nodesPerRow[1]||3;
+    const nodeCount=(row===0||row===rDef.rows-1)?minN:
+      minN+Math.floor(Math.random()*(maxN-minN+1));
+    const nodes=[];
+    for(let n=0;n<nodeCount;n++){
+      nodes.push(this._genNode(rDef,regionIdx,row,n,rDef.rows,ad));
+    }
+    rows.push({nodes});
+  }
+  this._connectRows(rows);
+  return{id:rDef.id,name:rDef.name,rows};
+},
+
+_genNode(rDef,regionIdx,rowIdx,nodeIdx,totalRows,ad){
+  let type;
+  // First node of first region is always low-stakes
+  if(regionIdx===0&&rowIdx===0){
+    type=Math.random()<0.6?'combat':'exploration';
+  }
+  // Last row of last region is boss (handled in _ensureGuarantees)
+  else{
+    type=this._rollNodeType(regionIdx,rowIdx,totalRows);
+  }
+  const intensity=this._calcIntensity(regionIdx,rowIdx,totalRows,type);
+  return{
+    id:'r'+regionIdx+'_row'+rowIdx+'_n'+nodeIdx,
+    type,intensity,
+    revealed:false,completed:false,
+    encounter:null,  // filled on visit
+    connections:[],  // indices into next row
+    bountyTarget:false,
+    hasBypass:false   // stat-check combat alternative
+  };
+},
+
+_rollNodeType(regionIdx,rowIdx,totalRows){
+  // Weighted random: combat 50, exploration 20, elite 10, treasure 5, rest 5, shop 5, dungeon 5
+  const roll=Math.random()*100;
+  if(roll<50)return'combat';
+  if(roll<70)return'exploration';
+  if(roll<80)return regionIdx>0?'elite':'combat'; // elite only region 2+
+  if(roll<85)return'treasure';
+  if(roll<90)return'rest';
+  if(roll<95)return'shop';
+  return'combat'; // reserved slots default to combat
+},
+
+_calcIntensity(regionIdx,rowIdx,totalRows,type){
+  const microProgress=rowIdx/Math.max(1,totalRows-1);
+  const macroBase=regionIdx*3;
+  let base=macroBase+Math.round(microProgress*3);
+  // Sawtooth dip at region starts
+  if(rowIdx===0)base=Math.max(1,base-2);
+  // Type modifiers
+  if(type==='elite')base+=2;
+  if(type==='treasure'||type==='rest'||type==='shop')base=Math.max(1,base-2);
+  if(type==='exploration')base=Math.max(1,base-1);
+  return Math.min(10,Math.max(1,base));
+},
+
+_connectRows(rows){
+  for(let r=0;r<rows.length-1;r++){
+    const curr=rows[r].nodes,next=rows[r+1].nodes;
+    curr.forEach((node,ni)=>{
+      // Primary connection: map index proportionally
+      const primary=Math.min(Math.round(ni*(next.length-1)/Math.max(1,curr.length-1)),next.length-1);
+      node.connections.push(primary);
+      // ~50% chance of secondary connection to adjacent
+      if(Math.random()<0.5&&next.length>1){
+        const alt=primary<next.length-1?primary+1:(primary>0?primary-1:primary);
+        if(!node.connections.includes(alt))node.connections.push(alt);
+      }
+    });
+    // Ensure every next-row node has at least one incoming
+    next.forEach((_,ni)=>{
+      const hasIncoming=curr.some(n=>n.connections.includes(ni));
+      if(!hasIncoming){
+        // Connect from closest node in current row
+        let best=0,bestDist=Infinity;
+        curr.forEach((n,ci)=>{
+          const d=Math.abs(ci*(next.length-1)/Math.max(1,curr.length-1)-ni);
+          if(d<bestDist){bestDist=d;best=ci}
+        });
+        if(!curr[best].connections.includes(ni))curr[best].connections.push(ni);
+      }
+    });
+  }
+},
+
+_ensureGuarantees(regions,ad){
+  const totalRegions=regions.length;
+  // Boss node: last node of last region's last row
+  const lastRegion=regions[totalRegions-1];
+  const lastRow=lastRegion.rows[lastRegion.rows.length-1];
+  // Replace first node in last row with boss
+  lastRow.nodes[0].type='boss';lastRow.nodes[0].intensity=9+(totalRegions>2?1:0);
+  // If last row has multiple nodes, make others also boss (player converges on boss)
+  for(let i=1;i<lastRow.nodes.length;i++){lastRow.nodes[i].type='boss';lastRow.nodes[i].intensity=lastRow.nodes[0].intensity}
+
+  // At least 1 shop per adventure
+  let hasShop=false;
+  regions.forEach(reg=>reg.rows.forEach(row=>row.nodes.forEach(n=>{if(n.type==='shop')hasShop=true})));
+  if(!hasShop){
+    // Place shop in middle row of region 1
+    const midRow=Math.floor(regions[0].rows.length/2);
+    const midNodes=regions[0].rows[midRow].nodes;
+    const target=midNodes[Math.floor(Math.random()*midNodes.length)];
+    target.type='shop';target.intensity=2;
+  }
+
+  // At least 1 elite per region
+  regions.forEach((reg,ri)=>{
+    if(ri===0)return; // No elite guarantee in region 1 (they can still spawn)
+    let hasElite=false;
+    reg.rows.forEach(row=>row.nodes.forEach(n=>{if(n.type==='elite')hasElite=true}));
+    if(!hasElite&&reg.rows.length>2){
+      // Place in second-to-last row
+      const targetRow=reg.rows[reg.rows.length-2];
+      const target=targetRow.nodes[Math.floor(Math.random()*targetRow.nodes.length)];
+      target.type='elite';target.intensity=Math.max(target.intensity,6);
+    }
+  });
+
+  // At least 1 of each stat event type (sight, speech, movement) per adventure
+  // Tracked during resolution, not enforced at generation — events are drawn from pool
+
+  // ~30% of combat nodes get stat-check bypass
+  regions.forEach(reg=>reg.rows.forEach(row=>row.nodes.forEach(n=>{
+    if((n.type==='combat')&&Math.random()<0.30)n.hasBypass=true;
+  })));
+},
+
+_enforceSawtooth(regions){
+  regions.forEach(region=>{
+    for(let r=1;r<region.rows.length;r++){
+      const prevMax=Math.max(...region.rows[r-1].nodes.map(n=>n.intensity));
+      region.rows[r].nodes.forEach(node=>{
+        if(node.intensity-prevMax>3)node.intensity=prevMax+3;
+        node.intensity=Math.max(1,Math.min(10,node.intensity));
+      });
+    }
+  });
+},
+
+_maybeDungeon(advId,regions){
+  // 60-70% chance, never in region 0
+  if(Math.random()>0.65)return null;
+  const def=DUNGEON_DEFS[advId];if(!def)return null;
+  // Place in region 1+ (second region or later)
+  const ri=regions.length>1?1+Math.floor(Math.random()*(regions.length-1)):0;
+  if(ri===0)return null;
+  const region=regions[ri];
+  // Place in middle-to-late rows
+  const targetRowIdx=Math.floor(region.rows.length*0.5)+Math.floor(Math.random()*Math.floor(region.rows.length*0.3));
+  const row=region.rows[Math.min(targetRowIdx,region.rows.length-2)];
+  // Replace a node with dungeon entrance
+  const ni=Math.floor(Math.random()*row.nodes.length);
+  row.nodes[ni].type='dungeon';row.nodes[ni].intensity=8;
+  return{defId:advId,regionIdx:ri,rowIdx:Math.min(targetRowIdx,region.rows.length-2),nodeIdx:ni};
+},
+
+// === ENCOUNTER SELECTION ===
+
+selectEnemy(region,ad,roaming,encounterHistory,isElite,intensity){
+  const pool=isElite?region.elitePool:region.corePool;
+  // 3-layer: 10-15% rare, then 25% roaming, else core
+  let sourcePool;
+  if(Math.random()<0.12&&region.rarePool&&region.rarePool.length){
+    sourcePool=region.rarePool;
+  }else if(Math.random()<0.25&&roaming&&roaming.length){
+    sourcePool=roaming;
+  }else{
+    sourcePool=pool;
+  }
+  // No-immediate-repeat filter
+  const lastEnemy=encounterHistory.length?encounterHistory[encounterHistory.length-1]:null;
+  const filtered=sourcePool.filter(e=>e!==lastEnemy);
+  const candidates=filtered.length?filtered:sourcePool;
+  // Weight by tier proximity to intensity
+  const targetTier=Math.ceil(intensity/2.5);
+  const weighted=candidates.map(ek=>{
+    const e=ENEMIES[ek];if(!e)return null;
+    const tierDiff=Math.abs((e.tier||1)-targetTier);
+    return{key:ek,weight:Math.max(1,10-tierDiff*3)};
+  }).filter(Boolean);
+  // Weighted random selection
+  const total=weighted.reduce((s,w)=>s+w.weight,0);
+  let roll=Math.random()*total;
+  for(const w of weighted){roll-=w.weight;if(roll<=0)return w.key}
+  return weighted[weighted.length-1].key;
+},
+
+pick1v2Partner(primaryKey,region,roaming){
+  // Check synergy pairs first
+  const synergy=ENEMY_SYNERGIES.find(s=>s.pair.includes(primaryKey));
+  if(synergy){
+    const partner=synergy.pair.find(e=>e!==primaryKey);
+    // Verify partner exists in available pools
+    const allPool=[...region.corePool,...(roaming||[]),...(region.elitePool||[])];
+    if(allPool.includes(partner))return partner;
+  }
+  // Fallback: pick any T1-T2 from pool that isn't the primary
+  const allPool=[...region.corePool,...(roaming||[])];
+  const candidates=allPool.filter(e=>e!==primaryKey&&ENEMIES[e]&&ENEMIES[e].tier<=2);
+  if(!candidates.length)return null;
+  return candidates[Math.floor(Math.random()*candidates.length)];
+},
+
+// === SHROUD & VISIBILITY ===
+
+updateShroud(map,run){
+  if(!map||!run.mapPos)return;
+  const pos=run.mapPos;
+  map.regions.forEach((region,ri)=>{
+    region.rows.forEach((row,rowIdx)=>{
+      row.nodes.forEach(node=>{
+        // Already revealed stays revealed
+        if(node.revealed||node.completed)return;
+        // Boss always visible
+        if(node.type==='boss'){node.revealed=true;return}
+        // Shop always visible
+        if(node.type==='shop'){node.revealed=true;return}
+        // Transition always visible
+        if(node.type==='transition'){node.revealed=true;return}
+        // Current region only
+        if(ri!==pos.region)return;
+        // Current row and next row always visible
+        if(rowIdx<=pos.row+1){node.revealed=true;return}
+        // Sight-based: +1 row per 3 Sight above baseline(5)
+        const sightBonus=Math.max(0,Math.floor((run.stats.sight-5)/3));
+        if(rowIdx<=pos.row+1+sightBonus){node.revealed=true;return}
+        // Map revealed via fragment
+        if(run.mapRevealed&&run.mapRevealed[region.id]){node.revealed=true}
+      });
+    });
+  });
+},
+
+revealRegion(regionId){
+  const r=GS.run;if(!r||!r.map)return;
+  if(!r.mapRevealed)r.mapRevealed={};
+  r.mapRevealed[regionId]=true;
+  this.updateShroud(r.map,r);
+  GS.saveA();
+  showToast('Map Fragment used — region revealed!','success');
+},
+
+// === STAT CHECKS ===
+
+resolveStatCheck(stat,dc,run){
+  const val=run.stats[stat]||5;
+  // Base 50% + (val-dc)*10%, clamped 10-95%
+  const chance=Math.max(10,Math.min(95,50+(val-dc)*10));
+  return{chance,passed:CALC.roll100()<=chance};
+},
+
+// === HELPERS ===
+
+getCurrentNode(){
+  const r=GS.run;if(!r||!r.map||!r.mapPos)return null;
+  const pos=r.mapPos;
+  const region=r.map.regions[pos.region];if(!region)return null;
+  const row=region.rows[pos.row];if(!row)return null;
+  return row.nodes[pos.nodeIdx]||null;
+},
+
+getCurrentRegionDef(){
+  const r=GS.run;if(!r||!r.map||!r.mapPos)return null;
+  const ad=REGION_DATA[r.map.advId];if(!ad)return null;
+  return ad.regions[r.mapPos.region]||null;
+},
+
+isMapMode(){
+  const r=GS.run;return!!(r&&r.map&&r.mapPos);
+},
+
+_isValidMove(ri,rowIdx,ni,run){
+  if(!run.map||!run.mapPos)return false;
+  const pos=run.mapPos;
+  if(ri!==pos.region)return false;
+  if(rowIdx!==pos.row+1)return false;
+  if(pos.row===-1)return true;
+  const currentRow=run.map.regions[ri].rows[pos.row];
+  if(!currentRow)return false;
+  const currentNode=currentRow.nodes[pos.nodeIdx];
+  if(!currentNode)return false;
+  return currentNode.connections.includes(ni);
+},
+
+// === MAP UI RENDERING ===
+
+renderMap(container){
+  const r=GS.run,m=r.map;if(!m||!container)return;
+  this.updateShroud(m,r);
+  container.innerHTML='';
+  const wrap=document.createElement('div');wrap.className='map-wrap';
+
+  // Rest budget info
+  const restInfo=document.createElement('div');restInfo.className='map-rest-info';
+  restInfo.textContent='Rests: '+r.restBudget.short+' short, '+r.restBudget.long+' long';
+  wrap.appendChild(restInfo);
+
+  const pos=r.mapPos;
+  const curRegion=m.regions[pos.region];if(!curRegion)return;
+
+  // Region header
+  const hdr=document.createElement('div');hdr.className='map-region-hdr';
+  hdr.textContent=curRegion.name+' (Region '+(pos.region+1)+'/'+m.regions.length+')';
+  wrap.appendChild(hdr);
+
+  // Render rows
+  curRegion.rows.forEach((row,rowIdx)=>{
+    // Connection lines from previous row
+    if(rowIdx>0){
+      const connDiv=document.createElement('div');connDiv.className='map-conns';
+      const prevRow=curRegion.rows[rowIdx-1];
+      // Simple text-based connectors
+      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('class','map-conn-svg');svg.setAttribute('viewBox','0 0 300 18');
+      svg.style.cssText='width:100%;height:18px';
+      prevRow.nodes.forEach((pn,pi)=>{
+        pn.connections.forEach(ci=>{
+          const x1=this._nodeX(pi,prevRow.nodes.length,300);
+          const x2=this._nodeX(ci,row.nodes.length,300);
+          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+          line.setAttribute('x1',x1);line.setAttribute('y1','0');
+          line.setAttribute('x2',x2);line.setAttribute('y2','18');
+          const isOnPath=(pos.row>=rowIdx)||(pos.row===rowIdx-1&&pos.nodeIdx===pi);
+          line.setAttribute('stroke',isOnPath?'rgba(201,168,76,0.5)':'rgba(255,255,255,0.12)');
+          line.setAttribute('stroke-width','1.5');
+          svg.appendChild(line);
+        });
+      });
+      connDiv.appendChild(svg);
+      wrap.appendChild(connDiv);
+    }
+
+    // Node row
+    const rowEl=document.createElement('div');rowEl.className='map-row';
+    row.nodes.forEach((node,ni)=>{
+      const nodeEl=document.createElement('div');nodeEl.className='map-node';
+      const isCurrent=pos.row===rowIdx&&pos.nodeIdx===ni;
+      const isClickable=this._isValidMove(pos.region,rowIdx,ni,r);
+      const isRevealed=node.revealed||node.completed;
+
+      if(isCurrent){nodeEl.classList.add('current');
+        const marker=document.createElement('div');marker.className='map-pos-marker';nodeEl.appendChild(marker)}
+      if(node.completed)nodeEl.classList.add('completed');
+      if(node.bountyTarget)nodeEl.classList.add('bounty');
+      if(node.type==='boss')nodeEl.classList.add('boss-node');
+      if(node.type==='dungeon')nodeEl.classList.add('dungeon-node');
+      if(!isRevealed)nodeEl.classList.add('shrouded');
+
+      if(isClickable){
+        nodeEl.classList.add('clickable');
+        nodeEl.onclick=()=>this.moveToNode(pos.region,rowIdx,ni);
+      }
+
+      const icon=isRevealed?NODE_ICONS[node.type]||NODE_ICONS.combat:NODE_ICONS.unknown;
+      nodeEl.textContent=icon;
+      if(isRevealed&&node.intensity){
+        nodeEl.title=node.type+' (intensity '+node.intensity+')';
+      }
+      rowEl.appendChild(nodeEl);
+    });
+    wrap.appendChild(rowEl);
+  });
+
+  // Legend
+  const legend=document.createElement('div');legend.className='map-legend';
+  [['combat','Combat'],['exploration','Event'],['elite','Elite'],['treasure','Treasure'],
+   ['rest','Rest'],['shop','Shop'],['dungeon','Dungeon'],['boss','Boss']].forEach(([k,label])=>{
+    const s=document.createElement('span');s.textContent=NODE_ICONS[k]+' '+label;legend.appendChild(s);
+  });
+  wrap.appendChild(legend);
+  container.appendChild(wrap);
+},
+
+_nodeX(idx,count,width){
+  if(count===1)return width/2;
+  const margin=60;const usable=width-margin*2;
+  return margin+idx*(usable/(count-1));
+},
+
+moveToNode(ri,rowIdx,ni){
+  const r=GS.run;if(!r||!r.map)return;
+  if(!this._isValidMove(ri,rowIdx,ni,r))return;
+  r.mapPos={region:ri,row:rowIdx,nodeIdx:ni};
+  GS.saveA();
+  const node=r.map.regions[ri].rows[rowIdx].nodes[ni];
+  this.resolveNode(node);
+},
+
+_showMapAfterNode(){
+  const r=GS.run;if(!r||!r.map)return;
+  UI.setCombatMode(false);
+  UI.clearN();
+  const region=r.map.regions[r.mapPos.region];
+  UI.addN(region.name+' — Choose your path','y');
+  this.renderMap(UI.el.nw);
+  UI.updateHUD();
+},
+
+// === NODE RESOLUTION (Sub-Phase 2C) ===
+
+resolveNode(node){
+  const r=GS.run,m=r.map;if(!node)return;
+  const rDef=this.getCurrentRegionDef();
+  const ad=REGION_DATA[m.advId];
+  switch(node.type){
+    case'combat':this._resolveCombat(node,rDef,ad,false);break;
+    case'elite':this._resolveCombat(node,rDef,ad,true);break;
+    case'exploration':this._resolveExploration(node);break;
+    case'treasure':this._resolveTreasure(node);break;
+    case'rest':this._resolveRest(node);break;
+    case'shop':this._resolveShop(node,rDef);break;
+    case'boss':this._resolveBoss(node,ad);break;
+    case'dungeon':this._resolveDungeon(node,ad);break;
+    default:this._completeNode(node);
+  }
+},
+
+_resolveCombat(node,rDef,ad,isElite){
+  const r=GS.run,m=r.map;
+  // Select enemy
+  const enemyKey=this.selectEnemy(rDef,ad,m.roaming,r.encounterHistory,isElite,node.intensity);
+  node.encounter={enemy:enemyKey};
+  r.encounterHistory.push(enemyKey);
+  if(r.encounterHistory.length>5)r.encounterHistory.shift();
+
+  // 1v2 check: 15-20% in region 2+
+  let enemy2Key=null;
+  if(r.mapPos.region>=1&&!isElite&&Math.random()<0.18){
+    enemy2Key=this.pick1v2Partner(enemyKey,rDef,m.roaming);
+    if(enemy2Key)node.encounter.enemy2=enemy2Key;
+  }
+
+  UI.clearN();
+  const enemy=ENEMIES[enemyKey];
+  const descs=[
+    'A '+enemy.name+' blocks your path!',
+    'Something moves in the shadows — a '+enemy.name+'!',
+    'You stumble upon a '+enemy.name+', ready to fight.',
+    'A '+enemy.name+' emerges from the gloom.'
+  ];
+  UI.addN(descs[Math.floor(Math.random()*descs.length)],'d');
+  if(enemy2Key){
+    const e2=ENEMIES[enemy2Key];
+    UI.addN('And a '+e2.name+' flanks from the side!','d');
+  }
+
+  // Stat-check bypass option (~30% of combat nodes)
+  if(node.hasBypass&&!isElite){
+    this._offerBypass(node,enemyKey,enemy2Key);
+  }
+
+  // Start combat
+  const cs=CMB.start(enemyKey,enemy2Key||undefined);
+  if(!cs){UI.addN('The shadows disperse.','f');this._completeNode(node);return}
+  UI.setCombatMode(true);
+
+  // Quick Resolve check
+  const eTier=enemy.tier||1;
+  if(r.level>=(eTier*3+2)&&!enemy2Key){
+    this._offerQuickResolve(node,enemyKey,cs);
+  }
+
+  UI.addN('Combat begins!','y');
+  UI.updateHUD();UI.setCombatBusy(false);
+},
+
+_offerQuickResolve(node,enemyKey,cs){
+  const r=GS.run;
+  const qr=document.createElement('div');qr.style.cssText='margin-top:8px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
+  qr.innerHTML='<div style="font-size:.85rem;color:var(--text2);margin-bottom:6px">This foe poses little threat.</div>';
+  const qb=document.createElement('button');qb.className='nav-btn';qb.textContent='Quick Resolve';
+  qb.onclick=async()=>{qr.remove();UI.setCombatBusy(true);
+    const enemy=cs.enemy;const dmgTaken=CALC.rollDice(enemy.dD);r.hp=Math.max(1,r.hp-dmgTaken);
+    enemy.hp=0;cs.over=true;cs.won=true;GS.recDef(enemy.id);GS.saveA();
+    UI.addN('You dispatch the '+enemy.name+' with ease. Took '+dmgTaken+' damage.','s');
+    UI.setCombatMode(false);await UI._wait(300);SE.onWin()};
+  qr.appendChild(qb);UI.addEl(qr);
+},
+
+_offerBypass(node,enemyKey,enemy2Key){
+  const r=GS.run;
+  const types=Object.keys(COMBAT_BYPASS);
+  const bypassType=types[Math.floor(Math.random()*types.length)];
+  const bypass=COMBAT_BYPASS[bypassType];
+  const result=this.resolveStatCheck(bypass.stat,bypass.dc+(r.mapPos.region||0),r);
+
+  const btn=document.createElement('button');btn.className='scene-act-btn';
+  btn.textContent=bypass.text+' ('+bypass.stat+' '+result.chance+'%)';
+  btn.style.display='block';btn.style.marginBottom='8px';
+  btn.onclick=()=>{
+    btn.remove();
+    if(result.passed){
+      // Bypass combat
+      UI.addN(bypass.passText,'s');
+      const enemy=ENEMIES[enemyKey];
+      const xpReward=Math.floor((enemy.xp||20)*0.3);
+      const xpRes=GS.addXP(xpReward);
+      UI.addN('Gained '+xpReward+' XP for cleverness.','y');
+      if(xpRes.leveled){
+        xpRes.lvls.forEach(lvl=>{
+          UI.addN('Level up! Level '+lvl+'!','s');
+          ML.openLvl(lvl,()=>{});
+        });
+      }
+      GS.saveA();UI.updateHUD();
+      // Stop combat if started
+      const cs=GS.run.cs;
+      if(cs){cs.over=true;cs.won=true;GS.run.cs=null}
+      UI.setCombatMode(false);
+      this._showContinueBtn(node);
+    }else{
+      UI.addN(bypass.failText,'d');
+      // Combat continues normally — it was already started
+    }
+  };
+  UI.addEl(btn);
+},
+
+_resolveExploration(node){
+  const r=GS.run;
+  // Pick event from pool, respecting category weights and class matching
+  const allEvents=Object.entries(EXPLORATION_EVENTS);
+  const eligible=allEvents.filter(([,ev])=>{
+    if(ev.cat==='class_specific')return true; // show with generic fallback
+    return true;
+  });
+  const [evKey,ev]=eligible[Math.floor(Math.random()*eligible.length)];
+  node.encounter={event:evKey};
+
+  UI.clearN();
+  UI.addN(ev.desc,'f');
+
+  if(ev.stat){
+    // Stat-gated check
+    const dc=ev.dc+(r.mapPos.region||0); // DC scales with adventure progress
+    const result=this.resolveStatCheck(ev.stat,dc,r);
+    const btn=document.createElement('button');btn.className='scene-act-btn';
+    btn.textContent='Attempt '+ev.stat+' check ('+result.chance+'%)';
+    btn.onclick=()=>{
+      btn.remove();
+      if(result.passed){
+        UI.addN(ev.passText,'s');
+        this._giveReward(ev.reward,r);
+      }else{
+        UI.addN(ev.failText,'d');
+        if(ev.failPenalty)this._applyPenalty(ev.failPenalty,r);
+      }
+      GS.saveA();UI.updateHUD();
+      this._showContinueBtn(node);
+    };
+    UI.addEl(btn);
+    // Also show a "Walk away" option
+    const skipBtn=document.createElement('button');skipBtn.className='scene-act-btn';
+    skipBtn.textContent='Walk away';skipBtn.style.opacity='.7';
+    skipBtn.onclick=()=>{btn.remove();skipBtn.remove();
+      UI.addN('You decide not to risk it and move on.','f');
+      this._showContinueBtn(node)};
+    UI.addEl(skipBtn);
+  }else if(ev.choices){
+    // Risk/reward choices
+    ev.choices.forEach(choice=>{
+      const btn=document.createElement('button');btn.className='scene-act-btn';
+      btn.textContent=choice.text;btn.style.display='block';btn.style.marginBottom='6px';
+      btn.onclick=()=>{
+        // Remove all choice buttons
+        const btns=UI.el.nw.querySelectorAll('.scene-act-btn');btns.forEach(b=>b.remove());
+        // Roll outcome
+        const roll=Math.random()*100;let cumul=0;
+        for(const outcome of choice.outcomes){
+          cumul+=outcome.chance;
+          if(roll<=cumul){
+            UI.addN(outcome.text,outcome.reward?'s':'d');
+            if(outcome.reward)this._giveReward(outcome.reward,r);
+            if(outcome.penalty)this._applyPenalty(outcome.penalty,r);
+            break;
+          }
+        }
+        GS.saveA();UI.updateHUD();
+        this._showContinueBtn(node);
+      };
+      UI.addEl(btn);
+    });
+  }else if(ev.cat==='lore'){
+    // Lore: always succeed
+    UI.addN(ev.text,'f');
+    this._giveReward(ev.reward,r);
+    GS.saveA();UI.updateHUD();
+    this._showContinueBtn(node);
+  }else if(ev.cat==='class_specific'){
+    // Class-specific: check if class matches
+    const isMatch=ev.classes&&ev.classes.includes(r.classes[0]);
+    if(isMatch){
+      UI.addN(ev.classText,'s');
+      this._giveReward(ev.classReward,r);
+    }else{
+      UI.addN(ev.genericText,'f');
+      this._giveReward(ev.genericReward,r);
+    }
+    GS.saveA();UI.updateHUD();
+    this._showContinueBtn(node);
+  }
+},
+
+_resolveTreasure(node){
+  const r=GS.run;
+  UI.clearN();
+  const descs=['You find a hidden stash of supplies!','A chest sits in an alcove, lock rusted through.',
+    'Among the rubble, something catches your eye.','A pack abandoned by a previous traveler. Their loss, your gain.'];
+  UI.addN(descs[Math.floor(Math.random()*descs.length)],'f');
+
+  // Give random loot
+  const pool=['hpot','mpot','ghpot','gmpot','elixir','antidote','bandage'];
+  const item=ITEMS[pool[Math.floor(Math.random()*pool.length)]];
+  if(item&&r.bp.length<6){
+    r.bp.push({...item});
+    UI.addN('Found: '+item.name+'!','s');
+  }
+  // Random gold
+  const gold=5+Math.floor(Math.random()*15);
+  r.gold=(r.gold||0)+gold;
+  UI.addN('Found '+gold+' gold.','y');
+
+  GS.saveA();UI.updateHUD();
+
+  // Also offer rest opportunity
+  if(r.restBudget.short>0||r.restBudget.long>0){
+    UI.addN('This seems like a safe place to rest.','f');
+    this._showRestOptions(node);
+  }else{
+    this._showContinueBtn(node);
+  }
+},
+
+_resolveRest(node){
+  const r=GS.run;
+  UI.clearN();
+  UI.addN('You find a sheltered spot to rest. The air is still here, and safe — for now.','f');
+  this._showRestOptions(node);
+},
+
+_showRestOptions(node){
+  const r=GS.run;
+  if(r.restBudget.short>0){
+    const sb=document.createElement('button');sb.className='scene-act-btn';sb.style.display='block';
+    sb.textContent='Short Rest — restore 25% HP/MP ('+r.restBudget.short+' left)';
+    sb.onclick=()=>{
+      r.restBudget.short--;
+      const hpGain=Math.min(Math.ceil(r.mHP*0.25),r.mHP-r.hp);
+      const mpGain=Math.min(Math.ceil(r.mMP*0.25),r.mMP-r.mp);
+      r.hp+=hpGain;r.mp+=mpGain;GS.saveA();UI.updateHUD();
+      sb.remove();
+      UI.addN('Recovered '+hpGain+' HP and '+mpGain+' MP.','s');
+      this._showContinueBtn(node);
+    };
+    UI.addEl(sb);
+  }
+  if(r.restBudget.long>0){
+    const lb=document.createElement('button');lb.className='scene-act-btn';lb.style.display='block';
+    lb.textContent='Long Rest — full HP/MP, clear debuffs ('+r.restBudget.long+' left)';
+    lb.onclick=()=>{
+      r.restBudget.long--;
+      r.hp=r.mHP;r.mp=r.mMP;r.debuffs=[];GS.saveA();UI.updateHUD();
+      lb.remove();
+      UI.addN('Fully restored! All debuffs cleared.','s');
+      this._showContinueBtn(node);
+    };
+    UI.addEl(lb);
+  }
+  // Always offer skip
+  const skip=document.createElement('button');skip.className='scene-act-btn';skip.style.display='block';skip.style.opacity='.7';
+  skip.textContent='Skip rest';
+  skip.onclick=()=>{
+    UI.el.nw.querySelectorAll('.scene-act-btn').forEach(b=>b.remove());
+    this._showContinueBtn(node);
+  };
+  UI.addEl(skip);
+},
+
+_resolveShop(node,rDef){
+  const r=GS.run;
+  UI.clearN();
+  UI.addN('You come across a merchant camp along the path.','f');
+  const npcId=rDef.shopNPCs&&rDef.shopNPCs.length?
+    rDef.shopNPCs[Math.floor(Math.random()*rDef.shopNPCs.length)]:'garrett';
+  node.encounter={npc:npcId};
+  // Open shop, then show continue button when done
+  if(typeof SE.openShop==='function'){
+    SE.openShop(npcId);
+  }
+  this._showContinueBtn(node);
+},
+
+_resolveBoss(node,ad){
+  const r=GS.run,m=r.map;
+  const bossKey=ad.boss;
+  node.encounter={enemy:bossKey};
+  UI.clearN();
+  const boss=ENEMIES[bossKey];
+  UI.addN('The air grows heavy. Something immense waits ahead.','d');
+  UI.addN('A '+boss.name+' stands between you and freedom!','d');
+
+  // Start combat — no bypass, no quick resolve for bosses
+  const cs=CMB.start(bossKey);
+  if(!cs){UI.addN('The way is clear.','f');this._completeNode(node);return}
+  UI.setCombatMode(true);
+  UI.addN('BOSS FIGHT!','y');
+  UI.updateHUD();UI.setCombatBusy(false);
+},
+
+_resolveDungeon(node,ad){
+  const r=GS.run;
+  const def=DUNGEON_DEFS[r.map.advId];if(!def){this._completeNode(node);return}
+
+  UI.clearN();
+  UI.addN(def.name,'h');
+  UI.addN(def.lore,'f');
+  UI.addN(def.nodes+' encounters await. No rest. No retreat. No shops.','d');
+
+  // Generate dungeon nodes
+  const dNodes=[];
+  for(let i=0;i<def.nodes;i++){
+    const isLast=i===def.nodes-1;
+    dNodes.push({
+      type:isLast?'boss':'combat',
+      enemy:isLast?def.boss:def.enemies[Math.floor(Math.random()*def.enemies.length)],
+      completed:false
+    });
+  }
+
+  const enterBtn=document.createElement('button');enterBtn.className='nav-btn';enterBtn.style.marginTop='8px';
+  enterBtn.textContent='Enter the Dungeon';
+  enterBtn.onclick=()=>{
+    r.dungeonState={defId:r.map.advId,currentNode:0,nodes:dNodes,mapNode:node};
+    GS.saveA();
+    this._advanceDungeon();
+  };
+  UI.addEl(enterBtn);
+
+  const skipBtn=document.createElement('button');skipBtn.className='scene-act-btn';skipBtn.style.marginTop='8px';
+  skipBtn.textContent='Turn Back';
+  skipBtn.onclick=()=>{r.dungeonState=null;GS.saveA();this._completeNode(node)};
+  UI.addEl(skipBtn);
+},
+
+_advanceDungeon(){
+  const r=GS.run,ds=r.dungeonState;if(!ds)return;
+  const dNode=ds.nodes[ds.currentNode];
+
+  UI.clearN();
+  const def=DUNGEON_DEFS[ds.defId];
+  UI.addN(def.name+' — Room '+(ds.currentNode+1)+' of '+ds.nodes.length,'y');
+
+  const enemy=ENEMIES[dNode.enemy];
+  if(dNode.type==='boss'){
+    UI.addN('The dungeon boss awaits — a '+enemy.name+'!','d');
+  }else{
+    UI.addN('A '+enemy.name+' lurks in the darkness.','d');
+  }
+
+  const cs=CMB.start(dNode.enemy);
+  if(!cs){ds.currentNode++;this._checkDungeonEnd();return}
+  UI.setCombatMode(true);
+  UI.addN('Combat begins!','y');
+  UI.updateHUD();UI.setCombatBusy(false);
+},
+
+_onDungeonWin(){
+  const r=GS.run,ds=r.dungeonState;if(!ds)return;
+  ds.nodes[ds.currentNode].completed=true;
+  ds.currentNode++;
+  GS.saveA();
+
+  if(ds.currentNode>=ds.nodes.length){
+    // Dungeon complete!
+    const def=DUNGEON_DEFS[ds.defId];
+    UI.addN(def.name+' Complete!','h');
+    // Give dungeon-exclusive loot
+    const lootKey=def.bossLoot;
+    const loot=DUNGEON_LOOT[lootKey];
+    if(loot&&r.bp.length<6){
+      r.bp.push({...loot});
+      UI.addN('Dungeon reward: '+loot.name+'!','s');
+    }
+    const mapNode=ds.mapNode;
+    r.dungeonState=null;
+    GS.saveA();UI.updateHUD();
+    if(mapNode)this._showContinueBtn(mapNode);
+  }else{
+    // Next room button
+    const btn=document.createElement('button');btn.className='nav-btn';btn.style.marginTop='12px';
+    btn.textContent='Proceed Deeper \u2192';
+    btn.onclick=()=>this._advanceDungeon();
+    UI.addEl(btn);
+  }
+},
+
+_checkDungeonEnd(){
+  const r=GS.run,ds=r.dungeonState;if(!ds)return;
+  if(ds.currentNode>=ds.nodes.length){
+    const def=DUNGEON_DEFS[ds.defId];
+    UI.addN(def.name+' Complete!','h');
+    const mapNode=ds.mapNode;
+    r.dungeonState=null;GS.saveA();
+    if(mapNode)this._showContinueBtn(mapNode);
+  }
+},
+
+// === COMPLETION & TRANSITIONS ===
+
+_completeNode(node){
+  node.completed=true;
+  const r=GS.run,m=r.map;GS.saveA();
+  const region=m.regions[r.mapPos.region];
+
+  // Check if last row of region
+  if(r.mapPos.row>=region.rows.length-1){
+    if(node.type==='boss'){
+      // Adventure complete
+      SE.runComplete();
+    }else if(r.mapPos.region<m.regions.length-1){
+      this._regionTransition(r.mapPos.region+1);
+    }else{
+      SE.runComplete();
+    }
+  }else{
+    this._showMapAfterNode();
+  }
+},
+
+_regionTransition(nextRegionIdx){
+  const r=GS.run,m=r.map;
+  const nextRegion=m.regions[nextRegionIdx];
+  UI.clearN();
+  UI.addN('Region Complete!','h');
+  UI.addN('You emerge from '+m.regions[r.mapPos.region].name+'. Ahead lies '+nextRegion.name+'.','f');
+
+  // Offer tavern visit
+  const tavernBtn=document.createElement('button');tavernBtn.className='nav-btn';tavernBtn.style.marginTop='8px';
+  tavernBtn.textContent='Visit the Tavern';
+  tavernBtn.onclick=()=>{
+    r._mapReturnRegion=nextRegionIdx;GS.saveA();
+    SE.enter('tavern_hub');
+  };
+  UI.addEl(tavernBtn);
+
+  const skipBtn=document.createElement('button');skipBtn.className='nav-btn';skipBtn.style.marginTop='8px';
+  skipBtn.textContent='Press On \u2192';
+  skipBtn.onclick=()=>{
+    r.mapPos={region:nextRegionIdx,row:-1,nodeIdx:0};GS.saveA();
+    this._showMapAfterNode();
+  };
+  UI.addEl(skipBtn);
+},
+
+_showContinueBtn(node){
+  const btn=document.createElement('button');btn.className='nav-btn';btn.style.marginTop='12px';
+  btn.textContent='Continue \u2192';
+  btn.onclick=()=>this._completeNode(node);
+  UI.addEl(btn);
+},
+
+// === REWARD HELPERS ===
+
+_giveReward(reward,r){
+  if(!reward)return;
+  switch(reward.type){
+    case'xp':
+      const xpRes=GS.addXP(reward.amount||10);
+      UI.addN('Gained '+reward.amount+' XP.','y');
+      if(xpRes.leveled)xpRes.lvls.forEach(lvl=>{UI.addN('Level '+lvl+'!','s');ML.openLvl(lvl,()=>{})});
+      break;
+    case'gold':
+      r.gold=(r.gold||0)+(reward.amount||10);
+      UI.addN('Found '+(reward.amount||10)+' gold.','y');
+      break;
+    case'heal':
+      if(reward.amount==='full'){r.hp=r.mHP;r.mp=r.mMP;UI.addN('Fully restored!','s')}
+      else{r.hp=Math.min(r.hp+(reward.amount||10),r.mHP);UI.addN('Healed '+(reward.amount||10)+' HP.','s')}
+      break;
+    case'restore_mp':
+      r.mp=Math.min(r.mp+(reward.amount||10),r.mMP);
+      UI.addN('Restored '+(reward.amount||10)+' MP.','s');
+      break;
+    case'loot':
+      if(reward.pool&&reward.pool.length){
+        const itemKey=reward.pool[Math.floor(Math.random()*reward.pool.length)];
+        // Handle gold_small as a special key
+        if(itemKey==='gold_small'){r.gold=(r.gold||0)+10;UI.addN('Found 10 gold.','y')}
+        else{const item=ITEMS[itemKey];
+          if(item&&r.bp.length<6){r.bp.push({...item});UI.addN('Found: '+item.name+'!','s')}
+          else if(item){UI.addN('Found '+item.name+' but backpack is full!','d')}}
+      }
+      break;
+  }
+},
+
+_applyPenalty(penalty,r){
+  if(!penalty)return;
+  switch(penalty.type){
+    case'damage':
+      const dmg=penalty.amount||5;
+      r.hp=Math.max(1,r.hp-dmg);
+      UI.addN('Took '+dmg+' damage!','d');
+      break;
+    case'gold':
+      r.gold=Math.max(0,(r.gold||0)-(penalty.amount||0));
+      UI.addN('Lost '+(penalty.amount||0)+' gold.','d');
+      break;
+    case'debuff':
+      if(penalty.effect&&STATUS_EFFECTS[penalty.effect]){
+        if(!r.debuffs)r.debuffs=[];
+        r.debuffs.push({type:penalty.effect,remaining:penalty.duration||3,dmg:penalty.dmg||0});
+        UI.addN('Afflicted with '+STATUS_EFFECTS[penalty.effect].name+'!','d');
+      }
+      break;
+  }
+}
+
 };
 
 // === PARTICLES ===
