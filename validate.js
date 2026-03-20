@@ -6,12 +6,12 @@ const fs = require('fs');
 const vm = require('vm');
 
 const src = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const wrapped = src + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.BOUNTIES=BOUNTIES;this.QUESTS=QUESTS;this.DEATH_QUOTES=DEATH_QUOTES;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;';
+const wrapped = src + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.BOUNTIES=BOUNTIES;this.QUESTS=QUESTS;this.DEATH_QUOTES=DEATH_QUOTES;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;this.TAVERN_NPCS=TAVERN_NPCS;this.ADVENTURE_SIDE_NPCS=ADVENTURE_SIDE_NPCS;this.TAVERN_STATES=TAVERN_STATES;this.REPUTATION_TIERS=REPUTATION_TIERS;this.CLASS_UNLOCK_TIERS=CLASS_UNLOCK_TIERS;this.MILESTONES=MILESTONES;';
 const sandbox = { UI: { addN() {} }, GS: { saveA() {} } };
 vm.createContext(sandbox);
 vm.runInContext(wrapped, sandbox);
 
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA, BOUNTIES, QUESTS, DEATH_QUOTES, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, RECIPES, ITEM_RARITY, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS } = sandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, BOUNTIES, QUESTS, DEATH_QUOTES, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, RECIPES, ITEM_RARITY, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS, TAVERN_NPCS, ADVENTURE_SIDE_NPCS, TAVERN_STATES, REPUTATION_TIERS, CLASS_UNLOCK_TIERS, MILESTONES } = sandbox;
 let errors = 0;
 let warnings = 0;
 
@@ -35,7 +35,8 @@ for (const [sid, scene] of Object.entries(SCENE_DATA)) {
   }
   if (scene.npcs) {
     for (const nid of scene.npcs) {
-      if (!NPCS[nid]) err(`Scene "${sid}" references unknown NPC "${nid}"`);
+      if (nid.startsWith('tvn_')) { if (!TAVERN_NPCS[nid]) err(`Scene "${sid}" references unknown tavern NPC "${nid}"`) }
+      else if (!NPCS[nid]) err(`Scene "${sid}" references unknown NPC "${nid}"`);
     }
   }
 }
@@ -224,6 +225,60 @@ if (CLASS_TREE) {
   }
 }
 
+// Batch 5: TAVERN_NPCS validation
+if (TAVERN_NPCS) {
+  for (const [nid, npc] of Object.entries(TAVERN_NPCS)) {
+    if (!npc.name) err(`TAVERN_NPCS "${nid}" has no name`);
+    if (npc.shop && npc.shop.stock) {
+      for (const s of npc.shop.stock) {
+        if (!ITEMS[s.key]) err(`TAVERN_NPCS "${nid}" shop references unknown item "${s.key}"`);
+      }
+    }
+    if (npc.services && !Array.isArray(npc.services))
+      err(`TAVERN_NPCS "${nid}" services is not an array`);
+  }
+}
+
+// Batch 5: CLASS_UNLOCK_TIERS validation
+if (CLASS_UNLOCK_TIERS) {
+  const ALL_CL = ['fighter','paladin','ranger','rogue','wizard','berserker','gunslinger','necromancer','warlock'];
+  for (const [tier, data] of Object.entries(CLASS_UNLOCK_TIERS)) {
+    if (!Array.isArray(data.classes)) err(`CLASS_UNLOCK_TIERS "${tier}" classes is not an array`);
+    for (const cl of (data.classes || [])) {
+      if (!ALL_CL.includes(cl)) err(`CLASS_UNLOCK_TIERS "${tier}" references unknown class "${cl}"`);
+    }
+    if (typeof data.reqUnlocked !== 'number') err(`CLASS_UNLOCK_TIERS "${tier}" missing reqUnlocked`);
+  }
+}
+
+// Batch 5: MILESTONES validation
+if (MILESTONES) {
+  const validTrackKeys = ['totalKills','adventuresCompleted','totalBounties','totalBountyGold','deathCount','classesPlayed','uniqueEnemiesDefeated','itemsCrafted','totalGoldEarned','totalSpiritfire','regionsExplored','dungeonsCleared','capturedBounties','pediaCompletion'];
+  for (const [mid, ms] of Object.entries(MILESTONES)) {
+    if (!ms.name) err(`MILESTONES "${mid}" has no name`);
+    if (!ms.tier || !['A','B'].includes(ms.tier)) err(`MILESTONES "${mid}" has invalid tier "${ms.tier}"`);
+    if (typeof ms.target !== 'number') err(`MILESTONES "${mid}" has invalid target`);
+    if (!ms.trackKey) err(`MILESTONES "${mid}" has no trackKey`);
+  }
+}
+
+// Batch 5: TAVERN_STATES validation
+if (TAVERN_STATES) {
+  for (const [key, state] of Object.entries(TAVERN_STATES)) {
+    if (typeof state.minNPCs !== 'number') err(`TAVERN_STATES "${key}" missing minNPCs`);
+    if (!state.desc) err(`TAVERN_STATES "${key}" missing desc`);
+  }
+}
+
+// Batch 5: REPUTATION_TIERS validation
+if (REPUTATION_TIERS) {
+  if (!Array.isArray(REPUTATION_TIERS)) err('REPUTATION_TIERS is not an array');
+  for (const tier of (Array.isArray(REPUTATION_TIERS) ? REPUTATION_TIERS : [])) {
+    if (!tier.key) err('REPUTATION_TIERS entry missing key');
+    if (typeof tier.threshold !== 'number') err(`REPUTATION_TIERS "${tier.key}" missing threshold`);
+  }
+}
+
 // Summary
 const counts = [
   Object.keys(SCENE_DATA).length + ' scenes',
@@ -232,7 +287,9 @@ const counts = [
   Object.keys(ITEMS).length + ' items',
   Object.keys(BOUNTIES).length + ' bounties',
   Object.keys(QUESTS).length + ' quests',
-  (DEATH_QUOTES ? DEATH_QUOTES.length : 0) + ' death quotes'
+  (DEATH_QUOTES ? DEATH_QUOTES.length : 0) + ' death quotes',
+  (TAVERN_NPCS ? Object.keys(TAVERN_NPCS).length : 0) + ' tavern NPCs',
+  (MILESTONES ? Object.keys(MILESTONES).length : 0) + ' milestones'
 ];
 
 if (errors === 0) {

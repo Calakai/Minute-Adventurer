@@ -7,11 +7,11 @@ const vm = require('vm');
 
 // Load data.js (same as validate.js)
 const dataSrc = fs.readFileSync(__dirname + '/data.js', 'utf8');
-const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_COLORS=RARITY_COLORS;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;';
+const dataWrapped = dataSrc + '\nthis.ENEMIES=ENEMIES;this.ITEMS=ITEMS;this.NPCS=NPCS;this.SCENE_DATA=SCENE_DATA;this.REGION_DATA=REGION_DATA;this.EXPLORATION_EVENTS=EXPLORATION_EVENTS;this.DUNGEON_DEFS=DUNGEON_DEFS;this.ENEMY_SYNERGIES=ENEMY_SYNERGIES;this.DUNGEON_LOOT=DUNGEON_LOOT;this.COMBAT_BYPASS=COMBAT_BYPASS;this.RECIPES=RECIPES;this.ITEM_RARITY=ITEM_RARITY;this.RARITY_COLORS=RARITY_COLORS;this.RARITY_NAMES=RARITY_NAMES;this.ENEMY_STATUS_DATA=ENEMY_STATUS_DATA;this.BESTIARY_THRESHOLDS=BESTIARY_THRESHOLDS;this.PEDIA_SECTIONS=PEDIA_SECTIONS;this.SYSTEMS_GUIDE_SECTIONS=SYSTEMS_GUIDE_SECTIONS;this.CLASS_MILESTONES=CLASS_MILESTONES;this.SPIRITFIRE_REWARDS=SPIRITFIRE_REWARDS;this.RUN_MODIFIERS=RUN_MODIFIERS;this.CLASS_TREE=CLASS_TREE;this.SHRINE_UPGRADES=SHRINE_UPGRADES;this.STATUS_EFFECTS=STATUS_EFFECTS;this.TAVERN_NPCS=TAVERN_NPCS;this.ADVENTURE_SIDE_NPCS=ADVENTURE_SIDE_NPCS;this.TAVERN_STATES=TAVERN_STATES;this.REPUTATION_TIERS=REPUTATION_TIERS;this.CLASS_UNLOCK_TIERS=CLASS_UNLOCK_TIERS;this.MILESTONES=MILESTONES;this.BOUNTIES=BOUNTIES;';
 const dataSandbox = { UI: { addN() {} } };
 vm.createContext(dataSandbox);
 vm.runInContext(dataWrapped, dataSandbox);
-const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS, RECIPES, ITEM_RARITY, RARITY_COLORS, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS } = dataSandbox;
+const { ENEMIES, ITEMS, NPCS, SCENE_DATA, REGION_DATA, EXPLORATION_EVENTS, DUNGEON_DEFS, ENEMY_SYNERGIES, DUNGEON_LOOT, COMBAT_BYPASS, RECIPES, ITEM_RARITY, RARITY_COLORS, RARITY_NAMES, ENEMY_STATUS_DATA, BESTIARY_THRESHOLDS, PEDIA_SECTIONS, SYSTEMS_GUIDE_SECTIONS, CLASS_MILESTONES, SPIRITFIRE_REWARDS, RUN_MODIFIERS, CLASS_TREE, SHRINE_UPGRADES, STATUS_EFFECTS, TAVERN_NPCS, ADVENTURE_SIDE_NPCS, TAVERN_STATES, REPUTATION_TIERS, CLASS_UNLOCK_TIERS, MILESTONES, BOUNTIES } = dataSandbox;
 
 // Replicate rollLoot from index.html
 function rollLoot(enemy) {
@@ -315,6 +315,108 @@ for (const [cat, upgrades] of Object.entries(SHRINE_UPGRADES)) {
   }
 }
 console.log('SHRINE_UPGRADES validation passed.');
+
+// === BATCH 5: TAVERN & NPC TESTS ===
+
+// Test TAVERN_NPCS constant integrity
+if (!TAVERN_NPCS || typeof TAVERN_NPCS !== 'object') err('TAVERN_NPCS missing or not an object');
+else {
+  const tvnKeys = Object.keys(TAVERN_NPCS);
+  if (tvnKeys.length < 7) err('TAVERN_NPCS should have at least 7 NPCs, got ' + tvnKeys.length);
+  for (const [nid, npc] of Object.entries(TAVERN_NPCS)) {
+    if (!nid.startsWith('tvn_')) err('TAVERN_NPCS key "' + nid + '" does not have tvn_ prefix');
+    if (!npc.name || typeof npc.name !== 'string') err('TAVERN_NPCS "' + nid + '" missing name');
+    if (!npc.services || !Array.isArray(npc.services)) err('TAVERN_NPCS "' + nid + '" missing services array');
+    if (!npc.dialoguePool || typeof npc.dialoguePool !== 'object') err('TAVERN_NPCS "' + nid + '" missing dialoguePool');
+  }
+  // Hearthkeeper must always be present (no recruit condition)
+  if (TAVERN_NPCS.tvn_hearthkeeper && TAVERN_NPCS.tvn_hearthkeeper.recruitCondition !== null)
+    err('tvn_hearthkeeper should have null recruitCondition');
+  console.log('TAVERN_NPCS validation passed (' + tvnKeys.length + ' NPCs).');
+}
+
+// Test ADVENTURE_SIDE_NPCS
+if (!ADVENTURE_SIDE_NPCS || typeof ADVENTURE_SIDE_NPCS !== 'object') err('ADVENTURE_SIDE_NPCS missing');
+else {
+  for (const [nid, npc] of Object.entries(ADVENTURE_SIDE_NPCS)) {
+    if (!npc.name) err('ADVENTURE_SIDE_NPCS "' + nid + '" missing name');
+    if (!npc.adventure) err('ADVENTURE_SIDE_NPCS "' + nid + '" missing adventure');
+  }
+  console.log('ADVENTURE_SIDE_NPCS validation passed (' + Object.keys(ADVENTURE_SIDE_NPCS).length + ' NPCs).');
+}
+
+// Test TAVERN_STATES ordering
+if (!TAVERN_STATES || typeof TAVERN_STATES !== 'object') err('TAVERN_STATES missing');
+else {
+  const stateKeys = Object.keys(TAVERN_STATES);
+  const expectedOrder = ['ember', 'spark', 'flame', 'hearth'];
+  for (const k of expectedOrder) {
+    if (!TAVERN_STATES[k]) err('TAVERN_STATES missing expected state "' + k + '"');
+  }
+  let prevMin = -1;
+  for (const k of expectedOrder) {
+    if (TAVERN_STATES[k]) {
+      if (TAVERN_STATES[k].minNPCs <= prevMin) err('TAVERN_STATES "' + k + '" minNPCs not ascending');
+      prevMin = TAVERN_STATES[k].minNPCs;
+    }
+  }
+  console.log('TAVERN_STATES validation passed (' + stateKeys.length + ' states).');
+}
+
+// Test REPUTATION_TIERS
+if (!Array.isArray(REPUTATION_TIERS)) err('REPUTATION_TIERS is not an array');
+else {
+  if (REPUTATION_TIERS.length < 3) err('REPUTATION_TIERS should have at least 3 tiers');
+  let prevThresh = -1;
+  for (const tier of REPUTATION_TIERS) {
+    if (tier.threshold < prevThresh) err('REPUTATION_TIERS not in ascending threshold order');
+    prevThresh = tier.threshold;
+  }
+  console.log('REPUTATION_TIERS validation passed (' + REPUTATION_TIERS.length + ' tiers).');
+}
+
+// Test CLASS_UNLOCK_TIERS class counts
+if (!CLASS_UNLOCK_TIERS || typeof CLASS_UNLOCK_TIERS !== 'object') err('CLASS_UNLOCK_TIERS missing');
+else {
+  const ALL_CL = ['fighter','paladin','ranger','rogue','wizard','berserker','gunslinger','necromancer','warlock'];
+  const allTierClasses = [];
+  for (const [tier, data] of Object.entries(CLASS_UNLOCK_TIERS)) {
+    if (!Array.isArray(data.classes)) err('CLASS_UNLOCK_TIERS "' + tier + '" classes not an array');
+    else allTierClasses.push(...data.classes);
+  }
+  // Every class should appear exactly once across all tiers
+  for (const cl of ALL_CL) {
+    const count = allTierClasses.filter(c => c === cl).length;
+    if (count !== 1) err('Class "' + cl + '" appears ' + count + ' times in CLASS_UNLOCK_TIERS (expected 1)');
+  }
+  console.log('CLASS_UNLOCK_TIERS validation passed (' + Object.keys(CLASS_UNLOCK_TIERS).length + ' tiers, ' + allTierClasses.length + ' classes).');
+}
+
+// Test MILESTONES structure
+if (!MILESTONES || typeof MILESTONES !== 'object') err('MILESTONES missing');
+else {
+  let tierA = 0, tierB = 0;
+  for (const [mid, ms] of Object.entries(MILESTONES)) {
+    if (!ms.name || !ms.desc) err('MILESTONES "' + mid + '" missing name or desc');
+    if (!ms.tier || !['A','B'].includes(ms.tier)) err('MILESTONES "' + mid + '" invalid tier');
+    if (typeof ms.target !== 'number' || ms.target <= 0) err('MILESTONES "' + mid + '" invalid target');
+    if (!ms.trackKey) err('MILESTONES "' + mid + '" missing trackKey');
+    if (!ms.reward || typeof ms.reward !== 'object') err('MILESTONES "' + mid + '" missing reward object');
+    if (ms.tier === 'A') tierA++;
+    else if (ms.tier === 'B') tierB++;
+  }
+  console.log('MILESTONES validation passed (' + tierA + ' Tier A, ' + tierB + ' Tier B).');
+}
+
+// Test bounty capture flags on tier 2+
+{
+  let captureCount = 0;
+  for (const [bid, bounty] of Object.entries(BOUNTIES)) {
+    if (bounty.capture) captureCount++;
+  }
+  if (captureCount === 0) err('No bounties have capture:true flag');
+  console.log('Bounty capture flags: ' + captureCount + ' capture bounties found.');
+}
 
 if (errors === 0) {
   console.log('Smoke test passed: ' + visited.size + ' scenes walked, combat/loot and exits OK.');

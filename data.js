@@ -236,6 +236,7 @@ hex_totem:{name:'Hex Totem',t:'spellbook',wt:1,rarity:2,desc:'Warlock focus. Cha
 // === CONSUMABLES — TACTICAL ===
 smoke_bomb:{name:'Smoke Bomb',t:'consumable',wt:0,rarity:1,desc:'Guaranteed flee from any zone. Any class.',value:18,guaranteedFlee:true},
 map_fragment:{name:'Map Fragment',t:'consumable',wt:0,rarity:1,desc:'Reveals all node types in the current region.',value:25,mapReveal:true},
+capture_net:{name:'Capture Net',t:'consumable',wt:0,rarity:1,desc:'Use on an enemy at 20% HP or less to capture for bounty.',value:15,captureItem:true},
 
 // === CONSUMABLES — STATUS-APPLYING ===
 poison_vial:{name:'Poison Vial',t:'consumable',wt:0,rarity:0,desc:'Apply Poison to an enemy (2 turns).',value:8,applyStatus:'poison',statusDuration:2,statusDmg:1},
@@ -525,22 +526,22 @@ ih_exit:{name:'Daylight',subtitle:'Where the mountain lets you go',
 
 // === TAVERN SETTLEMENT (4 scenes) ===
 tavern_hub:{name:'The Hearthstone Tavern',subtitle:'Where the weary find warmth',
-  description:'A sturdy stone building stands at the crossroads, its chimney trailing woodsmoke into the grey sky. Inside, a fire crackles in a massive hearth. A weathered board near the door is pinned with notices and bounties.',
-  npcs:['brynn','finn'],
-  exits:{trail:{scene:'trailhead',label:'The Muddy Trail',discovered:true},hollows:{scene:'ih_entrance',label:'The Iron Hollows',discovered:true},waste:{scene:'ash_gate',label:'The Ashen Gate',discovered:false},market:{scene:'market_square',label:'The Market Square',discovered:true},guard:{scene:'guard_post',label:'The Guard Post',discovered:true},cellar:{scene:'tavern_cellar',label:'The Cellar',discovered:true}},
+  description:'A guttering fire in a ruined hall. Dust and silence. A flickering shape by the dying flame.',
+  dynamic:true,npcs:[],
+  exits:{trail:{scene:'trailhead',label:'The Muddy Trail',discovered:true},hollows:{scene:'ih_entrance',label:'The Iron Hollows',discovered:true,gated:'tvn_smith'},waste:{scene:'ash_gate',label:'The Ashen Gate',discovered:false,gated:'tvn_drifter'}},
   events:{onFirstVisit:null,onEnter:null,combat:null},
   actions:[{id:'bounty_board',label:'Check the Bounty Board',desc:'See available bounties and quests',condition(){return true}}]},
-market_square:{name:'The Market Square',subtitle:'Where steel and coin change hands',
+market_square:{name:'The Market Square',subtitle:'Where steel and coin change hands',_deprecated:true,
   description:'An open area between stone buildings, bustling with the clangor of the forge and the murmur of trade. Weapon racks and armor stands fill every available space.',
   npcs:['elara','rook','durak','brother_cedric'],
   exits:{tavern:{scene:'tavern_hub',label:'The Hearthstone Tavern',discovered:true}},
   events:{onFirstVisit:null,onEnter:null,combat:null}},
-guard_post:{name:'The Guard Post',subtitle:'Where vigilance never sleeps',
+guard_post:{name:'The Guard Post',subtitle:'Where vigilance never sleeps',_deprecated:true,
   description:'A fortified stone building overlooking the road. Maps and bounty notices cover the walls. Soldiers patrol the perimeter in shifts.',
   npcs:['captain_vane','thorne'],
   exits:{tavern:{scene:'tavern_hub',label:'The Hearthstone Tavern',discovered:true}},
   events:{onFirstVisit:null,onEnter:null,combat:null}},
-tavern_cellar:{name:'The Cellar',subtitle:'Where shadows have ears',
+tavern_cellar:{name:'The Cellar',subtitle:'Where shadows have ears',_deprecated:true,
   description:'A damp, dimly-lit space beneath the tavern. Barrels of ale line the walls, but the far corner holds something else \u2014 a hooded figure, barely visible in the gloom.',
   npcs:['whisper','old_sana'],
   exits:{tavern:{scene:'tavern_hub',label:'The Hearthstone Tavern',discovered:true}},
@@ -630,31 +631,31 @@ const BOUNTIES={
 // === ORIGINAL BOUNTIES (7) ===
 ooze_hunt:{name:'Ooze Hunt',enemy:'gray_ooze',tier:1,goldReward:10,xpReward:30,desc:'Clear the slimes from the trail.'},
 bog_sweep:{name:'Bog Sweep',enemy:'bog_wraith',tier:1,goldReward:12,xpReward:35,desc:'Lay a restless spirit to rest.'},
-spider_silk:{name:'Spider Silk',enemy:'giant_spider',tier:2,goldReward:18,xpReward:50,desc:'Harvest silk from the forest spiders.'},
-wolf_cull:{name:'Wolf Cull',enemy:'dire_wolf',tier:2,goldReward:22,xpReward:60,desc:'The wolves grow bold. Thin the pack.'},
-crawler_purge:{name:'Crawler Purge',enemy:'cave_crawler',tier:3,goldReward:28,xpReward:70,desc:'Clear the tunnels of crawling horrors.'},
-shade_hunt:{name:'Shade Hunt',enemy:'mine_shade',tier:4,goldReward:35,xpReward:90,desc:'Banish the flickering shadow from the deep halls.'},
-iron_challenge:{name:'Iron Challenge',enemy:'iron_golem',tier:5,goldReward:50,xpReward:120,desc:'Test your mettle against a construct of living iron.'},
+spider_silk:{name:'Spider Silk',enemy:'giant_spider',tier:2,goldReward:18,xpReward:50,desc:'Harvest silk from the forest spiders.',capture:true},
+wolf_cull:{name:'Wolf Cull',enemy:'dire_wolf',tier:2,goldReward:22,xpReward:60,desc:'The wolves grow bold. Thin the pack.',capture:true},
+crawler_purge:{name:'Crawler Purge',enemy:'cave_crawler',tier:3,goldReward:28,xpReward:70,desc:'Clear the tunnels of crawling horrors.',capture:true},
+shade_hunt:{name:'Shade Hunt',enemy:'mine_shade',tier:4,goldReward:35,xpReward:90,desc:'Banish the flickering shadow from the deep halls.',capture:true},
+iron_challenge:{name:'Iron Challenge',enemy:'iron_golem',tier:5,goldReward:50,xpReward:120,desc:'Test your mettle against a construct of living iron.',capture:true},
 
 // === NEW BOUNTIES (18) ===
 rat_extermination:{name:'Rat Extermination',enemy:'moss_rat',tier:1,goldReward:8,xpReward:20,desc:'The moss rats are overrunning the trail. Thin them out.'},
 toad_hunt:{name:'Toad Hunt',enemy:'marsh_toad',tier:1,goldReward:9,xpReward:22,desc:'The marsh toads are blocking the bog path.'},
 beetle_crush:{name:'Beetle Crush',enemy:'ember_beetle',tier:1,goldReward:9,xpReward:25,desc:'Ember beetles are burning the trailside brush.'},
 bat_clearance:{name:'Bat Clearance',enemy:'tunnel_bat',tier:1,goldReward:8,xpReward:20,desc:'Clear the bats from the upper tunnels.'},
-snake_hunt:{name:'Snake Hunt',enemy:'venomfang_snake',tier:2,goldReward:18,xpReward:50,desc:'A venomfang has been spotted near the trail.'},
-hound_hunt:{name:'Hound Hunt',enemy:'shadow_hound',tier:2,goldReward:20,xpReward:55,desc:'Shadow hounds prowl the forest at night.'},
-fungal_purge:{name:'Fungal Purge',enemy:'fungal_horror',tier:2,goldReward:18,xpReward:50,desc:'Fungal horrors spread sickness. Destroy them.'},
-lizard_hunt:{name:'Lizard Hunt',enemy:'ironscale_lizard',tier:2,goldReward:20,xpReward:55,desc:'An ironscale lizard guards the lower caves.'},
-ghoul_hunt:{name:'Ghoul Hunt',enemy:'ghoul',tier:2,goldReward:20,xpReward:55,desc:'Ghouls have risen in the old cemetery.'},
-troll_bounty:{name:'Troll Bounty',enemy:'rock_troll',tier:2,goldReward:24,xpReward:60,desc:'A rock troll has claimed the bridge.'},
-flame_hunt:{name:'Flame Hunt',enemy:'flame_elemental',tier:3,goldReward:30,xpReward:75,desc:'A flame elemental roams the volcanic vents.'},
-banshee_hunt:{name:'Banshee Hunt',enemy:'banshee',tier:3,goldReward:30,xpReward:75,desc:'A banshee wails in the ruins. Silence her.'},
-knight_hunt:{name:'Fallen Knight',enemy:'corrupted_knight',tier:3,goldReward:32,xpReward:80,desc:'A corrupted knight haunts the old keep.'},
-wyvern_hunt:{name:'Wyvern Hunt',enemy:'wyvern',tier:3,goldReward:35,xpReward:85,desc:'A wyvern nests in the upper cliffs.'},
-death_knight_bounty:{name:'Death Knight Bounty',enemy:'death_knight',tier:4,goldReward:42,xpReward:100,desc:'A death knight has been sighted. Destroy it.'},
-void_hunt:{name:'Void Hunt',enemy:'void_stalker',tier:4,goldReward:40,xpReward:95,desc:'A void stalker flickers between realities.'},
-wyrm_hunt:{name:'Wyrm Hunt',enemy:'ash_wyrm',tier:4,goldReward:42,xpReward:100,desc:'An ash wyrm terrorizes the scorched road.'},
-dragon_hunt:{name:'Dragon Hunt',enemy:'elder_dragon',tier:5,goldReward:80,xpReward:200,desc:'The Elder Dragon itself. Are you ready?'}
+snake_hunt:{name:'Snake Hunt',enemy:'venomfang_snake',tier:2,goldReward:18,xpReward:50,desc:'A venomfang has been spotted near the trail.',capture:true},
+hound_hunt:{name:'Hound Hunt',enemy:'shadow_hound',tier:2,goldReward:20,xpReward:55,desc:'Shadow hounds prowl the forest at night.',capture:true},
+fungal_purge:{name:'Fungal Purge',enemy:'fungal_horror',tier:2,goldReward:18,xpReward:50,desc:'Fungal horrors spread sickness. Destroy them.',capture:true},
+lizard_hunt:{name:'Lizard Hunt',enemy:'ironscale_lizard',tier:2,goldReward:20,xpReward:55,desc:'An ironscale lizard guards the lower caves.',capture:true},
+ghoul_hunt:{name:'Ghoul Hunt',enemy:'ghoul',tier:2,goldReward:20,xpReward:55,desc:'Ghouls have risen in the old cemetery.',capture:true},
+troll_bounty:{name:'Troll Bounty',enemy:'rock_troll',tier:2,goldReward:24,xpReward:60,desc:'A rock troll has claimed the bridge.',capture:true},
+flame_hunt:{name:'Flame Hunt',enemy:'flame_elemental',tier:3,goldReward:30,xpReward:75,desc:'A flame elemental roams the volcanic vents.',capture:true},
+banshee_hunt:{name:'Banshee Hunt',enemy:'banshee',tier:3,goldReward:30,xpReward:75,desc:'A banshee wails in the ruins. Silence her.',capture:true},
+knight_hunt:{name:'Fallen Knight',enemy:'corrupted_knight',tier:3,goldReward:32,xpReward:80,desc:'A corrupted knight haunts the old keep.',capture:true},
+wyvern_hunt:{name:'Wyvern Hunt',enemy:'wyvern',tier:3,goldReward:35,xpReward:85,desc:'A wyvern nests in the upper cliffs.',capture:true},
+death_knight_bounty:{name:'Death Knight Bounty',enemy:'death_knight',tier:4,goldReward:42,xpReward:100,desc:'A death knight has been sighted. Destroy it.',capture:true},
+void_hunt:{name:'Void Hunt',enemy:'void_stalker',tier:4,goldReward:40,xpReward:95,desc:'A void stalker flickers between realities.',capture:true},
+wyrm_hunt:{name:'Wyrm Hunt',enemy:'ash_wyrm',tier:4,goldReward:42,xpReward:100,desc:'An ash wyrm terrorizes the scorched road.',capture:true},
+dragon_hunt:{name:'Dragon Hunt',enemy:'elder_dragon',tier:5,goldReward:80,xpReward:200,desc:'The Elder Dragon itself. Are you ready?',capture:true}
 };
 
 const QUESTS={
@@ -916,7 +917,33 @@ restless_spirits:{cat:'class_specific',classes:['paladin'],
   genericText:'The spirits ignore you. Their sorrow is palpable but beyond your reach.',
   classText:'You raise your hand and speak words of consecration. The spirits still, then bow in gratitude before fading.',
   classReward:{type:'heal',amount:'full'},
-  genericReward:{type:'xp',amount:5}}
+  genericReward:{type:'xp',amount:5}},
+
+// === BATCH 5: NPC RECRUITMENT EVENTS ===
+smith_recruit:{cat:'social',stat:'speech',dc:4,adventure:'muddy_trail',
+  desc:'You hear hammering in the distance. Through the trees, a makeshift forge glows. A woman in soot-streaked clothes looks up from an anvil.',
+  passText:'"You\'ve got a good voice. Trustworthy. I\'ve been forging out here alone since the hollows fell. If there\'s warmth at that tavern you mention... I\'ll come."',
+  failText:'"I don\'t know you. And I don\'t trust strangers. Move along." She returns to her work.',
+  reward:{type:'recruit',npc:'tvn_smith'},failPenalty:null},
+drifter_recruit:{cat:'social',stat:'speech',dc:7,adventure:'iron_hollows',
+  desc:'A shadow detaches from the wall ahead. A hooded figure watches you. They don\'t seem hostile — just... waiting.',
+  passText:'"Hmm. You can talk. That\'s more than most down here can manage. Fine — I\'ll follow. But I work my own way."',
+  failText:'"...No." The figure melts back into the darkness.',
+  reward:{type:'recruit',npc:'tvn_drifter'},failPenalty:null},
+
+// === BATCH 5: ADVENTURE-SIDE NPC ENCOUNTERS ===
+warden_encounter:{cat:'social',adventure:'muddy_trail',
+  desc:'A hooded ranger emerges from the undergrowth. They lower their bow when they see you.',
+  text:'"The trail is treacherous. I patrol these woods. If you need healing, I can help."',
+  reward:{type:'heal',amount:0.5}},
+delver_encounter:{cat:'social',adventure:'iron_hollows',
+  desc:'A stocky figure waves from a side tunnel. Their headlamp flickers.',
+  text:'"Down here alone? I\'ve cached some supplies. Take what you need."',
+  reward:{type:'shop_event',stock:[{key:'hpot',price:10},{key:'mpot',price:10},{key:'antidote',price:8}]}},
+crone_encounter:{cat:'social',adventure:'ashen_waste',
+  desc:'An ancient woman sits cross-legged on a flat stone, immune to the heat.',
+  text:'"The wasteland takes its toll. Let me ease your burden."',
+  reward:{type:'heal',amount:0.5}}
 };
 
 // Dungeon definitions (1 per adventure)
@@ -1224,4 +1251,174 @@ starting:[
 {id:'shr_lvl',name:'Head Start',cost:20,desc:'Start each run at level 2.'}
 ],
 world:[]
+};
+
+// === BATCH 5: TAVERN NPCs + DIALOGUE + REPUTATION ===
+
+const TAVERN_NPCS={
+tvn_hearthkeeper:{
+  name:'The Hearthkeeper',title:'Spirit of Spiritfire',
+  desc:{ember:'"...the fire... remembers..."',spark:'"The fire burns steadier now. Welcome back."',flame:'"Welcome home, traveler."',hearth:'"The hearth burns bright. You are never alone here."'},
+  recruitCondition:null, // always present
+  services:['heal','bounty_board','shrine'],
+  dialoguePool:{
+    stranger:{greetings:['"...you came."','"The fire... flickers for you."','"Another soul, drawn to the warmth."'],
+      topics:[{text:'"What is this place?"',response:'"A ruin. A memory. A fire that refuses to die."'},{text:'"Who are you?"',response:'"I am the fire. I am what remains."'}]},
+    trusted:{greetings:['"The fire knows your step."','"Welcome back. The hearth remembers."','"You return. Good."'],
+      topics:[{text:'"How is the tavern?"',response:'"Growing. Each soul that joins feeds the flame."'},{text:'"Tell me about Spiritfire."',response:'"It is the light left behind by those who fall. It endures where flesh does not."'}]},
+    ally:{greetings:['"Welcome home."','"The hearth burns bright for you."','"You are the fire\'s champion now."'],
+      topics:[{text:'"What happens when the hearth is full?"',response:'"Then we are whole. Then the tavern lives again, truly. And the darkness knows it."'}]}
+  }
+},
+tvn_smith:{
+  name:'The Smith',title:'Master Forgewright',
+  desc:'A gruff woman with soot-streaked arms hammers at a makeshift anvil.',
+  recruitCondition:{type:'exploration_event',event:'smith_recruit'},
+  unlocks:{adventure:'iron_hollows'},
+  services:['shop','craft'],
+  shop:{stock:[{key:'iron_sword',price:25},{key:'steel_sword',price:40},{key:'mace',price:30},{key:'rapier',price:28},{key:'scale_mail',price:35},{key:'iron_plate',price:55},{key:'iron_shield',price:30},{key:'broadsword',price:32},{key:'war_hammer',price:45},{key:'halberd',price:40},{key:'longbow',price:35},{key:'crossbow',price:45}]},
+  dialoguePool:{
+    stranger:{greetings:['"What do you want?"','"Steel or plate? Speak up."','"Another one. Fine. Browse, don\'t touch."'],
+      topics:[{text:'"Tell me about your craft."',response:'"I forge. You fight. That\'s all you need to know."'}]},
+    trusted:{greetings:['"Back again. Your gear holding up?"','"I\'ve sharpened a new blade. Want to see?"'],
+      topics:[{text:'"Any recommendations?"',response:'"Depends on what\'s trying to kill you. Show me your weapon and I\'ll tell you if it\'s garbage."'}]},
+    ally:{greetings:['"My best customer. What\'ll it be?"','"I forged something special. Have a look."'],
+      topics:[{text:'"You seem happier here."',response:'"Don\'t push it. But... yeah. This place isn\'t bad. The fire\'s warm, the anvil\'s steady. Could be worse."'}]}
+  }
+},
+tvn_apothecary:{
+  name:'The Apothecary',title:'Quiet Healer',
+  desc:'A slight figure in herb-stained robes sorts dried plants into glass vials with practiced care.',
+  recruitCondition:{type:'spiritfire_tier',value:1,sfCost:15},
+  services:['shop','heal_better'],
+  shop:{stock:[{key:'purification_scroll',price:12},{key:'antidote',price:8},{key:'bandage',price:8},{key:'burn_salve',price:8},{key:'ghpot',price:20},{key:'elixir',price:25},{key:'scroll_dispel',price:24},{key:'mushroom_brew',price:8},{key:'strength_tonic',price:10},{key:'focus_draught',price:10}]},
+  dialoguePool:{
+    stranger:{greetings:['"Hm? Oh. A customer."','"Careful with that. It\'s fragile."','"Need something for the pain?"'],
+      topics:[{text:'"What do you sell?"',response:'"Cures. Tonics. Things that keep you alive when the wilderness tries to kill you."'}]},
+    trusted:{greetings:['"Ah, you again. I mixed something new."','"Your timing is good. Fresh batch of elixirs."'],
+      topics:[{text:'"How did you learn herbalism?"',response:'"My mother. Her mother before her. We\'ve always been healers. The world always needs healers."'}]},
+    ally:{greetings:['"I saved the good stock for you."','"Come in. I\'ll make you something special."'],
+      topics:[{text:'"Do you like it here?"',response:'"The Hearthkeeper\'s fire dries the herbs perfectly. And I can hear myself think. Yes. I like it here."'}]}
+  }
+},
+tvn_drifter:{
+  name:'The Drifter',title:'Keeper of Secrets',
+  desc:'A hooded figure leans against the far wall, barely visible in the flickering light.',
+  recruitCondition:{type:'exploration_event',event:'drifter_recruit'},
+  unlocks:{adventure:'ashen_waste',bountySlots:5},
+  services:['shop','bounty_expand'],
+  shop:{stock:[{key:'shadow_cloak',price:40},{key:'throwing_knives',price:32},{key:'flashbang',price:18},{key:'silencing_powder',price:24},{key:'poison_vial',price:10},{key:'fire_flask',price:10},{key:'hex_scroll',price:18},{key:'root_snare',price:15}]},
+  dialoguePool:{
+    stranger:{greetings:['"..."','"You\'re staring."','"I deal in things. You want things?"'],
+      topics:[{text:'"What do you sell?"',response:'"Rare goods. Don\'t ask where I get them."'}]},
+    trusted:{greetings:['"You again. You\'re persistent."','"I heard something interesting. Maybe later."'],
+      topics:[{text:'"Any news from the wasteland?"',response:'"The Ashen Waste shifts. New paths open. Old ones close. Stay sharp."'}]},
+    ally:{greetings:['"Partner. What do you need?"','"I saved something for you. Don\'t tell the others."'],
+      topics:[{text:'"Why do you stay?"',response:'"The fire\'s warm. The company\'s... tolerable. And someone needs to keep an eye on things."'}]}
+  }
+},
+tvn_captain:{
+  name:'The Captain',title:'Field Commander',
+  desc:'A stern woman in battered plate armor studies a map pinned to the wall, marking positions with a charcoal stick.',
+  recruitCondition:{type:'bounties_or_spiritfire',bounties:10,sfTier:2,sfCost:30},
+  services:['modifiers','map_intel'],
+  dialoguePool:{
+    stranger:{greetings:['"State your business."','"Hmph. Another recruit."','"Can you fight? That\'s all I care about."'],
+      topics:[{text:'"What do you do here?"',response:'"I organize the hunt. Bounties, modifiers, tactical intel. I keep this operation running."'}]},
+    trusted:{greetings:['"Soldier. What\'s your report?"','"Good timing. I have new assignments."'],
+      topics:[{text:'"Any strategic advice?"',response:'"Know your enemy. The bestiary isn\'t just a book — it\'s a survival guide. Study it."'}]},
+    ally:{greetings:['"Commander. It\'s good to see you."','"I\'ve been waiting for you. We have work to do."'],
+      topics:[{text:'"How goes the war?"',response:'"Better, since you arrived. The darkness is retreating. But it\'s not over yet."'}]}
+  }
+},
+tvn_scholar:{
+  name:'The Scholar',title:'Cataloguer of Wonders',
+  desc:'A bespectacled figure hunches over a pile of books and scrolls, muttering about taxonomies and classifications.',
+  recruitCondition:{type:'pedia_pct',value:25},
+  services:['discovery_quests','pedia_commentary'],
+  dialoguePool:{
+    stranger:{greetings:['"Hm? What? Oh, a person."','"Don\'t touch the books."','"Are you here about the catalogue?"'],
+      topics:[{text:'"What are you researching?"',response:'"Everything. The bestiary, the atlas, the class codex. Someone needs to document all of this before it\'s lost."'}]},
+    trusted:{greetings:['"Ah, my field researcher! What have you found?"','"I\'ve updated the catalogue. Come see."'],
+      topics:[{text:'"How is the Adventurepedia?"',response:'"Growing. Every entry you bring back fills another gap. We\'re building something important here."'}]},
+    ally:{greetings:['"My favorite adventurer! I have discoveries to share."','"Come, come! I\'ve made a breakthrough."'],
+      topics:[{text:'"Is the catalogue complete?"',response:'"Getting closer. Every creature documented, every region mapped. The world is vast, but we\'re learning its shape."'}]}
+  }
+},
+tvn_exile:{
+  name:'The Exile',title:'???',
+  desc:'A vast, still figure sits in the darkest corner. You cannot make out their features.',
+  recruitCondition:{type:'all_adventures'},
+  unlocks:{legendMode:true},
+  services:['legend_mode','legendary_shop'],
+  shop:{stock:[]},
+  dialoguePool:{
+    stranger:{greetings:['*Silence.*','*A low hum.*','*Eyes like dying stars.*'],
+      topics:[]},
+    trusted:{greetings:['"You have walked far."','"The fire does not warm me. But it... remembers."'],
+      topics:[{text:'"What are you?"',response:'"What remains when everything else is stripped away."'}]},
+    ally:{greetings:['"You are ready."','"The legend awaits. Will you answer?"'],
+      topics:[{text:'"Tell me about Legend Mode."',response:'"Everything you have faced, amplified. No mercy. No forgiveness. Only glory — or oblivion."'}]}
+  }
+}
+};
+
+const ADVENTURE_SIDE_NPCS={
+adv_warden:{name:'The Warden',adventure:'muddy_trail',
+  desc:'A hooded ranger emerges from the undergrowth, bow in hand. They study you with calm, appraising eyes.',
+  dialogueText:'"The trail is treacherous. I patrol these woods — have for years. If you need healing or advice, I can help."',
+  services:['heal'],healAmount:0.5},
+adv_delver:{name:'The Delver',adventure:'iron_hollows',
+  desc:'A stocky figure in mining gear waves from a side tunnel. Their headlamp flickers but holds.',
+  dialogueText:'"Down here alone? You\'re braver than most. I\'ve cached some supplies — take what you need."',
+  services:['sell'],shop:{stock:[{key:'hpot',price:10},{key:'mpot',price:10},{key:'antidote',price:8},{key:'iron_shard',price:15}]}},
+adv_crone:{name:'The Crone',adventure:'ashen_waste',
+  desc:'An ancient woman sits cross-legged on a flat stone, seemingly immune to the heat. She watches you with milky eyes.',
+  dialogueText:'"The wasteland takes its toll. Let me ease your burden."',
+  services:['heal','sell'],healAmount:0.5,
+  shop:{stock:[{key:'burn_salve',price:8},{key:'ghpot',price:18},{key:'elixir',price:22},{key:'strength_tonic',price:10}]}}
+};
+
+const TAVERN_STATES={
+ember:{minNPCs:0,desc:'A guttering fire in a ruined hall. Dust and silence. A flickering shape by the dying flame.'},
+spark:{minNPCs:2,desc:'The fire burns steadier. A workbench against the wall. Bottles on a shelf. A clearer voice speaks from the hearth.'},
+flame:{minNPCs:4,desc:'Lanterns line the walls. The smell of stew. A bounty board thick with postings. The Hearthkeeper stands tall by the fire.'},
+hearth:{minNPCs:6,desc:'The Hearthstone Tavern lives again. Voices, warmth, purpose. Something vast and quiet sits in the far corner.'}
+};
+
+const REPUTATION_TIERS=[
+{key:'stranger',threshold:0,discount:0},
+{key:'trusted',threshold:5,discount:0.10},
+{key:'ally',threshold:10,discount:0.15}
+];
+
+const CLASS_UNLOCK_TIERS={
+simple:{classes:['fighter','ranger','gunslinger'],reqUnlocked:0},
+medium:{classes:['rogue','paladin','necromancer'],reqUnlocked:3},
+complex:{classes:['wizard','berserker','warlock'],reqUnlocked:6}
+};
+
+const MILESTONES={
+// Tier A (auto-tracked breadcrumbs)
+first_blood:{tier:'A',name:'First Blood',desc:'Win your first combat encounter.',trackKey:'totalKills',target:1,reward:{gold:15}},
+first_steps:{tier:'A',name:'First Steps',desc:'Complete your first adventure.',trackKey:'adventuresCompleted',target:1,reward:{spiritfire:3}},
+bounty_beginner:{tier:'A',name:'Bounty Beginner',desc:'Complete your first bounty.',trackKey:'totalBounties',target:1,reward:{gold:20}},
+well_traveled:{tier:'A',name:'Well-Traveled',desc:'Visit 5 different regions.',trackKey:'regionsVisited',target:5,reward:{gold:25}},
+survivor:{tier:'A',name:'Survivor',desc:'Survive 3 runs.',trackKey:'totalRuns',target:3,reward:{spiritfire:2}},
+explorer:{tier:'A',name:'Explorer',desc:'Complete 2 different adventures.',trackKey:'adventuresCompleted',target:2,reward:{spiritfire:5}},
+full_house:{tier:'A',name:'Full House',desc:'Recruit 4 tavern NPCs.',trackKey:'recruitedCount',target:4,reward:{spiritfire:10}},
+level_five:{tier:'A',name:'Rising Star',desc:'Reach level 5.',trackKey:'bestLevel',target:5,reward:{gold:30}},
+level_ten:{tier:'A',name:'Veteran',desc:'Reach level 10.',trackKey:'bestLevel',target:10,reward:{spiritfire:5}},
+crafter:{tier:'A',name:'Apprentice Crafter',desc:'Discover 3 recipes.',trackKey:'recipesFound',target:3,reward:{gold:20}},
+collector:{tier:'A',name:'Collector',desc:'Find 15 bestiary entries.',trackKey:'bestiaryEntries',target:15,reward:{spiritfire:3}},
+class_explorer:{tier:'A',name:'Class Explorer',desc:'Play 3 different classes.',trackKey:'classesPlayed',target:3,reward:{spiritfire:5}},
+gold_hoarder:{tier:'A',name:'Gold Hoarder',desc:'Earn 200 total gold from bounties.',trackKey:'totalBountyGold',target:200,reward:{spiritfire:3}},
+dungeon_diver:{tier:'A',name:'Dungeon Diver',desc:'Complete your first dungeon.',trackKey:'dungeonsCompleted',target:1,reward:{spiritfire:5}},
+// Tier B (progression gates)
+veteran_hunter:{tier:'B',name:'Veteran Hunter',desc:'Complete 10 bounties.',trackKey:'totalBounties',target:10,reward:{bountyGoldBonus:0.10}},
+slayer:{tier:'B',name:'Slayer',desc:'Complete 25 bounties.',trackKey:'totalBounties',target:25,reward:{spiritfire:20}},
+master_explorer:{tier:'B',name:'Master Explorer',desc:'Complete all 3 adventures.',trackKey:'adventuresCompleted',target:3,reward:{spiritfire:15}},
+pedia_scholar:{tier:'B',name:'Pedia Scholar',desc:'Reach 50% Adventurepedia completion.',trackKey:'pediaPct',target:50,reward:{spiritfire:10}},
+iron_will:{tier:'B',name:'Iron Will',desc:'Survive 10 runs.',trackKey:'totalRuns',target:10,reward:{spiritfire:8}},
+legend_seeker:{tier:'B',name:'Legend Seeker',desc:'Reach level 15.',trackKey:'bestLevel',target:15,reward:{spiritfire:10}}
 };

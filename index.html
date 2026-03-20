@@ -1162,7 +1162,7 @@ newRun(nm,sp,subsp,cl,humanBonus){
     activeBounty:null,bountyBoard:null,activeQuests:[],completedQuests:{},questProgress:{},
     verbUsed:false,usedAbilities:{},graveCharges:0,
     map:null,mapPos:null,mapRevealed:{},restBudget:{short:2,long:1},
-    dungeonState:null,encounterHistory:[],deferredEffects:[],discoveredRecipes:{}};
+    dungeonState:null,encounterHistory:[],deferredEffects:[],discoveredRecipes:{},npcRepGains:{}};
   this.run.modifiers=[];this.run.legendMode=false;
   // Batch 4: Record class in codex
   const jm=this.getJM();if(!jm.codex)jm.codex={};
@@ -1208,7 +1208,7 @@ _validateSave(p){if(!(p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof
   if(!p.restBudget)p.restBudget={short:2,long:1};if(!p.dungeonState)p.dungeonState=null;
   if(!p.encounterHistory)p.encounterHistory=[];if(!p.deferredEffects)p.deferredEffects=[];
   if(p._mapReturnRegion===undefined)p._mapReturnRegion=null;if(!p.discoveredRecipes)p.discoveredRecipes={};
-  if(!p.modifiers)p.modifiers=[];if(p.legendMode===undefined)p.legendMode=false;return true},
+  if(!p.modifiers)p.modifiers=[];if(p.legendMode===undefined)p.legendMode=false;if(!p.npcRepGains)p.npcRepGains={};return true},
 saveA(){if(this.run)try{localStorage.setItem('activeRun',JSON.stringify(this.run));this._saveFail=false}catch(e){if(!this._saveFail){this._saveFail=true;console.warn('Auto-save failed:',e);
   if(e.name==='QuotaExceededError')showToast('Save failed \u2014 storage may be full.','error');else showToast('Auto-save failed.','error')}}},
 loadA(){try{const d=localStorage.getItem('activeRun');if(d){const p=JSON.parse(d);if(!this._validateSave(p))return'incompatible';this.run=p;return true}}catch(e){showToast('Save data corrupted. Starting fresh.','error')}return false},
@@ -1310,7 +1310,7 @@ awardNewEntrySF(){
 // --- Batch 4: journalMeta migration ---
 _migrateJM(){
   const m=this.getJM();
-  if(m.version>=4)return;
+  if(m.version>=5)return;
   if(!m.bestiary)m.bestiary={};
   // Migrate old bestiary entries to include seenCount/defeatCount/tier
   Object.keys(m.bestiary).forEach(id=>{
@@ -1332,7 +1332,20 @@ _migrateJM(){
   if(!m.adventuresCompleted)m.adventuresCompleted={};
   if(!m.runHistory)m.runHistory={totalRuns:0,bestLevel:0,totalKills:0};
   if(!m.classUnlocks)m.classUnlocks={};
-  m.version=4;
+  // Batch 5: Tavern NPCs, reputation, memorial wall, class unlock gating
+  if(!m.recruitedNPCs)m.recruitedNPCs={tvn_hearthkeeper:true};
+  else if(!m.recruitedNPCs.tvn_hearthkeeper)m.recruitedNPCs.tvn_hearthkeeper=true;
+  if(!m.npcReputation)m.npcReputation={};
+  if(!m.memorialWall)m.memorialWall=[];
+  if(!m.unlockedClasses)m.unlockedClasses=['fighter','ranger','gunslinger'];
+  if(!m.tavernState)m.tavernState='ember';
+  if(!m.lastDialogueIdx)m.lastDialogueIdx={};
+  if(!m.adventureSideNPCsMet)m.adventureSideNPCsMet={};
+  if(!m.tavMilestonesClaimed)m.tavMilestonesClaimed={};
+  if(!m.bountyCompletions)m.bountyCompletions={};
+  if(m.totalBounties===undefined)m.totalBounties=0;
+  if(m.totalBountyGold===undefined)m.totalBountyGold=0;
+  m.version=5;
   try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}
 }
 };
@@ -2223,9 +2236,19 @@ hideDeathScreen(){this.el.ds.classList.remove('show','vis')},
 renderNPCButtons(sceneId){
   const scene=SCENE_DATA[sceneId];if(!scene||!scene.npcs||!scene.npcs.length)return;
   const wrap=document.createElement('div');wrap.className='npc-btns';
-  scene.npcs.forEach(nid=>{const n=NPCS[nid];if(!n)return;
-    const b=document.createElement('button');b.className='npc-btn';b.textContent='Talk to '+n.name;
-    b.onclick=()=>SE.handleAction('talk_'+nid);wrap.appendChild(b)});
+  scene.npcs.forEach(nid=>{
+    let name;
+    if(nid.startsWith('tvn_')){const tn=TAVERN_NPCS[nid];if(!tn)return;name=tn.name;
+      const repTier=SE._npcRepTier(nid);
+      const b=document.createElement('button');b.className='npc-btn';
+      b.innerHTML='Talk to '+name+(repTier!=='stranger'?' <span style="font-size:.7rem;color:var(--gold)">['+repTier+']</span>':'');
+      b.onclick=()=>SE.handleAction('talk_'+nid);wrap.appendChild(b);
+    } else {
+      const n=NPCS[nid];if(!n)return;name=n.name;
+      const b=document.createElement('button');b.className='npc-btn';b.textContent='Talk to '+name;
+      b.onclick=()=>SE.handleAction('talk_'+nid);wrap.appendChild(b);
+    }
+  });
   this.addEl(wrap);
 },
 renderExits(sceneId){
@@ -2240,6 +2263,13 @@ renderExits(sceneId){
   const bwrap=document.createElement('div');bwrap.className='nav-btns';
   keys.forEach(k=>{const ex=exits[k];const b=document.createElement('button');b.className='nav-btn';
     const isBack=k==='back';const visited=r.ss['visited_'+ex.scene];
+    // Batch 5: NPC-gated exits
+    if(ex.gated){const jm=GS.getJM();
+      if(!jm.recruitedNPCs||!jm.recruitedNPCs[ex.gated]){
+        const gateNPC=TAVERN_NPCS[ex.gated];const gateName=gateNPC?gateNPC.name:ex.gated;
+        b.innerHTML=ex.label+' <span style="font-size:.75rem;color:var(--text3)">🔒 Requires '+gateName+'</span>';
+        b.disabled=true;b.style.opacity='.5';bwrap.appendChild(b);return;
+      }}
     let label=(isBack?'\u2190 ':'')+ex.label+(!isBack?' \u2192':'');
     if(!visited)label+='<span class="nav-tag"> (unexplored)</span>';
     b.innerHTML=label;b.onclick=()=>SE.enter(ex.scene);bwrap.appendChild(b)});
@@ -2449,6 +2479,11 @@ function useConsumable(it,r){
     parts.push(it.combatBuff.name+' active')}
   // Cure all
   if(it.cureAll){if(r.debuffs&&r.debuffs.length){r.debuffs=[];parts.push('all effects cured')}else parts.push('no effects to cure')}
+  // Batch 5: Capture net
+  if(it.captureItem&&r.cs&&!r.cs.over&&r.activeBounty&&r.activeBounty.capture){
+    const tgt=r.cs.enemies.find(e=>e.hp>0);
+    if(tgt&&tgt.hp<=tgt.mHP*0.2){r.activeBounty.captured=true;parts.push('Target captured!')}
+    else parts.push('Target must be at 20% HP or less to capture')}
   GS.saveA();UI.updateHUD();
   return'Used '+it.name+(parts.length?': '+parts.join(', ')+'.':'.');
 }
@@ -2880,13 +2915,36 @@ openShrine(){
       else if(canBuy){const btn=document.createElement('button');btn.className='mbtn';btn.style.cssText='margin-top:4px;font-size:.85rem;min-height:36px';btn.textContent='Buy ('+up.cost+' Spiritfire)';
         btn.onclick=()=>{const mm=GS.getJM();if(!mm.shrineUnlocks)mm.shrineUnlocks={};
           mm.spiritfire=(mm.spiritfire||0)-up.cost;mm.shrineUnlocks[up.id]=true;
-          GS.setJM({shrineUnlocks:mm.shrineUnlocks,spiritfire:mm.spiritfire});showToast('Purchased: '+up.name,'success');this.openShrine()};
+          GS.setJM({shrineUnlocks:mm.shrineUnlocks,spiritfire:mm.spiritfire});showToast('Purchased: '+up.name,'success');SE._checkRecruitment();this.openShrine()};
         row.appendChild(btn)}
       else{row.innerHTML+='<span style="font-size:.8rem;color:var(--text3)">Need '+up.cost+' Spiritfire</span>'}
       pg.appendChild(row)})}
     panels[cat]=pg});
   b.appendChild(tabBar);Object.values(panels).forEach(p=>b.appendChild(p));
-  this.open('m-shrine')}
+  this.open('m-shrine')},
+// Batch 5: Memorial Wall
+openMemorial(){
+  const b=$('m-dlg-b');b.innerHTML='';
+  $('dlg-t').textContent='MEMORIAL WALL';
+  b.innerHTML+='<div class="dlg-name">MEMORIAL WALL</div><div class="dlg-title">Those Who Fell</div>';
+  const jm=GS.getJM();const wall=jm.memorialWall||[];
+  if(!wall.length){b.innerHTML+='<div style="font-size:.9rem;color:var(--text2);font-style:italic;padding:12px">The wall is empty. No names are carved here yet.</div>'}
+  else{
+    wall.slice().reverse().forEach(entry=>{
+      const row=document.createElement('div');
+      row.style.cssText='padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
+      const clName=CL[entry.cls]?CL[entry.cls].name:entry.cls;
+      const advNames={muddy_trail:'The Muddy Trail',iron_hollows:'The Iron Hollows',ashen_waste:'The Ashen Waste'};
+      const advName=advNames[entry.adventure]||entry.adventure||'Unknown';
+      row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="color:var(--text)">'+entry.name+'</strong><span style="font-size:.8rem;color:var(--text3)">Lv'+entry.level+' '+clName+'</span></div>';
+      row.innerHTML+='<div style="font-size:.85rem;color:var(--red)">Slain by '+entry.cause+' in '+advName+'</div>';
+      b.appendChild(row)})
+  }
+  const doneBtn=document.createElement('button');doneBtn.className='mbtn';doneBtn.textContent='Close';doneBtn.style.marginTop='12px';
+  doneBtn.onclick=()=>ML.closeAll();b.appendChild(doneBtn);
+  this.open('m-dlg');
+  const modal=$('m-dlg');const mx=modal.querySelector('.mx');if(mx)mx.style.display='';
+}
 };
 
 // === CHARACTER CREATION ===
@@ -2970,17 +3028,24 @@ buildHumanBonus(){const c=$('hb-list');c.innerHTML='';this.humanBonus=[];$('hb-p
       if(this.humanBonus.length>=2)STAT_NAMES.forEach(sk=>{if(!this.humanBonus.includes(sk)){const b=$('hbb-'+sk);if(b){b.disabled=true;b.style.opacity='.3'}}})};
     row.appendChild(btn);c.appendChild(row)})},
 buildCL(){const c=$('cl-cards');c.innerHTML='';
+  const jm=GS.getJM();const unlocked=jm.unlockedClasses||['fighter','ranger','gunslinger'];
   Object.entries(CL).forEach(([k,cl])=>{
+    const isLocked=!unlocked.includes(k);
     const card=document.createElement('div');card.className='ccd';card.setAttribute('role','radio');card.setAttribute('aria-checked','false');card.setAttribute('tabindex','0');
     card.setAttribute('aria-label',cl.name+': '+cl.desc);
+    if(isLocked){card.style.opacity='.4';card.style.pointerEvents='none'}
     const cv=document.createElement('canvas');cv.width=64;cv.height=64;cv.setAttribute('aria-hidden','true');
     PA.renderClassIcon(cv,k);
     const info=document.createElement('div');info.className='ccd-i';
     let gearLine=cl.wpn?cl.wpn.name:'—';if(cl.arm)gearLine+=', '+cl.arm.name;if(cl.oh)gearLine+=', '+cl.oh.name;
     let abilityLine='';const ccAb=cl.abilities?cl.abilities[0]:cl.ability;if(ccAb)abilityLine='<div class="ccd-s" style="color:var(--gold)">'+ccAb.name+' ('+ccAb.cost+' MP): '+ccAb.desc+'</div>';
-    info.innerHTML='<div class="ccd-n">'+cl.name+'</div><div class="ccd-d">'+cl.desc+'</div><div class="ccd-s">Gear: '+gearLine+'</div>'+abilityLine;
+    // Batch 5: Show lock requirement
+    let lockLine='';
+    if(isLocked){const tierEntry=Object.entries(CLASS_UNLOCK_TIERS).find(([,t])=>t.classes.includes(k));
+      if(tierEntry){const [tierName,tierData]=tierEntry;lockLine='<div class="ccd-s" style="color:var(--red)">Locked — Unlock '+tierData.reqUnlocked+' classes first</div>'}}
+    info.innerHTML='<div class="ccd-n">'+cl.name+'</div><div class="ccd-d">'+cl.desc+'</div><div class="ccd-s">Gear: '+gearLine+'</div>'+abilityLine+lockLine;
     card.appendChild(cv);card.appendChild(info);
-    const pick=()=>{c.querySelectorAll('.ccd').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-checked','false')});card.classList.add('sel');card.setAttribute('aria-checked','true');this.cl=k};
+    const pick=()=>{if(isLocked)return;c.querySelectorAll('.ccd').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-checked','false')});card.classList.add('sel');card.setAttribute('aria-checked','true');this.cl=k};
     card.onclick=pick;card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}};c.appendChild(card)})},
 buildSum(){const c=$('cc-sum');const nm=UI.el.ni.value.trim(),sp=SP[this.sp],cl=CL[this.cl];
   const subData=sp.subspecies?sp.subspecies[this.subsp]:null;
@@ -3006,6 +3071,8 @@ _prevScene:null,
 
 async enter(id){
   const r=GS.run,prevId=r.scene;
+  // Batch 5: Redirect deprecated sub-scenes to tavern_hub
+  if(SCENE_DATA[id]&&SCENE_DATA[id]._deprecated){id='tavern_hub'}
   if(id===prevId&&!(SCENE_DATA[id]&&SCENE_DATA[id].events.combat))return;
   const scene=SCENE_DATA[id];
   if(!scene){UI.addN("You can't go that way.",'y');console.warn('Undefined scene:',id);return}
@@ -3022,11 +3089,37 @@ async enter(id){
     UI.el.nw.style.opacity='0';await UI._wait(250);
   }
 
+  // Batch 5: Dynamic tavern rendering
+  if(id==='tavern_hub'&&scene.dynamic){
+    const jm=GS.getJM();
+    // Populate NPCs from recruitment state
+    const tavernNPCIds=this._tavernNPCs();
+    scene.npcs=tavernNPCIds;
+    // Set description from tavern state
+    const tState=this._tavernState();
+    scene.description=TAVERN_STATES[tState].desc;
+    // Check recruitment triggers on tavern entry
+    this._checkRecruitment();
+  }
+
   await UI.showTitleCard(scene.name,firstVisit?scene.subtitle:null,firstVisit?1000:500);
 
   r.ss['visited_'+id]=true;GS.saveA();
   UI.clearN();UI.addN(scene.description);
-  if(scene.npcs)scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)UI.addN(n.desc,'f');else console.warn('Unknown NPC:',nid)});
+  // Batch 5: Render NPC descriptions — handle both old NPCS and new TAVERN_NPCS
+  if(scene.npcs)scene.npcs.forEach(nid=>{
+    if(nid.startsWith('tvn_')){
+      const tn=TAVERN_NPCS[nid];if(!tn)return;
+      const tState=this._tavernState();
+      const desc=typeof tn.desc==='object'?tn.desc[tState]||tn.desc.ember:tn.desc;
+      // Activity flavor
+      const flavors={tvn_smith:'The Smith hammers at a makeshift anvil.',tvn_apothecary:'The Apothecary sorts dried herbs on a shelf.',tvn_drifter:'The Drifter watches from the shadows.',tvn_captain:'The Captain marks positions on a wall map.',tvn_scholar:'The Scholar mutters over a pile of books.',tvn_exile:'A vast, still figure sits in the darkest corner.'};
+      if(flavors[nid])UI.addN(flavors[nid],'f');
+      UI.addN(desc,'f');
+    } else {
+      const n=NPCS[nid];if(n)UI.addN(n.desc,'f');else console.warn('Unknown NPC:',nid);
+    }
+  });
   UI.renderNPCButtons(id);
   UI.renderSceneActions(id);
   UI.renderExits(id);
@@ -3151,10 +3244,19 @@ getActions(){
   // Batch 4: Shrine access from tavern hub
   if(r.scene==='tavern_hub'){const jm=GS.getJM();
     if((jm.spiritfire&&jm.spiritfire>0)||Object.keys(jm.shrineUnlocks||{}).length)
-      a.push({l:'Visit the Spiritfire Shrine',cmd:'shrine',d:'Spend Spiritfire on permanent upgrades.'})}
-  if(scene.npcs)scene.npcs.forEach(nid=>{const n=NPCS[nid];if(n)a.push({l:'Talk to '+n.name,cmd:'talk_'+nid,d:n.desc})});
+      a.push({l:'Visit the Spiritfire Shrine',cmd:'shrine',d:'Spend Spiritfire on permanent upgrades.'});
+    // Batch 5: Memorial Wall
+    if(jm.memorialWall&&jm.memorialWall.length)
+      a.push({l:'Memorial Wall',cmd:'memorial_wall',d:'Remember those who fell.'})
+  }
+  if(scene.npcs)scene.npcs.forEach(nid=>{
+    if(nid.startsWith('tvn_')){const tn=TAVERN_NPCS[nid];if(tn)a.push({l:'Talk to '+tn.name,cmd:'talk_'+nid,d:typeof tn.desc==='string'?tn.desc:''})}
+    else{const n=NPCS[nid];if(n)a.push({l:'Talk to '+n.name,cmd:'talk_'+nid,d:n.desc})}
+  });
   if(scene.actions)scene.actions.forEach(act=>{if(!act.condition||act.condition(r))a.push({l:act.label,cmd:act.id,d:act.desc||''})});
   if(scene.exits)Object.keys(scene.exits).forEach(k=>{const ex=scene.exits[k];
+    // Batch 5: Skip gated exits that aren't unlocked
+    if(ex.gated){const jm2=GS.getJM();if(!jm2.recruitedNPCs||!jm2.recruitedNPCs[ex.gated])return}
     if(ex.discovered||r.ss['exit_'+r.scene+'_'+k])
       a.push({l:(k==='back'?'\u2190 ':'')+'Go to '+ex.label+(k!=='back'?' \u2192':''),cmd:'go_'+ex.scene,d:''})});
   return a;
@@ -3163,9 +3265,12 @@ getActions(){
 handleAction(cmd){
   const r=GS.run,sceneId=r.scene;
   if(cmd==='shrine'){ML.openShrine();return}
+  if(cmd==='memorial_wall'){ML.openMemorial();return}
   if(cmd.startsWith('go_')){this.enter(cmd.slice(3));return}
   if(cmd.startsWith('talk_')){
     const nid=cmd.slice(5);
+    // Batch 5: Route tavern NPCs to new dialogue system
+    if(nid.startsWith('tvn_')&&TAVERN_NPCS[nid]){this.talkTavernNPC(nid);return}
     if(nid==='aldric')this.aldric();
     else if(nid==='mira')this.mira();
     else if(nid==='garrett')this.garrett();
@@ -3315,6 +3420,10 @@ async onWin(){
   UI.addEl(card);UI.updateHUD();
   await UI._wait(500);
   if(r.activeBounty&&r.scene==='bounty_arena'){
+    // Batch 5: Capture bounty — if not captured, fail with message
+    if(r.activeBounty.capture&&!r.activeBounty.captured){
+      UI.addN('You killed the target instead of capturing it. Bounty failed.','d');
+      r.activeBounty=null;GS.saveA();this._bountyReturn();return}
     this.completeBounty();return}
   // Map mode: dungeon or regular map node
   if(r.dungeonState){
@@ -3349,6 +3458,16 @@ async onDeath(){
     UI.addN('You fall, but drag yourself to safety\u2026','d');
     await UI._wait(800);
     this.failBounty();return}
+  // Batch 5: Sync reputation on death
+  this._syncReputation();
+  // Batch 5: Memorial wall entry
+  const lastEnemy=r.cs&&r.cs.enemy?r.cs.enemy.name:'the darkness';
+  const memEntry={name:r.name,cls:r.classes[0],species:r.species,level:r.level,cause:lastEnemy,adventure:r.adventure,ts:Date.now()};
+  const jmMem=GS.getJM();if(!jmMem.memorialWall)jmMem.memorialWall=[];
+  jmMem.memorialWall.push(memEntry);if(jmMem.memorialWall.length>100)jmMem.memorialWall.shift();
+  GS.setJM({memorialWall:jmMem.memorialWall});
+  // Batch 5: Check milestones on death
+  this._checkTavernMilestones();
   // Batch 4: Final meta-progression checks
   const cpEarned=GS.checkMilestones();
   const sfEarned=GS.checkSpiritfire();
@@ -3376,7 +3495,22 @@ deathLoad(){
   const sv=GS.getMSaves();
   for(let i=0;i<3;i++){if(sv[i]){GS.mLoad(i);UI.clearN();UI.restoreN();UI.updateHUD();SE.resume();return}}
 },
-deathNewRun(){UI.hideDeathScreen();GS.clearA();UI.clearN();UI.showCC()},
+deathNewRun(){
+  UI.hideDeathScreen();
+  const prevName=GS.run?GS.run.name:'an adventurer';
+  const tState=this._tavernState();
+  GS.clearA();UI.clearN();
+  // Batch 5: Hearthkeeper rebirth dialogue
+  const lines={
+    ember:['"...'+prevName+'... the fire remembers..."','"Another flame joins the hearth. Rest now."'],
+    spark:['"We lost '+prevName+'. Their fire joins the hearth."','"The flame burns on. A new soul stirs."'],
+    flame:['"'+prevName+' has fallen. Their courage feeds the flame."','"The tavern mourns. But the hearth endures. Rise, traveler."'],
+    hearth:['"'+prevName+' is gone. But their spirit warms this hall forever."','"The Hearthstone Tavern remembers all who fall. Now — begin again."']
+  };
+  const dlgLines=lines[tState]||lines.ember;
+  ML.openDlg('THE HEARTHKEEPER','Spirit of Spiritfire',dlgLines[0]+'\n\n'+dlgLines[1],
+    [{text:'"I will carry on."'}],()=>{UI.showCC()});
+},
 deathTitle(){UI.hideDeathScreen();GS.clearA();UI.clearN();
   UI.el.app.classList.remove('vis');UI.showLanding()},
 
@@ -3500,6 +3634,194 @@ brynn(){
         ML.openDlg('BRYNN','The Innkeeper','"Rest easy. The hearth heals all."',[{text:'"Thank you."'}],()=>{UI.addN('HP and MP fully restored. Status effects cleared.','s')})}
       else{}})},
 
+// === BATCH 5: TAVERN NPC SYSTEM ===
+
+_tavernNPCs(){
+  const jm=GS.getJM();if(!jm.recruitedNPCs)return['tvn_hearthkeeper'];
+  return Object.keys(jm.recruitedNPCs).filter(k=>jm.recruitedNPCs[k]&&TAVERN_NPCS[k]);
+},
+_tavernState(){
+  const count=this._tavernNPCs().length;
+  if(count>=6)return'hearth';if(count>=4)return'flame';if(count>=2)return'spark';return'ember';
+},
+_npcRepTier(nid){
+  const jm=GS.getJM();const rep=jm.npcReputation&&jm.npcReputation[nid]||0;
+  for(let i=REPUTATION_TIERS.length-1;i>=0;i--){if(rep>=REPUTATION_TIERS[i].threshold)return REPUTATION_TIERS[i].key}
+  return'stranger';
+},
+_npcDiscount(nid){
+  const tier=this._npcRepTier(nid);
+  const t=REPUTATION_TIERS.find(t=>t.key===tier);return t?t.discount:0;
+},
+_changeRep(nid,amount){
+  const r=GS.run;if(!r)return;
+  if(!r.npcRepGains)r.npcRepGains={};
+  r.npcRepGains[nid]=(r.npcRepGains[nid]||0)+amount;
+},
+_syncReputation(){
+  const r=GS.run;if(!r||!r.npcRepGains)return;
+  const jm=GS.getJM();if(!jm.npcReputation)jm.npcReputation={};
+  Object.entries(r.npcRepGains).forEach(([nid,amt])=>{
+    jm.npcReputation[nid]=(jm.npcReputation[nid]||0)+amt;
+    if(jm.npcReputation[nid]<0)jm.npcReputation[nid]=0;
+  });
+  GS.setJM({npcReputation:jm.npcReputation});
+},
+_checkRecruitment(){
+  const jm=GS.getJM();if(!jm.recruitedNPCs)jm.recruitedNPCs={tvn_hearthkeeper:true};
+  let recruited=false;
+  Object.entries(TAVERN_NPCS).forEach(([nid,npc])=>{
+    if(jm.recruitedNPCs[nid])return;
+    if(!npc.recruitCondition)return;
+    const c=npc.recruitCondition;let met=false;
+    switch(c.type){
+      case'exploration_event':
+        met=!!jm['event_'+c.event];break;
+      case'spiritfire_tier':
+        met=(jm.spiritfire||0)>=c.sfCost;break;
+      case'bounties_or_spiritfire':
+        met=(jm.totalBounties||0)>=c.bounties||((jm.spiritfire||0)>=c.sfCost);break;
+      case'pedia_pct':
+        const comp=_pediaCompletion();
+        const totalComp=PEDIA_SECTIONS.reduce((s,sec)=>{const cv=comp[sec.key];return s+(cv&&cv.total?cv.found:0)},0);
+        const totalTotal=PEDIA_SECTIONS.reduce((s,sec)=>{const cv=comp[sec.key];return s+(cv?cv.total:0)},0);
+        met=totalTotal>0&&(totalComp/totalTotal*100)>=c.value;break;
+      case'all_adventures':
+        const ac=jm.adventuresCompleted||{};
+        met=ac.muddy_trail&&ac.iron_hollows&&ac.ashen_waste;break;
+    }
+    if(met){
+      // Handle spiritfire cost deductions
+      if(c.type==='spiritfire_tier'){jm.spiritfire=(jm.spiritfire||0)-c.sfCost}
+      if(c.type==='bounties_or_spiritfire'&&!((jm.totalBounties||0)>=c.bounties)){jm.spiritfire=(jm.spiritfire||0)-c.sfCost}
+      jm.recruitedNPCs[nid]=true;recruited=true;
+      // Update tavern state
+      const count=Object.keys(jm.recruitedNPCs).filter(k=>jm.recruitedNPCs[k]).length;
+      if(count>=6)jm.tavernState='hearth';else if(count>=4)jm.tavernState='flame';else if(count>=2)jm.tavernState='spark';else jm.tavernState='ember';
+      // Recruitment narrative
+      const narratives={
+        tvn_smith:'A figure steps through the door, soot on her arms. "I heard there\'s warmth here now." The Smith has joined the Hearthstone Tavern.',
+        tvn_apothecary:'A slight figure in herb-stained robes appears at the threshold. "Someone here needs healing, I think." The Apothecary has joined the Hearthstone Tavern.',
+        tvn_drifter:'A shadow detaches from the darkness. "I heard there\'s warmth here now," says a hooded figure. The Drifter has joined the Hearthstone Tavern.',
+        tvn_captain:'Boots on stone. A stern woman in battered armor enters, map already in hand. "I hear you need organization." The Captain has joined the Hearthstone Tavern.',
+        tvn_scholar:'A bespectacled figure peers through the doorway, arms full of books. "Is this the place with the bestiary?" The Scholar has joined the Hearthstone Tavern.',
+        tvn_exile:'Something vast and still settles into the darkest corner. No words. No announcement. The Exile has arrived.'
+      };
+      showToast(npc.name+' has joined the tavern!','success');
+      if(narratives[nid])UI.addN(narratives[nid],'s');
+    }
+  });
+  if(recruited)GS.setJM({recruitedNPCs:jm.recruitedNPCs,tavernState:jm.tavernState,spiritfire:jm.spiritfire});
+},
+
+talkTavernNPC(nid){
+  const r=GS.run,jm=GS.getJM();
+  const npc=TAVERN_NPCS[nid];if(!npc)return;
+  const rep=jm.npcReputation&&jm.npcReputation[nid]||0;
+  const tier=this._npcRepTier(nid);
+  const pool=npc.dialoguePool[tier]||npc.dialoguePool.stranger;
+  // Rotating greeting
+  if(!jm.lastDialogueIdx)jm.lastDialogueIdx={};
+  const greetIdx=(jm.lastDialogueIdx[nid]||0)%pool.greetings.length;
+  jm.lastDialogueIdx[nid]=greetIdx+1;
+  GS.setJM({lastDialogueIdx:jm.lastDialogueIdx});
+  const greeting=pool.greetings[greetIdx];
+  // Build options
+  const opts=[];
+  // Services
+  if(npc.services.includes('heal')){
+    opts.push({text:'"Heal me."',cb:()=>{r.hp=r.mHP;r.mp=r.mMP;if(r.debuffs)r.debuffs=[];GS.saveA();UI.updateHUD();
+      ML.openDlg(npc.name.toUpperCase(),npc.title,'"There. The fire mends what the darkness breaks."',[{text:'"Thank you."'}],()=>{UI.addN('HP and MP fully restored. Status effects cleared.','s')})}})
+  }
+  if(npc.services.includes('heal_better')){
+    opts.push({text:'"Heal me."',cb:()=>{r.hp=r.mHP;r.mp=r.mMP;if(r.debuffs)r.debuffs=[];GS.saveA();UI.updateHUD();
+      ML.openDlg(npc.name.toUpperCase(),npc.title,'"Drink this. You\'ll feel better."',[{text:'"Thank you."'}],()=>{UI.addN('HP and MP fully restored. Status effects cleared.','s')})}})
+  }
+  if(npc.services.includes('shop')&&npc.shop){
+    const discount=this._npcDiscount(nid);
+    opts.push({text:'"Show me your wares."',cb:()=>{
+      if(discount>0)r._shopDiscount=discount;
+      this._openTavernShop(nid);
+    }})
+  }
+  if(npc.services.includes('bounty_board')){
+    opts.push({text:'"Check the bounty board."',cb:()=>{ML.closeAll();this.openBountyBoard()}})
+  }
+  if(npc.services.includes('shrine')){
+    const jm2=GS.getJM();
+    if((jm2.spiritfire&&jm2.spiritfire>0)||Object.keys(jm2.shrineUnlocks||{}).length)
+      opts.push({text:'"Visit the Spiritfire Shrine."',cb:()=>{ML.closeAll();ML.openShrine()}})
+  }
+  if(npc.services.includes('modifiers')){
+    opts.push({text:'"What challenges do you have?"',cb:()=>{
+      ML.openDlg(npc.name.toUpperCase(),npc.title,'"Run modifiers are available when replaying completed adventures. They increase difficulty — and rewards."',[{text:'"Good to know."'}],()=>{})}})
+  }
+  if(npc.services.includes('craft')&&nid==='tvn_smith'){
+    opts.push({text:'"Can you help me craft?"',cb:()=>{ML.closeAll();ML.openChar('craft')}})
+  }
+  // Speech-gated topics
+  if(pool.topics&&pool.topics.length){
+    pool.topics.forEach(topic=>{
+      if(topic.speechReq){
+        const canUse=r.stats.speech>=topic.speechReq;
+        opts.push({text:'[Speech '+topic.speechReq+'] '+topic.text,disabled:!canUse,cb:()=>{
+          ML.openDlg(npc.name.toUpperCase(),npc.title,topic.response,[{text:'"I see."'}],()=>{})}})
+      } else {
+        opts.push({text:topic.text,cb:()=>{
+          ML.openDlg(npc.name.toUpperCase(),npc.title,topic.response,[{text:'"I see."'}],()=>{})}})
+      }
+    })
+  }
+  opts.push({text:'"Farewell."',cb:()=>{}});
+  // Track visit reputation (1 per NPC per tavern entry, max 1)
+  if(!r.npcRepGains)r.npcRepGains={};
+  if(!r.npcRepGains['_visited_'+nid]){r.npcRepGains['_visited_'+nid]=true;this._changeRep(nid,1)}
+  // Show dialogue
+  const repLabel=tier!=='stranger'?' ['+tier+']':'';
+  ML.openDlg(npc.name.toUpperCase()+repLabel,npc.title,greeting,
+    opts.map(o=>({text:o.text,disabled:o.disabled})),
+    (i)=>{if(opts[i]&&opts[i].cb)opts[i].cb()});
+},
+
+_openTavernShop(nid){
+  const r=GS.run,npc=TAVERN_NPCS[nid];if(!npc||!npc.shop)return;
+  const discount=this._npcDiscount(nid);
+  const b=$('m-dlg-b');b.innerHTML='';
+  $('dlg-t').textContent=npc.name.toUpperCase();
+  b.innerHTML+='<div class="dlg-name">'+npc.name.toUpperCase()+'</div><div class="dlg-title">'+npc.title+'</div>';
+  b.innerHTML+='<div class="dtx" style="margin-bottom:12px">Gold: <span style="color:var(--gold)">'+(r.gold||0)+'g</span>'+(discount>0?' · <span style="color:var(--green)">'+Math.round(discount*100)+'% discount</span>':'')+'</div>';
+  b.innerHTML+='<div class="ist">Wares</div>';
+  npc.shop.stock.forEach(s=>{
+    const it=ITEMS[s.key];if(!it)return;
+    const finalPrice=discount>0?Math.floor(s.price*(1-discount)):s.price;
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
+    row.innerHTML='<div><strong>'+rarityName(it)+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
+    const btn=document.createElement('button');btn.className='iab';btn.textContent='Buy ('+finalPrice+'g)';
+    btn.disabled=(r.gold||0)<finalPrice;
+    btn.onclick=()=>{if((r.gold||0)<finalPrice)return;
+      r.gold-=finalPrice;r.bp.push({...ITEMS[s.key]});GS.saveA();UI.updateHUD();
+      UI.addN('Bought '+it.name+' for '+finalPrice+'g.','s');this._openTavernShop(nid)};
+    row.appendChild(btn);b.appendChild(row)});
+  // Sell section
+  b.innerHTML+='<div class="ist" style="margin-top:12px">Sell</div>';
+  const sellable=r.bp.map((it,i)=>({it,i})).filter(x=>x.it.value&&!x.it.undrop);
+  if(!sellable.length)b.innerHTML+='<div style="font-size:.85rem;color:var(--text3);font-style:italic">Nothing to sell.</div>';
+  sellable.forEach(({it})=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
+    row.innerHTML='<div><strong>'+rarityName(it)+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
+    const sp=sellPrice(it);
+    const btn=document.createElement('button');btn.className='iab';btn.textContent='Sell ('+sp+'g)';
+    btn.onclick=()=>{r.bp.splice(r.bp.indexOf(it),1);if(!r.gold)r.gold=0;r.gold+=sp;GS.saveA();UI.updateHUD();
+      UI.addN('Sold '+it.name+' for '+sp+'g.','s');this._openTavernShop(nid)};
+    row.appendChild(btn);b.appendChild(row)});
+  const doneBtn=document.createElement('button');doneBtn.className='mbtn';doneBtn.textContent='Done';doneBtn.style.marginTop='12px';
+  doneBtn.onclick=()=>{delete r._shopDiscount;ML.closeAll()};b.appendChild(doneBtn);
+  ML.open('m-dlg');
+  const modal=$('m-dlg');const mx=modal.querySelector('.mx');if(mx)mx.style.display='';
+},
+
 talkNPC(nid){
   const r=GS.run,npc=NPCS[nid];if(!npc||!npc.dialogue)return;
   const dlg=npc.dialogue;
@@ -3520,6 +3842,86 @@ _showDlgNode(nid,npc,node){
       if(opt.next){const nextNode=NPCS[nid].dialogue[opt.next];
         if(nextNode)this._showDlgNode(nid,npc,nextNode)}});
 },
+// Batch 5: Milestone progress helper
+_getMilestoneProgress(mid,ms,jm){
+  const key=ms.trackKey;
+  switch(key){
+    case'totalKills':return(jm.runHistory&&jm.runHistory.totalKills)||0;
+    case'adventuresCompleted':return Object.keys(jm.adventuresCompleted||{}).filter(k=>jm.adventuresCompleted[k]).length;
+    case'totalBounties':return jm.totalBounties||0;
+    case'regionsVisited':return Object.keys(jm.atlas||{}).length;
+    case'totalRuns':return(jm.runHistory&&jm.runHistory.totalRuns)||0;
+    case'recruitedCount':return Object.keys(jm.recruitedNPCs||{}).filter(k=>jm.recruitedNPCs[k]).length;
+    case'bestLevel':return(jm.runHistory&&jm.runHistory.bestLevel)||0;
+    case'recipesFound':return Object.keys(jm.recipes||{}).length;
+    case'bestiaryEntries':return Object.keys(jm.bestiary||{}).length;
+    case'classesPlayed':return Object.keys(jm.codex||{}).filter(k=>jm.codex[k]&&jm.codex[k].played).length;
+    case'totalBountyGold':return jm.totalBountyGold||0;
+    case'dungeonsCompleted':return jm.dungeonsCompleted||0;
+    case'pediaPct':
+      const comp=_pediaCompletion();
+      const tc=PEDIA_SECTIONS.reduce((s,sec)=>{const c=comp[sec.key];return s+(c&&c.total?c.found:0)},0);
+      const tt=PEDIA_SECTIONS.reduce((s,sec)=>{const c=comp[sec.key];return s+(c?c.total:0)},0);
+      return tt>0?Math.floor(tc/tt*100):0;
+    default:return 0;
+  }
+},
+_checkTavernMilestones(){
+  const jm=GS.getJM();
+  if(!jm.tavMilestonesClaimed)jm.tavMilestonesClaimed={};
+  let anyEarned=false;
+  Object.entries(MILESTONES).forEach(([mid,ms])=>{
+    if(jm.tavMilestonesClaimed[mid])return;
+    const prog=this._getMilestoneProgress(mid,ms,jm);
+    if(prog>=ms.target){
+      jm.tavMilestonesClaimed[mid]=true;anyEarned=true;
+      // Grant reward
+      if(ms.reward.gold){const r=GS.run;if(r){r.gold=(r.gold||0)+ms.reward.gold;GS.saveA()}}
+      if(ms.reward.spiritfire){jm.spiritfire=(jm.spiritfire||0)+ms.reward.spiritfire}
+      if(ms.reward.bountyGoldBonus){if(!jm.bountyGoldBonus)jm.bountyGoldBonus=0;jm.bountyGoldBonus+=ms.reward.bountyGoldBonus}
+      showToast('Milestone: '+ms.name,'success');
+    }
+  });
+  if(anyEarned)GS.setJM({tavMilestonesClaimed:jm.tavMilestonesClaimed,spiritfire:jm.spiritfire,bountyGoldBonus:jm.bountyGoldBonus});
+},
+// Batch 5: Class unlock system
+_checkClassUnlocks(){
+  const jm=GS.getJM();
+  if(!jm.unlockedClasses)jm.unlockedClasses=['fighter','ranger','gunslinger'];
+  const numUnlocked=jm.unlockedClasses.length;
+  // Find tiers where we meet the reqUnlocked but haven't unlocked all classes in that tier
+  const availableTiers=Object.entries(CLASS_UNLOCK_TIERS).filter(([,tier])=>{
+    if(numUnlocked<tier.reqUnlocked)return false;
+    return tier.classes.some(cl=>!jm.unlockedClasses.includes(cl))});
+  if(!availableTiers.length)return;
+  // Show class unlock choice for the first available tier
+  const [tierName,tier]=availableTiers[0];
+  const available=tier.classes.filter(cl=>!jm.unlockedClasses.includes(cl));
+  if(!available.length)return;
+  this._showClassUnlockChoice(available,tierName);
+},
+_showClassUnlockChoice(classes,tierName){
+  const b=$('m-dlg-b');b.innerHTML='';
+  $('dlg-t').textContent='CLASS UNLOCKED';
+  b.innerHTML+='<div class="dlg-name">NEW CLASS AVAILABLE</div><div class="dlg-title">Choose a class to unlock</div>';
+  b.innerHTML+='<div style="font-size:.9rem;color:var(--text2);margin-bottom:12px">Your accomplishments have proven you worthy. Choose a new class to unlock permanently.</div>';
+  classes.forEach(clKey=>{
+    const cl=CL[clKey];if(!cl)return;
+    const card=document.createElement('div');
+    card.style.cssText='padding:12px;margin-bottom:8px;background:var(--bg3);border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .15s';
+    let gearLine=cl.wpn?cl.wpn.name:'—';if(cl.arm)gearLine+=', '+cl.arm.name;if(cl.oh)gearLine+=', '+cl.oh.name;
+    const ccAb=cl.abilities?cl.abilities[0]:cl.ability;
+    card.innerHTML='<div style="color:var(--gold);font-weight:600;font-size:1rem">'+cl.name+'</div><div style="font-size:.9rem;color:var(--text2);margin-top:4px">'+cl.desc+'</div><div style="font-size:.8rem;color:var(--text3);margin-top:4px">Gear: '+gearLine+'</div>'+(ccAb?'<div style="font-size:.8rem;color:var(--gold);margin-top:4px">'+ccAb.name+': '+ccAb.desc+'</div>':'');
+    card.onmouseover=()=>{card.style.borderColor='var(--gold)'};card.onmouseout=()=>{card.style.borderColor='var(--border)'};
+    card.onclick=()=>{
+      const jm=GS.getJM();jm.unlockedClasses.push(clKey);GS.setJM({unlockedClasses:jm.unlockedClasses});
+      showToast(cl.name+' unlocked!','success');ML.closeAll();
+      UI.addN(cl.name+' class is now available for future adventures!','s')};
+    b.appendChild(card)});
+  ML.open('m-dlg');
+  const modal=$('m-dlg');const mx=modal.querySelector('.mx');if(mx)mx.style.display='none';
+},
+
 _dlgEffect(eff,nid){
   const r=GS.run;
   if(eff==='heal'){r.hp=r.mHP;r.mp=r.mMP;if(r.debuffs)r.debuffs=[];GS.saveA();UI.updateHUD();UI.addN('HP and MP fully restored. Status effects cleared.','s')}
@@ -3567,10 +3969,21 @@ openShop(nid){
 },
 _generateBountyBoard(){
   const r=GS.run,lvl=r.level;
+  const jm=GS.getJM();
+  // Batch 5: Dynamic board size based on recruitment
+  let boardSize=3;
+  if(jm.recruitedNPCs&&jm.recruitedNPCs.tvn_drifter)boardSize=5;
+  if(jm.shrineUnlocks&&jm.shrineUnlocks.shr_bounty)boardSize=7;
+  const hasDrifter=jm.recruitedNPCs&&jm.recruitedNPCs.tvn_drifter;
   const pool=Object.entries(BOUNTIES).filter(([,b])=>{
     if(lvl<=3)return b.tier<=2;if(lvl<=6)return b.tier<=3;return true});
   const shuffled=pool.sort(()=>Math.random()-0.5);
-  return shuffled.slice(0,Math.min(5,shuffled.length)).map(([id,b])=>({id,...b}));
+  return shuffled.slice(0,Math.min(boardSize,shuffled.length)).map(([id,b])=>{
+    // Batch 5: Include capture flag if drifter recruited and bounty supports it
+    const entry={id,...b};
+    if(b.capture&&hasDrifter)entry.captureAvailable=true;
+    return entry;
+  });
 },
 
 openBountyBoard(){
@@ -3580,26 +3993,48 @@ openBountyBoard(){
   if(!r.completedQuests)r.completedQuests={};
   if(!r.questProgress)r.questProgress={};
   GS.saveA();
+  const jm=GS.getJM();
   const b=$('m-dlg-b');b.innerHTML='';
   $('dlg-t').textContent='BOUNTY BOARD';
   b.innerHTML+='<div class="dlg-name">BOUNTY BOARD</div><div class="dlg-title">The Hearthstone Tavern</div>';
-  b.innerHTML+='<div class="dtx" style="margin-bottom:8px">Gold: <span style="color:var(--gold)">'+(r.gold||0)+'g</span> \u00b7 Level '+r.level+'</div>';
-  b.innerHTML+='<div class="ist">Bounties</div>';
+  b.innerHTML+='<div class="dtx" style="margin-bottom:8px">Gold: <span style="color:var(--gold)">'+(r.gold||0)+'g</span> \u00b7 Level '+r.level+' \u00b7 Bounties: '+(jm.totalBounties||0)+'</div>';
+  // Batch 5: Tab bar for Bounties / Quests / Milestones
+  const tabBar=document.createElement('div');tabBar.className='tab-bar';
+  const tabs=['Bounties','Quests','Milestones'];const tabKeys=['bounties','quests','milestones'];
+  const panels={};
+  tabs.forEach((tn,ti)=>{
+    const tb=document.createElement('button');tb.className='tab-btn'+(ti===0?' act':'');tb.textContent=tn;
+    const pg=document.createElement('div');pg.className='tab-panel'+(ti===0?' act':'');
+    tb.onclick=()=>{tabBar.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('act'));
+      Object.values(panels).forEach(x=>x.classList.remove('act'));tb.classList.add('act');pg.classList.add('act')};
+    tabBar.appendChild(tb);panels[tabKeys[ti]]=pg});
+  // Bounties panel
+  const bp=panels.bounties;
   r.bountyBoard.forEach(bn=>{
     const enemy=ENEMIES[bn.enemy];if(!enemy)return;
     const row=document.createElement('div');
-    row.style.cssText='padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
-    row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="color:var(--text)">'+bn.name+'</strong><span class="tier-badge tier-'+bn.tier+'">'+TIER_LABELS[bn.tier]+'</span></div><div style="font-size:.85rem;color:var(--text2)">'+bn.desc+'</div><div style="font-size:.8rem;color:var(--text3);margin-top:4px">Target: '+enemy.name+' \u00b7 Reward: <span style="color:var(--gold)">'+bn.goldReward+'g</span> + '+bn.xpReward+' XP</div>';
-    const btn=document.createElement('button');btn.className='iab';btn.style.cssText='margin-top:6px';btn.textContent='Accept Bounty';
-    btn.onclick=()=>{r.activeBounty={id:bn.id,enemy:bn.enemy,goldReward:bn.goldReward,xpReward:bn.xpReward,name:bn.name};
+    const isCapture=bn.captureAvailable;
+    row.style.cssText='padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid '+(isCapture?'var(--green)':'var(--border)')+';border-radius:6px';
+    // Batch 5: Diminishing returns display
+    const completionCount=jm.bountyCompletions&&jm.bountyCompletions[bn.enemy]||0;
+    const dimFactor=Math.max(0.4,1-completionCount*0.15);
+    const displayGold=Math.floor(bn.goldReward*dimFactor);
+    let badges='<span class="tier-badge tier-'+bn.tier+'">'+TIER_LABELS[bn.tier]+'</span>';
+    if(isCapture)badges+='<span style="font-size:.65rem;padding:1px 5px;border-radius:3px;background:rgba(90,156,106,.15);color:var(--green);border:1px solid var(--green);margin-left:4px">CAPTURE</span>';
+    row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="color:var(--text)">'+bn.name+'</strong>'+badges+'</div><div style="font-size:.85rem;color:var(--text2)">'+bn.desc+'</div><div style="font-size:.8rem;color:var(--text3);margin-top:4px">Target: '+enemy.name+' \u00b7 Reward: <span style="color:var(--gold)">'+displayGold+'g</span> + '+bn.xpReward+' XP'+(dimFactor<1?' <span style="color:var(--red)">(repeat)</span>':'')+'</div>';
+    if(isCapture)row.innerHTML+='<div style="font-size:.75rem;color:var(--green);margin-top:2px">Capture: Use Capture Net at ≤20% HP. Bonus Spiritfire + bestiary mastery.</div>';
+    const btn=document.createElement('button');btn.className='iab';btn.style.cssText='margin-top:6px';
+    btn.textContent=isCapture?'Accept Capture Bounty':'Accept Bounty';
+    btn.onclick=()=>{r.activeBounty={id:bn.id,enemy:bn.enemy,goldReward:bn.goldReward,xpReward:bn.xpReward,name:bn.name,capture:!!isCapture};
       r.bountyBoard=null;_unlockSystem('bounties');GS.saveA();ML.closeAll();this.startBounty()};
-    row.appendChild(btn);b.appendChild(row)});
+    row.appendChild(btn);bp.appendChild(row)});
   const refreshBtn=document.createElement('button');refreshBtn.className='iab';refreshBtn.style.cssText='margin-top:8px;width:100%';refreshBtn.textContent='Refresh Board';
   refreshBtn.onclick=()=>{r.bountyBoard=this._generateBountyBoard();GS.saveA();this.openBountyBoard()};
-  b.appendChild(refreshBtn);
-  b.innerHTML+='<div class="ist" style="margin-top:16px">Quests</div>';
+  bp.appendChild(refreshBtn);
+  // Quests panel
+  const qp=panels.quests;
   const available=Object.entries(QUESTS).filter(([id,q])=>!r.completedQuests[id]);
-  if(!available.length)b.innerHTML+='<div style="font-size:.85rem;color:var(--text3);font-style:italic">All quests completed!</div>';
+  if(!available.length)qp.innerHTML+='<div style="font-size:.85rem;color:var(--text3);font-style:italic">All quests completed!</div>';
   available.forEach(([id,q])=>{
     const accepted=r.activeQuests.includes(id);
     const prog=r.questProgress[id]||0;
@@ -3611,7 +4046,45 @@ openBountyBoard(){
     if(!accepted){const ab=document.createElement('button');ab.className='iab';ab.style.cssText='margin-top:6px';ab.textContent='Accept';
       ab.onclick=()=>{r.activeQuests.push(id);GS.saveA();this.openBountyBoard()};qd.appendChild(ab)}
     else{const tag=document.createElement('span');tag.style.cssText='display:inline-block;margin-top:6px;font-size:.8rem;color:var(--green)';tag.textContent='Accepted ('+prog+'/'+q.count+')';qd.appendChild(tag)}
-    b.appendChild(qd)});
+    qp.appendChild(qd)});
+  // Milestones panel
+  const mp=panels.milestones;
+  const claimed=jm.tavMilestonesClaimed||{};
+  const tierAMs=Object.entries(MILESTONES).filter(([,m])=>m.tier==='A');
+  const tierBMs=Object.entries(MILESTONES).filter(([,m])=>m.tier==='B');
+  mp.innerHTML+='<div class="ist">Breadcrumbs</div>';
+  tierAMs.forEach(([mid,ms])=>{
+    const prog=this._getMilestoneProgress(mid,ms,jm);
+    const done=!!claimed[mid];
+    const md=document.createElement('div');
+    md.style.cssText='padding:8px 10px;margin-bottom:4px;background:var(--bg3);border:1px solid '+(done?'var(--green)':'var(--border)')+';border-radius:6px';
+    const pct=Math.min(100,Math.floor(prog/ms.target*100));
+    let rewardStr='';if(ms.reward.gold)rewardStr+=ms.reward.gold+'g';if(ms.reward.spiritfire)rewardStr+=(rewardStr?'+':'')+ms.reward.spiritfire+' SF';
+    md.innerHTML='<div style="display:flex;justify-content:space-between"><strong style="color:'+(done?'var(--green)':'var(--text)')+';font-size:.9rem">'+ms.name+(done?' ✓':'')+'</strong><span style="font-size:.75rem;color:var(--text3)">'+rewardStr+'</span></div><div style="font-size:.8rem;color:var(--text2)">'+ms.desc+'</div>';
+    if(!done){
+      const bar=document.createElement('div');bar.style.cssText='margin-top:4px;height:4px;background:var(--bg);border-radius:2px;overflow:hidden';
+      bar.innerHTML='<div style="height:100%;width:'+pct+'%;background:var(--gold);border-radius:2px"></div>';
+      md.appendChild(bar);
+      md.innerHTML+='<div style="font-size:.7rem;color:var(--text3);margin-top:2px">'+Math.min(prog,ms.target)+'/'+ms.target+'</div>'
+    }
+    mp.appendChild(md)});
+  mp.innerHTML+='<div class="ist" style="margin-top:12px">Progression Gates</div>';
+  tierBMs.forEach(([mid,ms])=>{
+    const prog=this._getMilestoneProgress(mid,ms,jm);
+    const done=!!claimed[mid];
+    const md=document.createElement('div');
+    md.style.cssText='padding:8px 10px;margin-bottom:4px;background:var(--bg3);border:1px solid '+(done?'var(--green)':'var(--border)')+';border-radius:6px';
+    const pct=Math.min(100,Math.floor(prog/ms.target*100));
+    let rewardStr='';if(ms.reward.spiritfire)rewardStr+=ms.reward.spiritfire+' SF';if(ms.reward.bountyGoldBonus)rewardStr+='+10% bounty gold';
+    md.innerHTML='<div style="display:flex;justify-content:space-between"><strong style="color:'+(done?'var(--green)':'var(--text)')+';font-size:.9rem">'+ms.name+(done?' ✓':'')+'</strong><span style="font-size:.75rem;color:var(--text3)">'+rewardStr+'</span></div><div style="font-size:.8rem;color:var(--text2)">'+ms.desc+'</div>';
+    if(!done){
+      const bar=document.createElement('div');bar.style.cssText='margin-top:4px;height:4px;background:var(--bg);border-radius:2px;overflow:hidden';
+      bar.innerHTML='<div style="height:100%;width:'+pct+'%;background:var(--gold);border-radius:2px"></div>';
+      md.appendChild(bar);
+      md.innerHTML+='<div style="font-size:.7rem;color:var(--text3);margin-top:2px">'+Math.min(prog,ms.target)+'/'+ms.target+'</div>'
+    }
+    mp.appendChild(md)});
+  b.appendChild(tabBar);Object.values(panels).forEach(p=>b.appendChild(p));
   const doneBtn=document.createElement('button');doneBtn.className='mbtn';doneBtn.textContent='Done';doneBtn.style.marginTop='12px';
   doneBtn.onclick=()=>ML.closeAll();b.appendChild(doneBtn);
   ML.open('m-dlg');
@@ -3629,12 +4102,38 @@ startBounty(){
 
 async completeBounty(){
   const r=GS.run,bn=r.activeBounty;if(!bn)return;
-  if(!r.gold)r.gold=0;r.gold+=bn.goldReward;
+  if(!r.gold)r.gold=0;
+  // Batch 5: Diminishing returns
+  const jm=GS.getJM();if(!jm.bountyCompletions)jm.bountyCompletions={};
+  const completionCount=jm.bountyCompletions[bn.enemy]||0;
+  const dimFactor=Math.max(0.4,1-completionCount*0.15);
+  const goldReward=Math.floor(bn.goldReward*dimFactor);
+  r.gold+=goldReward;
   const xpRes=GS.addXP(bn.xpReward);
-  UI.addN('Bounty Complete: '+bn.name+'!','h');
-  UI.addN('Bonus reward: +'+bn.goldReward+'g, +'+xpRes.gained+' XP','s');
+  // Batch 5: Capture bounty bonus
+  const isCapture=bn.capture&&bn.captured;
+  UI.addN('Bounty Complete: '+bn.name+'!'+(isCapture?' (Captured!)':''),'h');
+  let rewardMsg='+'+goldReward+'g, +'+xpRes.gained+' XP';
+  if(dimFactor<1)rewardMsg+=' (repeat target — reduced reward)';
+  UI.addN('Bonus reward: '+rewardMsg,'s');
+  if(isCapture){
+    const sfBonus=2;jm.spiritfire=(jm.spiritfire||0)+sfBonus;
+    UI.addN('Capture bonus: +'+sfBonus+' Spiritfire!','s');
+    // Grant full bestiary entry for captured target
+    if(!jm.bestiary)jm.bestiary={};
+    if(jm.bestiary[bn.enemy])jm.bestiary[bn.enemy].defeatCount=Math.max(jm.bestiary[bn.enemy].defeatCount||0,3);
+  }
+  // Batch 5: Track bounty stats
+  jm.bountyCompletions[bn.enemy]=(jm.bountyCompletions[bn.enemy]||0)+1;
+  jm.totalBounties=(jm.totalBounties||0)+1;
+  jm.totalBountyGold=(jm.totalBountyGold||0)+goldReward;
+  GS.setJM({bountyCompletions:jm.bountyCompletions,totalBounties:jm.totalBounties,totalBountyGold:jm.totalBountyGold,spiritfire:jm.spiritfire,bestiary:jm.bestiary});
+  // Batch 5: Reputation gain for Hearthkeeper
+  this._changeRep('tvn_hearthkeeper',1);
   this._trackQuestProgress('bounty_complete');
   this._trackQuestProgress('defeat_'+bn.enemy);
+  // Batch 5: Check milestones
+  this._checkTavernMilestones();
   r.activeBounty=null;GS.saveA();UI.updateHUD();
   if(xpRes.leveled){
     const showLvl=(idx)=>{if(idx>=xpRes.lvls.length){this._bountyReturn();return}
@@ -3687,6 +4186,8 @@ runComplete(){
   const jm=GS.getJM();if(!jm.adventuresCompleted)jm.adventuresCompleted={};
   jm.adventuresCompleted[adv]=true;GS.setJM({adventuresCompleted:jm.adventuresCompleted});
   GS.checkMilestones();GS.checkSpiritfire();
+  // Batch 5: Sync reputation, check recruitment, class unlocks, milestones
+  this._syncReputation();this._checkRecruitment();this._checkTavernMilestones();this._checkClassUnlocks();
   const advNames={muddy_trail:'The Muddy Trail',iron_hollows:'The Iron Hollows',ashen_waste:'The Ashen Waste'};
   UI.addN((advNames[adv]||'Adventure')+' Complete!','h');
   UI.addN('XP earned: '+xpRes.gained+' (exploration bonus)','s');
@@ -3714,7 +4215,14 @@ runComplete(){
 },
 
 startAdventure(advId){
-  const r=GS.run;r.adventure=advId;r.cs=null;
+  const r=GS.run;
+  // Batch 5: Adventure gating — only gate from tavern exit, not if already in adventure
+  const jm=GS.getJM();
+  if(advId==='iron_hollows'&&(!jm.recruitedNPCs||!jm.recruitedNPCs.tvn_smith)&&r.scene==='tavern_hub'){
+    UI.addN('The Iron Hollows are locked. Recruit The Smith first.','d');return}
+  if(advId==='ashen_waste'&&(!jm.recruitedNPCs||!jm.recruitedNPCs.tvn_drifter)&&r.scene==='tavern_hub'){
+    UI.addN('The Ashen Waste is locked. Recruit The Drifter first.','d');return}
+  r.adventure=advId;r.cs=null;
   if(r.debuffs)r.debuffs=[];
   if(advId==='ashen_waste')r.ss.exit_tavern_hub_waste=true;
 
@@ -4336,13 +4844,25 @@ _offerBypass(node,enemyKey,enemy2Key){
 
 _resolveExploration(node){
   const r=GS.run;
+  const jm=GS.getJM();
   // Pick event from pool, respecting category weights and class matching
   const allEvents=Object.entries(EXPLORATION_EVENTS);
-  const eligible=allEvents.filter(([,ev])=>{
+  const eligible=allEvents.filter(([evId,ev])=>{
+    // Batch 5: Filter adventure-specific events to their adventure
+    if(ev.adventure&&ev.adventure!==r.adventure)return false;
+    // Don't re-show recruitment events that already succeeded
+    if(ev.reward&&ev.reward.type==='recruit'&&jm['event_'+evId])return false;
+    // Adventure-side NPC encounters: only if NPC was met before, ~15% weight
+    if(evId.endsWith('_encounter')){
+      if(!jm.adventureSideNPCsMet||!jm.adventureSideNPCsMet[evId])return Math.random()<0.15;
+    }
     if(ev.cat==='class_specific')return true; // show with generic fallback
     return true;
   });
+  if(!eligible.length)return; // safety
   const [evKey,ev]=eligible[Math.floor(Math.random()*eligible.length)];
+  // Batch 5: Track adventure-side NPC encounters
+  if(evKey.endsWith('_encounter')){if(!jm.adventureSideNPCsMet)jm.adventureSideNPCsMet={};jm.adventureSideNPCsMet[evKey]=true;GS.setJM({adventureSideNPCsMet:jm.adventureSideNPCsMet})}
   node.encounter={event:evKey};
 
   UI.clearN();
@@ -4708,6 +5228,30 @@ _giveReward(reward,r){
         else{const item=ITEMS[itemKey];
           if(item){r.bp.push({...item});UI.addN('Found: '+item.name+'!','s')}}
       }
+      break;
+    // Batch 5: NPC recruitment reward
+    case'recruit':
+      if(reward.npc){const jm=GS.getJM();jm['event_'+reward.npc.replace('tvn_','')+'_recruit']=true;
+        // Also set the event flag by the event name itself
+        const evName=Object.keys(EXPLORATION_EVENTS).find(k=>{const ev=EXPLORATION_EVENTS[k];return ev.reward&&ev.reward.type==='recruit'&&ev.reward.npc===reward.npc});
+        if(evName)jm['event_'+evName]=true;
+        GS.setJM(jm);SE._checkRecruitment()}
+      break;
+    // Batch 5: Shop event reward (adventure-side NPCs)
+    case'shop_event':
+      if(reward.stock){
+        const shopB=$('m-dlg-b');shopB.innerHTML='';
+        shopB.innerHTML+='<div class="ist">Supplies</div>';
+        shopB.innerHTML+='<div class="dtx" style="margin-bottom:8px">Gold: <span style="color:var(--gold)">'+(r.gold||0)+'g</span></div>';
+        reward.stock.forEach(s=>{const it=ITEMS[s.key];if(!it)return;
+          const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px';
+          row.innerHTML='<div><strong>'+rarityName(it)+'</strong><div style="font-size:.85rem;color:var(--text2)">'+it.desc+'</div></div>';
+          const btn=document.createElement('button');btn.className='iab';btn.textContent='Buy ('+s.price+'g)';
+          btn.disabled=(r.gold||0)<s.price;
+          btn.onclick=()=>{if((r.gold||0)<s.price)return;r.gold-=s.price;r.bp.push({...ITEMS[s.key]});GS.saveA();UI.updateHUD();UI.addN('Bought '+it.name+'.','s')};
+          row.appendChild(btn);shopB.appendChild(row)});
+        const done=document.createElement('button');done.className='mbtn';done.textContent='Done';done.style.marginTop='12px';done.onclick=()=>ML.closeAll();shopB.appendChild(done);
+        ML.open('m-dlg')}
       break;
   }
 },
