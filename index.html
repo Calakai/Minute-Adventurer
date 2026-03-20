@@ -1232,7 +1232,7 @@ newRun(nm,sp,subsp,cl,humanBonus,subclass){
     map:null,mapPos:null,mapRevealed:{},restBudget:{short:2,long:1},
     dungeonState:null,encounterHistory:[],deferredEffects:[],discoveredRecipes:{},npcRepGains:{},
     runStats:{damageDealt:0,damageTaken:0,turnsTotal:0,nodesExplored:0,goldEarned:0,goldSpent:0,consumablesUsed:0,abilitiesUsed:{},statusApplied:{},highestHit:0,startTime:Date.now()}};
-  this.run.modifiers=[];this.run.legendMode=false;
+  this.run.modifiers=[];this.run.legendMode=false;this.run.legendTier=0;
   {const jm=this.getJM();this.run.blessingActive=!!(jm.hearthkeeperBlessing&&jm.hearthkeeperBlessing.enabled)}
   // Batch 4: Record class in codex
   const jm=this.getJM();if(!jm.codex)jm.codex={};
@@ -1322,7 +1322,7 @@ _validateSave(p){if(!(p&&typeof p==='object'&&p.name&&p.species&&p.stats&&typeof
   if(!p.restBudget)p.restBudget={short:2,long:1};if(!p.dungeonState)p.dungeonState=null;
   if(!p.encounterHistory)p.encounterHistory=[];if(!p.deferredEffects)p.deferredEffects=[];
   if(p._mapReturnRegion===undefined)p._mapReturnRegion=null;if(!p.discoveredRecipes)p.discoveredRecipes={};
-  if(!p.modifiers)p.modifiers=[];if(p.legendMode===undefined)p.legendMode=false;if(!p.npcRepGains)p.npcRepGains={};
+  if(!p.modifiers)p.modifiers=[];if(p.legendMode===undefined)p.legendMode=false;if(p.legendTier===undefined)p.legendTier=0;if(!p.npcRepGains)p.npcRepGains={};
   if(!p.runStats)p.runStats={damageDealt:0,damageTaken:0,turnsTotal:0,nodesExplored:0,goldEarned:0,goldSpent:0,consumablesUsed:0,abilitiesUsed:{},statusApplied:{},highestHit:0,startTime:Date.now()};
   if(p.subclass===undefined)p.subclass=null;if(!p._treeEffects)p._treeEffects={maxHP:0,maxMP:0,meleeHit:0,rangedHit:0,meleeDmg:0,rangedDmg:0,critBonus:0,effMov:0,sight:0,speech:0,firstAttackBonus:0,firstHitReduction:0,damageReduction:0,damageVsDebuffed:0,damageVsMarked:0,lifestealPct:0,blockBonus:0,fleeBonus:0,freeZoneMove:0,statusDurationSelfMod:0,abilityCostReduce:{},abilityEnhance:{},statusChanceBonuses:{},statusDurationBonuses:{},passives:{},toggles:{},grantedAbilities:{},subclassUnlocks:[]};
   return true},
@@ -1439,7 +1439,7 @@ awardNewEntrySF(){
 // --- Batch 4: journalMeta migration ---
 _migrateJM(){
   const m=this.getJM();
-  if(m.version>=7)return;
+  if(m.version>=8)return;
   if(!m.bestiary)m.bestiary={};
   // Migrate old bestiary entries to include seenCount/defeatCount/tier
   Object.keys(m.bestiary).forEach(id=>{
@@ -1521,6 +1521,14 @@ _migrateJM(){
   if(st.showTips===undefined)st.showTips=true;
   this.setSettings(st);
   m.version=7;
+  // v7→v8: Batch 8 — Legend Mode, audio settings
+  if(!m.legendModeUnlocked)m.legendModeUnlocked=false;
+  const st8=this.getSettings();
+  if(st8.vol_sfx===undefined)st8.vol_sfx=50;
+  if(st8.vol_ambient===undefined)st8.vol_ambient=30;
+  if(st8.muteAll===undefined)st8.muteAll=false;
+  this.setSettings(st8);
+  m.version=8;
   try{localStorage.setItem('journalMeta',JSON.stringify(m))}catch(e){}
 }
 };
@@ -1689,7 +1697,17 @@ const CMB={
 start(ek,ek2){
   const t=ENEMIES[ek];
   if(!t){console.error('Missing enemy:',ek);showToast('Combat error: unknown enemy.','error');return null}
-  const mkEnemy=(tpl)=>{const e={...tpl,hp:tpl.mHP,zone:tpl.preferredZone||'mid',debuffs:[],intent:null,_baseDef:tpl.def,_defEroded:0,_bleedHits:0};return e};
+  const mkEnemy=(tpl)=>{const e={...tpl,hp:tpl.mHP,zone:tpl.preferredZone||'mid',debuffs:[],intent:null,_baseDef:tpl.def,_defEroded:0,_bleedHits:0};
+    // Batch 8: Legend Mode scaling
+    const _r=GS.run;if(_r&&_r.legendMode&&typeof LEGEND_MODE!=='undefined'){
+      const sc=LEGEND_MODE.scaling;
+      e.mHP=Math.ceil(e.mHP*sc.hp);e.hp=e.mHP;
+      e.atk=Math.ceil(e.atk*sc.atk);e._baseDef=e.def;
+      e.gold=Math.ceil((e.gold||0)*sc.gold);e.xp=Math.ceil((e.xp||0)*sc.xp);
+      // Empowered: tier 3+ enemies gain +2 ATK
+      if(_r.modifiers&&_r.modifiers.includes('legend_empowered')&&e.tier>=3)e.atk+=2;
+    }
+    return e};
   const enemies=[mkEnemy(t)];
   if(ek2&&ENEMIES[ek2])enemies.push(mkEnemy(ENEMIES[ek2]));
   const r=GS.run;
@@ -1703,6 +1721,8 @@ start(ek,ek2){
   // Back-compat: expose cs.enemy as first enemy
   Object.defineProperty(r.cs,'enemy',{get(){return this.enemies[this.targetIdx]||this.enemies[0]},enumerable:false});
   r.traitState.advantageUsed=false;r.traitState.vanishUsed=false;r.traitState.hidden=false;
+  // Batch 8: Veil of Endings — start combat Hidden
+  if(r.arm&&r.arm._legendHidden)r.traitState.hidden=true;
   r.verbUsed=false;
   enemies.forEach(e=>GS.recEnc(e.id));
   // Batch 4: cache bestiary level for HUD gating
@@ -1817,7 +1837,7 @@ pAct(act){
     ms.push(...this._resolveAbility(ab,r,cs,e,cost));
     break}
   case'block':{
-    cs.blocking=true;
+    cs.blocking=true;SFX.block();
     const tier=getBlockTier(r);
     const oh=r.oh;
     GS.trackClassStat('blocks',1);_unlockSystem('block_tiers');
@@ -2165,6 +2185,10 @@ _resolveVerb(r,cs){
 // --- Status effect application ---
 _applyStatus(target,type,duration,ms,dmg){
   if(!target.debuffs)target.debuffs=[];
+  // Batch 8: Iron Will — enemies resist first status per combat
+  const _r=GS.run;if(_r&&_r.legendMode&&_r.modifiers&&_r.modifiers.includes('legend_iron_will')&&_r.cs&&target!==_r&&!_r.cs._legendIronWillUsed){
+    _r.cs._legendIronWillUsed=true;ms.push({t:`${target.name||'Enemy'} resists the status! (Iron Will)`,c:'y'});return;
+  }
   const seDef=STATUS_EFFECTS[type];const label=seDef?seDef.name:type;
   _unlockSystem('status_effects');
   if(typeof TOOLTIP_TEXT!=='undefined'&&seDef)TT.show('tt_status',TOOLTIP_TEXT.tt_status.replace('{name}',seDef.name).replace('{desc}',seDef.desc));
@@ -2180,7 +2204,7 @@ _applyStatus(target,type,duration,ms,dmg){
   if(existing){existing.remaining=Math.max(existing.remaining,dur);
     ms.push({t:`${label} on ${target.name||'target'} refreshed! (${dur} turns)`,c:'s'})}
   else{target.debuffs.push({type,dmg:dmg||0,remaining:dur});
-    ms.push({t:`${target.name||'Target'} afflicted with ${label}! (${dur} turns${dmg>0?', '+dmg+' dmg/turn':''})`,c:'s'})}},
+    ms.push({t:`${target.name||'Target'} afflicted with ${label}! (${dur} turns${dmg>0?', '+dmg+' dmg/turn':''})`,c:'s'});SFX.statusApply()}},
 
 // --- Synergy check ---
 _hasSynergy(target,synergyKey){
@@ -2358,6 +2382,11 @@ eTurn(e,cs,r){
       ms.push({t:`${e.name} moves to ${e.zone} range.`,c:'y'})}}
   // Enemy attack
   ms.push(...this._enemyAttack(e,cs,r));
+  // Batch 8: Relentless — enemy acts twice when below 25% HP
+  if(r.legendMode&&r.modifiers&&r.modifiers.includes('legend_relentless')&&e.hp>0&&e.hp/e.mHP<0.25){
+    ms.push({t:`${e.name} strikes again! (Relentless)`,c:'d'});
+    ms.push(...this._enemyAttack(e,cs,r));
+  }
   return ms},
 
 // --- Batch 7B: Betrayer boss damage through player defenses ---
@@ -2560,7 +2589,7 @@ bind(){
     if(e.key==='Escape'){ML.closeAll();this.closeActionSheet()}};
 },
 vvp(){if(window.visualViewport){const a=()=>{$('app').style.height=window.visualViewport.height+'px'};window.visualViewport.addEventListener('resize',a);window.visualViewport.addEventListener('scroll',a)}},
-showLanding(){this.el.landing.classList.remove('hidden');this.el.app.classList.remove('vis');this.buildLandingButtons();Particles.start()},
+showLanding(){this.el.landing.classList.remove('hidden');this.el.app.classList.remove('vis');this.buildLandingButtons();Particles.start();SFX.stopAmbient();AtmoFX.stop()},
 buildLandingButtons(){
   const b=this.el.landBtns;b.innerHTML='';
   const res=GS.loadA();
@@ -2699,7 +2728,8 @@ updateHUD(){const r=GS.run;if(!r)return;
   PA.renderPortrait(this.el.hp,r.species);
   const clName=CL[r.classes[0]]?CL[r.classes[0]].name:r.classes[0];
   const subLabel=r.subclass&&CLASS_TREE[r.classes[0]]&&CLASS_TREE[r.classes[0]].subclasses[r.subclass]?' ('+CLASS_TREE[r.classes[0]].subclasses[r.subclass].name+')':'';
-  this.el.hnc.textContent=r.name+' · '+clName+subLabel+' Lv'+r.level;
+  const legendBadge=r.legendMode?' [LEGEND]':'';
+  this.el.hnc.textContent=r.name+' · '+clName+subLabel+' Lv'+r.level+legendBadge;
   const hpp=Math.max(0,(r.hp/r.mHP)*100);this.el.hbi.style.width=hpp+'%';
   this.el.hbo.setAttribute('aria-valuenow',r.hp);this.el.hbo.setAttribute('aria-valuemax',r.mHP);
   this.el.htx.textContent=r.hp+'/'+r.mHP+' HP';
@@ -2997,7 +3027,7 @@ function useConsumable(it,r){
   r.bp.splice(idx,1);
   if(r.runStats)r.runStats.consumablesUsed++;
   const parts=[];
-  if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;parts.push('+'+h+' HP');GS.trackClassStat('hpHealed',h);_unlockSystem('consumables')}
+  if(it.heal){const h=Math.min(it.heal,r.mHP-r.hp);r.hp+=h;parts.push('+'+h+' HP');GS.trackClassStat('hpHealed',h);_unlockSystem('consumables');SFX.heal()}
   if(it.mana){const m=Math.min(it.mana,r.mMP-r.mp);r.mp+=m;parts.push('+'+m+' MP')}
   if(it.cure){if(!r.debuffs)r.debuffs=[];const bi=r.debuffs.findIndex(d=>d.type===it.cure);
     if(bi!==-1){r.debuffs.splice(bi,1);parts.push(it.cure+' cured')}
@@ -3044,6 +3074,12 @@ function checkRecipeDiscovery(r){
   return newFound}
 
 function rollLoot(enemy,modifiers){
+  // Batch 8: Legend loot — 8% chance from tier 3+ enemies in Legend Mode
+  const _r=GS.run;if(_r&&_r.legendMode&&typeof LEGEND_MODE!=='undefined'&&enemy.tier>=3&&CALC.roll100()<=8){
+    const legendKeys=['legend_crown','legend_blade','legend_tome','legend_cloak'];
+    const pick=legendKeys[Math.floor(Math.random()*legendKeys.length)];
+    if(ITEMS[pick])return{...ITEMS[pick]};
+  }
   if(!enemy.loot||!enemy.loot.length)return null;
   const total=enemy.loot.reduce((s,l)=>s+l.weight,0);
   let roll=Math.random()*total;
@@ -3390,9 +3426,13 @@ openMenu(){
     b.appendChild(_row('Colorblind Mode',_radio([{label:'Off',value:'off'},{label:'Deut',value:'deuteranopia'},{label:'Prot',value:'protanopia'},{label:'Trit',value:'tritanopia'}],st.colorblindMode||'off',v=>{st.colorblindMode=v;GS.setSettings(st);this.openMenu();setBtn.click()})));
     b.appendChild(_row('Show Tips',_toggle(st.showTips!==false,e=>{st.showTips=e.target.checked;
       if(e.target.checked){const jm3=GS.getJM();jm3.tutorialSeen={};GS.setJM({tutorialSeen:{}})}GS.setSettings(st)})));
-    // Category 4: Audio (placeholder)
+    // Category 4: Audio
+    const _slider=(val,onchange)=>{const s=document.createElement('input');s.type='range';s.min=0;s.max=100;s.value=val;
+      s.style.cssText='width:80px;accent-color:var(--gold)';s.oninput=()=>onchange(parseInt(s.value));return s};
     b.innerHTML+='<div class="ist" style="margin-top:12px;margin-bottom:8px">Audio</div>';
-    b.innerHTML+='<p style="color:var(--text3);font-size:.85rem;font-style:italic;margin-bottom:8px">Audio settings coming soon.</p>';
+    b.appendChild(_row('SFX Volume',_slider(st.vol_sfx!==undefined?st.vol_sfx:50,v=>{st.vol_sfx=v;GS.setSettings(st)})));
+    b.appendChild(_row('Ambient Volume',_slider(st.vol_ambient!==undefined?st.vol_ambient:30,v=>{st.vol_ambient=v;GS.setSettings(st)})));
+    b.appendChild(_row('Mute All',_toggle(!st.muteAll,e=>{st.muteAll=!e.target.checked;GS.setSettings(st);if(st.muteAll)SFX.stopAmbient()})));
     b.appendChild(backBtn('Back to menu'))};b.appendChild(setBtn);
   this.open('m-menu')},
 
@@ -3861,7 +3901,7 @@ async _startCombat(id,scene){
 
 async doCombatAction(cmd){
   if(UI._busy)return;
-  UI.setCombatBusy(true);
+  SFX.uiClick();UI.setCombatBusy(true);
   const cs0=CMB.gs();
   const eHPBefore=cs0?cs0.enemy.hp:0;
   const pHPBefore=GS.run?GS.run.hp:0;
@@ -3888,13 +3928,13 @@ async doCombatAction(cmd){
   for(const m of playerMs){UI.addN(m.t,m.c)}
   UI.updateBattleScene(true);
   const isCrit=playerMs.some(m=>m.t.includes('Critical')||m.t.includes('SHATTER'));
-  if(eDmgDealt>0)UI.combatFX(isCrit?'crit':'enemy_hit',eDmgDealt);
+  if(eDmgDealt>0){UI.combatFX(isCrit?'crit':'enemy_hit',eDmgDealt);if(isCrit)SFX.crit();else SFX.hit()}
   // Synergy flash
   if(cs1&&cs1._lastSynergy){UI.combatFX('synergy',cs1._lastSynergy);
     if(typeof TOOLTIP_TEXT!=='undefined')TT.show('tt_synergy',TOOLTIP_TEXT.tt_synergy);
     cs1._lastSynergy=null}
   const hasPlayerMiss=playerMs.some(m=>m.t.includes('MISS'));
-  if(hasPlayerMiss)UI.combatFX('miss');
+  if(hasPlayerMiss){UI.combatFX('miss');SFX.miss()}
   if(enemyMs.length){
     const tier=cs1&&cs1.enemy?cs1.enemy.tier||1:1;
     const suspenseDelay=Math.min(800,300+tier*80)/getSpeed();
@@ -3902,9 +3942,9 @@ async doCombatAction(cmd){
     if(!REDUCED_MOTION&&pDmgTaken>0)await new Promise(ok=>BattleRenderer.playAttack('enemy_attack',pDmgTaken,ok));
   }
   for(const m of enemyMs){UI.addN(m.t,m.c)}
-  if(pDmgTaken>0){UI.combatFX('player_hit',pDmgTaken)}
+  if(pDmgTaken>0){UI.combatFX('player_hit',pDmgTaken);SFX.hit()}
   const hasEnemyMiss=enemyMs.some(m=>m.t.includes('misses'));
-  if(hasEnemyMiss)UI.combatFX('miss');
+  if(hasEnemyMiss){UI.combatFX('miss');SFX.miss()}
   if(enemyMs.length)await UI._wait(REDUCED_MOTION?0:250);
   UI.updateHUD();
   const ca=CMB.gs();
@@ -4063,7 +4103,7 @@ handleAction(cmd){
 },
 
 async onWin(){
-  UI.setCombatMode(false);
+  UI.setCombatMode(false);SFX.victory();
   const cs=GS.run.cs,r=GS.run;if(!cs||!cs.enemy)return;
   const enemy=cs.enemy,xp=enemy.xp||0;
   const waves=r._combatWaves||[];
@@ -4123,7 +4163,7 @@ async onWin(){
     const lootRow=document.createElement('div');lootRow.className='vic-loot-row';
     lootRow.innerHTML='<span class="vic-loot-name">'+rarityName(loot)+'</span><span class="vic-loot-desc">'+loot.desc+'</span>';
     const takeBtn=document.createElement('button');takeBtn.className='vic-take-btn';takeBtn.textContent='Take';
-      takeBtn.onclick=()=>{r.bp.push(loot);GS.saveA();takeBtn.disabled=true;takeBtn.textContent='Taken';UI.updateHUD()};lootRow.appendChild(takeBtn)
+      takeBtn.onclick=()=>{r.bp.push(loot);GS.saveA();takeBtn.disabled=true;takeBtn.textContent='Taken';SFX.loot();UI.updateHUD()};lootRow.appendChild(takeBtn)
     card.appendChild(lootRow);
   }
 
@@ -4165,7 +4205,7 @@ async onWin(){
 },
 
 async onDeath(){
-  UI.setCombatMode(false);
+  UI.setCombatMode(false);SFX.defeat();
   const r=GS.run;
   if(r.activeBounty&&r.scene==='bounty_arena'){
     r.hp=1;GS.saveA();UI.updateHUD();
@@ -4830,6 +4870,8 @@ openBountyBoard(){
 startBounty(){
   const r=GS.run,bn=r.activeBounty;if(!bn)return;
   const enemy=ENEMIES[bn.enemy];if(!enemy){UI.addN('Bounty target unknown.','d');return}
+  // Batch 8: Bounty narrative intro
+  if(bn.storyIntro)UI.addN(bn.storyIntro,'f');
   const arenaScene=SCENE_DATA.bounty_arena;
   arenaScene.description='You track your quarry to a clearing. A '+enemy.name+' awaits.';
   arenaScene.events.combat=bn.enemy;
@@ -4848,6 +4890,8 @@ async completeBounty(){
   const xpRes=GS.addXP(bn.xpReward);
   // Batch 5: Capture bounty bonus
   const isCapture=bn.capture&&bn.captured;
+  // Batch 8: Bounty narrative complete
+  if(bn.storyComplete)UI.addN(bn.storyComplete,'f');
   UI.addN('Bounty Complete: '+bn.name+'!'+(isCapture?' (Captured!)':''),'h');
   let rewardMsg='+'+goldReward+'g, +'+xpRes.gained+' XP';
   if(dimFactor<1)rewardMsg+=' (repeat target — reduced reward)';
@@ -4917,6 +4961,7 @@ _trackQuestProgress(trigger){
 },
 
 runComplete(){
+  SFX.stopAmbient();AtmoFX.stop();
   const r=GS.run,adv=r.adventure||'muddy_trail',xpRes=GS.addXP(25);
   // Batch 7A: Aggregate run stats to Chronicle on win
   const rs=r.runStats||{};
@@ -4932,6 +4977,15 @@ runComplete(){
   GS.setJM({chronicle:ch});
   // Batch 4: Track adventure completion + milestone/spiritfire checksif(!jm.adventuresCompleted)jm.adventuresCompleted={};
   jm.adventuresCompleted[adv]=true;GS.setJM({adventuresCompleted:jm.adventuresCompleted});
+  // Batch 8: Legend Mode unlock — all 3 adventures completed
+  if(!jm.legendModeUnlocked){
+    const ac=jm.adventuresCompleted;
+    if(ac.muddy_trail&&ac.iron_hollows&&ac.ashen_waste){
+      jm.legendModeUnlocked=true;GS.setJM({legendModeUnlocked:true});
+      showToast('Legend Mode unlocked!','success');
+      UI.addN('You have conquered every trail. Legend Mode is now available when replaying adventures.','s');
+    }
+  }
   GS.checkMilestones();GS.checkSpiritfire();
   // Batch 5: Sync reputation, check recruitment, class unlocks, milestones
   this._syncReputation();this._checkRecruitment();this._checkTavernMilestones();this._checkClassUnlocks();
@@ -4954,7 +5008,7 @@ runComplete(){
     UI.updateHUD()};
   if(xpRes.leveled){
     const showLvl=(idx)=>{if(idx>=xpRes.lvls.length){afterLvl();return}
-      UI.addN('Level up! You are now level '+xpRes.lvls[idx]+'!','s');
+      UI.addN('Level up! You are now level '+xpRes.lvls[idx]+'!','s');SFX.levelUp();
       ML.openLvl(xpRes.lvls[idx],()=>showLvl(idx+1))};
     showLvl(0)}
   else afterLvl();
@@ -4974,7 +5028,6 @@ startAdventure(advId){
   if(advId==='ashen_waste')r.ss.exit_tavern_hub_waste=true;
 
   // Batch 4: Modifier selection (if adventure previously completed)
-  const jm=GS.getJM();
   if(jm.adventuresCompleted&&jm.adventuresCompleted[advId]&&!r._modifiersChosen){
     this._showModifierSelect(advId);return}
   r._modifiersChosen=false;
@@ -4988,6 +5041,7 @@ startAdventure(advId){
     r.scene='__map__';GS.saveA();
     UI.clearN();
     UI.addN('Entering '+REGION_DATA[advId].regions[0].name+'...','y');
+    SFX.startAmbient(advId);AtmoFX.start(advId);
     MAP._showMapAfterNode();
     return;
   }
@@ -5011,10 +5065,28 @@ _showModifierSelect(advId){
     btn.onclick=()=>{if(selected.has(key)){selected.delete(key);btn.classList.remove('sel')}else{selected.add(key);btn.classList.add('sel')}};
     wrap.appendChild(btn)});
   UI.addEl(wrap);
-  // Legend Mode placeholder
-  const lgDiv=document.createElement('div');lgDiv.style.cssText='margin:8px 0;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;opacity:.5';
-  lgDiv.innerHTML='<strong style="color:var(--text3)">Legend Mode</strong> <span style="font-size:.8rem;color:var(--text3)">[Requires The Exile (coming soon)]</span>';
-  UI.addEl(lgDiv);
+  // Batch 8: Legend Mode toggle
+  const jm2=GS.getJM();
+  if(jm2.legendModeUnlocked){
+    const lgDiv=document.createElement('div');lgDiv.style.cssText='margin:8px 0;padding:8px 12px;background:var(--bg3);border:2px solid var(--gold);border-radius:6px;cursor:pointer';
+    const lgCb=document.createElement('input');lgCb.type='checkbox';lgCb.checked=!!r.legendMode;lgCb.style.marginRight='8px';
+    lgCb.onchange=()=>{r.legendMode=lgCb.checked;r.legendTier=lgCb.checked?1:0};
+    lgDiv.appendChild(lgCb);
+    const lgLbl=document.createElement('span');lgLbl.innerHTML='<strong style="color:var(--gold)">Legend Mode</strong> <span style="font-size:.8rem;color:var(--text2)">Enemies scale 1.5\u00d7 HP, 1.3\u00d7 ATK. Better gold and XP rewards.</span>';
+    lgDiv.appendChild(lgLbl);
+    if(typeof LEGEND_MODE!=='undefined'){
+      LEGEND_MODE.modifiers.forEach(mod=>{
+        const mb=document.createElement('button');mb.className='mbtn';mb.style.cssText='font-size:.8rem;margin-top:6px';
+        mb.innerHTML='<strong>'+mod.name+'</strong><br><span style="color:var(--text2)">'+mod.desc+'</span>';
+        mb.onclick=()=>{if(selected.has(mod.id)){selected.delete(mod.id);mb.classList.remove('sel')}else{selected.add(mod.id);mb.classList.add('sel')}};
+        lgDiv.appendChild(mb)});
+    }
+    UI.addEl(lgDiv);
+  }else{
+    const lgDiv=document.createElement('div');lgDiv.style.cssText='margin:8px 0;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;opacity:.5';
+    lgDiv.innerHTML='<strong style="color:var(--text3)">Legend Mode</strong> <span style="font-size:.8rem;color:var(--text3)">[Complete all 3 adventures to unlock]</span>';
+    UI.addEl(lgDiv);
+  }
   const goBtn=document.createElement('button');goBtn.className='nav-btn';goBtn.style.marginTop='12px';
   goBtn.textContent='Begin Adventure \u2192';
   goBtn.onclick=()=>{r.modifiers=[...selected];r._modifiersChosen=true;this.startAdventure(advId)};
@@ -6232,11 +6304,91 @@ const Particles={
     this.raf=requestAnimationFrame(()=>this.loop())}
 };
 
+// === AUDIO SYSTEM (Batch 8) ===
+const SFX={
+  ctx:null,_enabled:true,
+  init(){if(REDUCED_MOTION)this._enabled=false},
+  _ensureCtx(){
+    if(!this.ctx){try{this.ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){this._enabled=false}}
+    return this.ctx},
+  _vol(ch){const st=GS.getSettings();if(st.muteAll)return 0;const v=st['vol_'+ch];return v!==undefined?v/100:0.5},
+  _tone(freq,dur,wave,vol,ch){
+    if(!this._enabled||REDUCED_MOTION)return;const ctx=this._ensureCtx();if(!ctx)return;
+    const v=vol*this._vol(ch||'sfx');if(v<=0)return;
+    const osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.type=wave||'square';osc.frequency.setValueAtTime(freq,ctx.currentTime);
+    gain.gain.setValueAtTime(v,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+dur)},
+  hit(){this._tone(200,.08,'square',.3);this._tone(100,.12,'sawtooth',.2)},
+  crit(){this._tone(400,.06,'square',.4);this._tone(200,.1,'square',.3);this._tone(100,.15,'sawtooth',.2)},
+  miss(){this._tone(300,.1,'sine',.15)},
+  block(){this._tone(150,.1,'triangle',.3);this._tone(100,.15,'triangle',.2)},
+  heal(){this._tone(523,.1,'sine',.25);setTimeout(()=>this._tone(659,.1,'sine',.2),60);setTimeout(()=>this._tone(784,.15,'sine',.15),120)},
+  levelUp(){this._tone(440,.1,'sine',.3);setTimeout(()=>this._tone(554,.1,'sine',.3),100);setTimeout(()=>this._tone(659,.12,'sine',.3),200);setTimeout(()=>this._tone(880,.2,'sine',.25),300)},
+  victory(){this._tone(523,.12,'sine',.3);setTimeout(()=>this._tone(659,.12,'sine',.25),120);setTimeout(()=>this._tone(784,.15,'sine',.25),240);setTimeout(()=>this._tone(1047,.3,'sine',.2),380)},
+  defeat(){this._tone(300,.2,'sawtooth',.3);setTimeout(()=>this._tone(200,.3,'sawtooth',.25),200);setTimeout(()=>this._tone(100,.5,'sawtooth',.2),500)},
+  loot(){this._tone(600,.08,'sine',.2);setTimeout(()=>this._tone(800,.1,'sine',.2),80)},
+  uiClick(){this._tone(800,.03,'square',.1)},
+  statusApply(){this._tone(250,.15,'sawtooth',.2)},
+  _ambOsc:null,_ambGain:null,
+  startAmbient(region){
+    if(!this._enabled||REDUCED_MOTION)return;this.stopAmbient();
+    const ctx=this._ensureCtx();if(!ctx)return;const v=this._vol('ambient');if(v<=0)return;
+    const freqs={muddy_trail:80,iron_hollows:60,ashen_waste:45};
+    this._ambOsc=ctx.createOscillator();this._ambGain=ctx.createGain();
+    this._ambOsc.type='sine';this._ambOsc.frequency.setValueAtTime(freqs[region]||70,ctx.currentTime);
+    this._ambGain.gain.setValueAtTime(v*0.05,ctx.currentTime);
+    this._ambOsc.connect(this._ambGain);this._ambGain.connect(ctx.destination);this._ambOsc.start()},
+  stopAmbient(){if(this._ambOsc){try{this._ambOsc.stop()}catch(e){}}this._ambOsc=null;this._ambGain=null}
+};
+
+// === ATMOSPHERE PARTICLES (Batch 8) ===
+const AtmoFX={
+  cvs:null,ctx:null,ps:[],running:false,raf:null,region:null,
+  CFGS:{
+    muddy_trail:{color:'rgba(100,140,80,',count:12,vx:[-.2,.2],vy:[.1,.4],r:[1,2]},
+    iron_hollows:{color:'rgba(200,120,40,',count:8,vx:[-.1,.1],vy:[-.3,-.1],r:[.5,1.5]},
+    ashen_waste:{color:'rgba(160,140,120,',count:15,vx:[-.3,.3],vy:[.2,.6],r:[1,2.5]}
+  },
+  start(region){
+    if(REDUCED_MOTION)return;this.stop();this.region=region;
+    const cfg=this.CFGS[region];if(!cfg)return;
+    this.cvs=document.createElement('canvas');
+    this.cvs.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.4';
+    document.getElementById('app').appendChild(this.cvs);
+    this.ctx=this.cvs.getContext('2d');this._resize();
+    this.ps=[];for(let i=0;i<cfg.count;i++)this.ps.push(this._sp(cfg));
+    this.running=true;this._loop()},
+  stop(){this.running=false;if(this.raf)cancelAnimationFrame(this.raf);
+    if(this.cvs&&this.cvs.parentNode)this.cvs.remove();this.cvs=null},
+  _resize(){if(!this.cvs)return;this.cvs.width=window.innerWidth;this.cvs.height=window.innerHeight},
+  _sp(cfg){return{x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,
+    r:cfg.r[0]+Math.random()*(cfg.r[1]-cfg.r[0]),
+    vx:cfg.vx[0]+Math.random()*(cfg.vx[1]-cfg.vx[0]),
+    vy:cfg.vy[0]+Math.random()*(cfg.vy[1]-cfg.vy[0]),
+    o:.05+Math.random()*.15}},
+  _loop(){
+    if(!this.running||!this.cvs)return;
+    const c=this.ctx,w=this.cvs.width,h=this.cvs.height,cfg=this.CFGS[this.region];
+    c.clearRect(0,0,w,h);
+    this.ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;
+      if(p.y>h+10||p.y<-10||p.x>w+10||p.x<-10){Object.assign(p,this._sp(cfg));p.y=cfg.vy[0]>0?-10:h+10}
+      c.beginPath();c.arc(p.x,p.y,p.r,0,Math.PI*2);c.fillStyle=cfg.color+p.o+')';c.fill()});
+    this.raf=requestAnimationFrame(()=>this._loop())}
+};
+
 // === INIT ===
 document.addEventListener('DOMContentLoaded',()=>{
   GS._migrateJM();
+  SFX.init();
   UI.init();
   UI.showLanding();
+  // Resume AudioContext on first user interaction (browser autoplay policy)
+  const _resumeAudio=()=>{if(SFX.ctx&&SFX.ctx.state==='suspended')SFX.ctx.resume();
+    document.removeEventListener('click',_resumeAudio);document.removeEventListener('touchstart',_resumeAudio)};
+  document.addEventListener('click',_resumeAudio);document.addEventListener('touchstart',_resumeAudio);
+  window.addEventListener('resize',()=>AtmoFX._resize());
 });
 
 // === PWA SERVICE WORKER REGISTRATION ===

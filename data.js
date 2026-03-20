@@ -281,7 +281,7 @@ tome_of_dead:{name:'Tome of the Dead',t:'spellbook',wt:1,rarity:2,desc:'Necroman
 hex_totem:{name:'Hex Totem',t:'spellbook',wt:1,rarity:2,desc:'Warlock focus. Channels curse energy.',value:35},
 
 // === CONSUMABLES — TACTICAL ===
-smoke_bomb:{name:'Smoke Bomb',t:'consumable',wt:0,rarity:1,desc:'Guaranteed flee from any zone. Any class.',value:18,guaranteedFlee:true},
+smoke_bomb:{name:'Smoke Bomb',t:'consumable',wt:0,rarity:1,desc:'Guaranteed flee from any zone. Any class.',value:24,guaranteedFlee:true},
 map_fragment:{name:'Map Fragment',t:'consumable',wt:0,rarity:1,desc:'Reveals all node types in the current region.',value:25,mapReveal:true},
 capture_net:{name:'Capture Net',t:'consumable',wt:0,rarity:1,desc:'Use on an enemy at 20% HP or less to capture for bounty.',value:15,captureItem:true},
 
@@ -321,7 +321,13 @@ lich_dust:{name:'Lich Dust',t:'misc',wt:0,rarity:2,desc:'Powdered bone from an u
 demon_horn:{name:'Demon Horn',t:'misc',wt:1,rarity:3,desc:'A curved horn of obsidian black. Pulses with malice.',value:55},
 troll_blood:{name:'Troll Blood',t:'misc',wt:0,rarity:1,desc:'Viscous green blood. Alchemists pay well for this.',value:30},
 banshee_essence:{name:'Banshee Essence',t:'misc',wt:0,rarity:1,desc:'Bottled wailing. Useful in rituals.',value:35},
-guide:{name:"Player's Guide",t:'key',wt:0,rarity:5,desc:'A weathered guide to combat, creatures, and the world.',undrop:true}
+guide:{name:"Player's Guide",t:'key',wt:0,rarity:5,desc:'A weathered guide to combat, creatures, and the world.',undrop:true},
+
+// === LEGEND MODE GEAR (rarity 5 — Unique) ===
+legend_crown:{name:'Crown of Ashes',t:'armor',wt:1,rarity:5,def:4,desc:'Forged in the fires of legend. +4 DEF.',value:200},
+legend_blade:{name:"Oathbreaker's Edge",t:'melee',wt:2,rarity:5,atk:12,dD:10,dB:4,desc:'The blade that broke an oath. Devastating.',value:250},
+legend_tome:{name:'Grimoire of the Exile',t:'spellbook',wt:1,rarity:5,mpRegen:3,desc:'Whispers of forgotten power. +3 MP per combat turn.',value:220},
+legend_cloak:{name:'Veil of Endings',t:'armor',wt:0,rarity:5,def:2,desc:'Woven from shadow. +2 DEF, start combat Hidden.',value:180,_legendHidden:true}
 };
 
 // === RECIPES (Crafting System) ===
@@ -676,13 +682,20 @@ bounty_arena:{name:'Bounty Hunt',subtitle:null,
 
 const BOUNTIES={
 // === ORIGINAL BOUNTIES (7) ===
-ooze_hunt:{name:'Ooze Hunt',enemy:'gray_ooze',tier:1,goldReward:10,xpReward:30,desc:'Clear the slimes from the trail.'},
-bog_sweep:{name:'Bog Sweep',enemy:'bog_wraith',tier:1,goldReward:12,xpReward:35,desc:'Lay a restless spirit to rest.'},
-spider_silk:{name:'Spider Silk',enemy:'giant_spider',tier:2,goldReward:18,xpReward:50,desc:'Harvest silk from the forest spiders.',capture:true},
-wolf_cull:{name:'Wolf Cull',enemy:'dire_wolf',tier:2,goldReward:22,xpReward:60,desc:'The wolves grow bold. Thin the pack.',capture:true},
-crawler_purge:{name:'Crawler Purge',enemy:'cave_crawler',tier:3,goldReward:28,xpReward:70,desc:'Clear the tunnels of crawling horrors.',capture:true},
-shade_hunt:{name:'Shade Hunt',enemy:'mine_shade',tier:4,goldReward:35,xpReward:90,desc:'Banish the flickering shadow from the deep halls.',capture:true},
-iron_challenge:{name:'Iron Challenge',enemy:'iron_golem',tier:5,goldReward:50,xpReward:120,desc:'Test your mettle against a construct of living iron.',capture:true},
+ooze_hunt:{name:'Ooze Hunt',enemy:'gray_ooze',tier:1,goldReward:10,xpReward:30,desc:'Clear the slimes from the trail.',
+  storyIntro:'A farmer reports something dissolving his fence posts overnight.',storyComplete:'The trail is cleaner now. The farmer tips his hat in thanks.'},
+bog_sweep:{name:'Bog Sweep',enemy:'bog_wraith',tier:1,goldReward:12,xpReward:35,desc:'Lay a restless spirit to rest.',
+  storyIntro:'Cold lights flicker in the bog at night. The locals refuse to go near.',storyComplete:'The bog falls silent. The dead can rest now.'},
+spider_silk:{name:'Spider Silk',enemy:'giant_spider',tier:2,goldReward:18,xpReward:50,desc:'Harvest silk from the forest spiders.',capture:true,
+  storyIntro:'A weaver needs spider silk for enchanted thread, but the source is deadly.',storyComplete:'The silk is gathered. The weaver will spin something remarkable.'},
+wolf_cull:{name:'Wolf Cull',enemy:'dire_wolf',tier:2,goldReward:22,xpReward:60,desc:'The wolves grow bold. Thin the pack.',capture:true,
+  storyIntro:'Livestock have been vanishing from the pastures. Massive paw prints lead into the woods.',storyComplete:'The pack will think twice before coming this close to the settlement again.'},
+crawler_purge:{name:'Crawler Purge',enemy:'cave_crawler',tier:3,goldReward:28,xpReward:70,desc:'Clear the tunnels of crawling horrors.',capture:true,
+  storyIntro:'Miners report skittering sounds in the deep shafts. Two have not returned.',storyComplete:'The tunnels are clear. The miners can work again.'},
+shade_hunt:{name:'Shade Hunt',enemy:'mine_shade',tier:4,goldReward:35,xpReward:90,desc:'Banish the flickering shadow from the deep halls.',capture:true,
+  storyIntro:'A shade has been sighted in the abandoned mine. Equipment vanishes, tools shatter on their own.',storyComplete:'The shade dissolves with a whisper. The deep halls grow still.'},
+iron_challenge:{name:'Iron Challenge',enemy:'iron_golem',tier:5,goldReward:50,xpReward:120,desc:'Test your mettle against a construct of living iron.',capture:true,
+  storyIntro:'The Iron Golem has reactivated. Its ancient programming knows only one directive: destroy.',storyComplete:'The golem falls with a grinding screech. Its core still pulses faintly.'},
 
 // === NEW BOUNTIES (18) ===
 rat_extermination:{name:'Rat Extermination',enemy:'moss_rat',tier:1,goldReward:8,xpReward:20,desc:'The moss rats are overrunning the trail. Thin them out.'},
@@ -1191,6 +1204,16 @@ famine:{name:'Famine',desc:'No health drops from enemies. Heal only from shops, 
 cursed_blood:{name:'Cursed Blood',desc:'Start every combat with a random negative status effect.'},
 one_life:{name:'One Life',desc:'No Undying Rage, no revival. True permadeath within run.'},
 hunted:{name:'Hunted',desc:'Every 5 combat turns, a reinforcement enemy appears.'}
+};
+
+// --- Phase 8-2A: Legend Mode (NG+) ---
+const LEGEND_MODE={
+  scaling:{hp:1.5,atk:1.3,def:1,gold:1.5,xp:1.3},
+  modifiers:[
+    {id:'legend_iron_will',name:'Iron Will',desc:'Enemies resist the first status effect applied each combat.'},
+    {id:'legend_relentless',name:'Relentless',desc:'Enemies act twice when below 25% HP.'},
+    {id:'legend_empowered',name:'Empowered',desc:'Tier 3+ enemies gain +2 ATK.'}
+  ]
 };
 
 // --- Phase 4F: Permanent unlock structures ---
